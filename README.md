@@ -2,7 +2,7 @@
 
 面向 Android `arm64-v8a` 共享库 `.so` 的全自动、纯静态 C++ 源码重建方案。采用版本化证据与 ABI 约束、有界多 Agent、小工作包、独立构建及静态语义验证；DeepSeek Harness（DSH）为客户端与 Agent Runtime，定制插件补齐业务能力。
 
-当前主方案为 **1.0-design（V1）**。已接通 Python–DSH 的真实账本/CAS、专用 SDK 离线启动，以及 Ghidra Raw P-code、Android NDK 和受限整数叶函数的 `.so → C++ → 编译 → 静态比较` 链路。完整类型/ABI、整库 C++ 恢复、真实模型验收和模型 32 路吞吐仍待完成；M0 的完整退出条件尚未通过。
+当前主方案为 **1.0-design（V1）**。已接通 Python–DSH 的真实账本/CAS、专用 SDK 离线启动、Ghidra/NDK 静态恢复、原始 ELF ABI 结构对照，以及候选提交后的持久独立构建和机器验证。整数叶恢复 v2 支持已初始化临时寄存器、逻辑/移位/MOVK，真实静态矩阵有 27 项正反分类。完整类型/调用 ABI、整库恢复、自动修复闭环和真实模型验收仍待完成；M0/M1 的完整退出条件尚未通过。
 
 ## 开发与运行
 
@@ -44,6 +44,18 @@ npm run preflight
 ```
 
 恢复范围自动保留全部已发现符号和可执行字节分母；暂不支持的函数形成缺口。实际源码编译并核对产物指纹后最高交付 A1；局部机器验证不会提升为整库通过。`preflight` 使用真实 DSH SDK 启停和有效配置核查，模型调用数为零；详情见 [DSH 接线与真实模型后续验收](integrations/dsh/README.md)。
+
+实际静态矩阵及无模型候选闭环可复现为：
+
+```bash
+.venv/bin/python scripts/run_static_acceptance.py \
+  --ndk-root work/tools/android-ndk-r27c --ghidra-home work/tools/ghidra_11.3.2_PUBLIC \
+  --output work/static-matrix-new
+.venv/bin/python scripts/run_candidate_validation_sample.py \
+  --ndk-root work/tools/android-ndk-r27c --output work/validation-sample-new
+```
+
+候选回执仍只表示 RECORDED，独立活动结果不自动提升 Job quality。宿主排队与公开读取接口见 [候选提交与持久独立验收](docs/candidate-validation.md)。普通 CI 未安装 NDK/Ghidra 时明确 skip；手动静态验收 workflow 下载固定工具并上传实际证据。
 
 ## 文档
 

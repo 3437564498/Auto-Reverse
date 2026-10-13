@@ -15,7 +15,7 @@ import z3
 
 from auto_reverse.build_gate import BuildConfig, build_candidate, lint_source
 from auto_reverse.intake import extract_function, function_info
-from auto_reverse.recovery import lift_integer_leaf, recover_subset
+from auto_reverse.recovery import RECOVERY_VERSION, lift_integer_leaf, recover_subset, recovery_capabilities
 from auto_reverse.semantics import verify_machine_code
 
 from fixtures.elf.build_elf import build_elf
@@ -46,6 +46,9 @@ def fixture(tmp_path, **kwargs):
     (0x91400400, "ar_x0 + 4096ULL"),
     (0xD2E00200, "4503599627370496ULL"),  # MOVZ X0, #16, LSL #48
     (0x12800000, "4294967295U"),  # MOVN W0, #0
+    (0x91001C01, "ar_x1 = ar_x0 + 7ULL"),  # an ordinary caller-saved output
+    (0x8B010400, "ar_x0 + (ar_a1 << 1U)"),  # shifted register ADD
+    (0x72800000, "4294901760U"),  # MOVK W0 preserves bits16..31, clears X0 high bits
 ])
 def test_actual_instruction_encodings_generate_unsigned_register_model(word, fragment):
     code = words(word, RET)
@@ -64,10 +67,10 @@ def test_actual_instruction_encodings_generate_unsigned_register_model(word, fra
 @pytest.mark.parametrize("word", [
     0xB1001C00,  # ADDS X0, X0, #7 updates NZCV
     0xF1001C00,  # SUBS X0, X0, #7 updates NZCV
-    0x91001C01,  # destination X1 outside the recovery subset
+    0x91001C12,  # destination X18 is Android's reserved platform register
     0x91001D00,  # ADD X0, X8, #7 reads undeclared input
     0x91001FE0,  # ADD X0, SP, #7
-    0x8B010400,  # shifted register ADD X0, X0, X1, LSL #1
+    0x8B810400,  # ADD X0, X0, X1, ASR #1 is outside the unsigned source subset
     0x8B214000,  # extended register ADD X0, X0, W1, UXTW
     0xAA0803E0,  # MOV X0, X8
     0xAA1F03E0,  # MOV X0, XZR outside chosen input model
@@ -79,7 +82,7 @@ def test_actual_instruction_encodings_generate_unsigned_register_model(word, fra
     0xD65F0020,  # RET X1
     0xD503245F,  # BTI architectural hint distinct from NOP
     0xD503201E,  # neighboring HINT encoding is not NOP
-    0x72800000,  # MOVK W0, #0
+    0x72C00000,  # reserved W MOVK shift #32
     0x52C00000,  # reserved W MOVZ shift #32
     0xFFFFFFFF,  # undecodable word
 ])
@@ -114,6 +117,73 @@ def test_nop_and_mixed_w_x_operations_keep_explicit_zero_extension():
     assert report["call_model"]["return"]["width"] == 64
     assert report["call_model"]["inputs"][0]["width"] == 64
     assert len(report["source_map"]) == 4
+
+
+@pytest.mark.parametrize("destination", range(1, 18))
+def test_mutable_caller_saved_registers_are_read_after_their_actual_write(destination):
+    # ADD Xd, X0, #7; MOV X0, Xd. The declared input ar_a[d] must not
+    # replace the second instruction's already-written register value.
+    code = words(0x91001C00 | destination, 0xAA0003E0 | (destination << 16), RET)
+    report = lift_integer_leaf(code, symbol="mutable_registers")
+    assert report["status"] == "SOURCE_GENERATED"
+    assert f"ar_x{destination} = ar_x0 + 7ULL;" in report["source"]
+    assert f"ar_x0 = ar_x{destination};" in report["source"]
+    assert len(report["source_map"]) == 3
+
+
+@pytest.mark.parametrize("register", range(8, 18))
+def test_caller_saved_temporaries_are_not_undeclared_scalar_inputs(register):
+    # Initial temporaries cannot supply either a MOV source or MOVK's
+    # implicitly preserved destination bits, even if an earlier NOP exists.
+    for instruction in (0xAA0003E0 | (register << 16), 0xF2800020 | register):
+        report = lift_integer_leaf(words(0xD503201F, instruction, RET), symbol="uninitialized")
+        assert report["status"] == "UNKNOWN"
+        assert report["reason"] == "caller_saved_register_read_before_write"
+        assert report["source"] is None
+        assert report["source_map"] == []
+        assert report["instructions"][1]["undefined_register_inputs"] == [f"x{register}"]
+        assert not report["instructions"][1]["recovery_supported"]
+
+
+@pytest.mark.parametrize("register", [18, 19, 29, 30, 31])
+def test_reserved_saved_stack_and_link_registers_stay_outside_mutable_subset(register):
+    for instruction in (0x91001C00 | register, 0xAA0003E0 | (register << 16)):
+        report = lift_integer_leaf(words(instruction, RET), symbol="protected_registers")
+        assert report["source"] is None
+        assert not report["instructions"][0]["recovery_supported"]
+
+
+@pytest.mark.parametrize("word", [
+    0x6A010000,  # ANDS W0, W0, W1 updates NZCV
+    0xEA010000,  # ANDS X0, X0, X1 updates NZCV
+    0xCA210000,  # EON X0, X0, X1 is complemented, not EOR
+    0xAA810000,  # ORR X0, X0, X1, ASR #0
+    0xAAC10000,  # ORR X0, X0, X1, ROR #0
+    0x0B018000,  # ADD W0, W0, W1, LSL #32 is reserved
+    0x4A418000,  # EOR W0, W0, W1, LSR #32 is reserved
+    0xAA0103E0 | (1 << 10),  # shifted ORR-ZR is not the exact MOV alias
+    0xD300FC00,  # UBFM with mismatched sf/N
+    0x53607C00,  # UBFM W0 with reserved sf/N and immr
+    0xD3407C00,  # general UBFX X0, X0, #0, #32 is not a shift alias
+    0x9341FC00,  # ASR X0, X0, #1 signed alias is excluded
+])
+def test_shift_logic_and_bitfield_mask_neighbors_fail_closed(word):
+    report = lift_integer_leaf(words(word, RET), symbol="neighbor")
+    assert report["status"] == "UNKNOWN"
+    assert report["source"] is None
+
+
+def test_recovery_capability_version_and_inputs_do_not_claim_original_abi():
+    assert RECOVERY_VERSION == "integer-register-leaf-2"
+    matrix = recovery_capabilities()
+    assert matrix["matrix_ref"] == "capability://integer-register-leaf-2"
+    assert {item["opcode"] for item in matrix["operations"]} == {
+        "ADD", "SUB", "MOV", "MOVK", "AND", "ORR", "EOR", "LSL", "LSR", "NOP", "RET",
+    }
+    model = lift_integer_leaf(words(RET), symbol="identity")["call_model"]
+    assert len(model["inputs"]) == 8
+    assert model["caller_saved_temporaries"]["registers"] == [f"x{i}" for i in range(8, 18)]
+    assert not model["original_calling_abi_verified"]
 
 
 def test_all_symbol_inventory_and_instruction_hashes_survive_partial_source(tmp_path):
@@ -262,6 +332,117 @@ def real_ndk():
     if not (root / "source.properties").is_file():
         pytest.skip("real Android NDK r27c not installed; compile-only integration not exercised")
     return root
+
+
+@pytest.mark.parametrize("machine_words", [
+    (0x11000428, 0x8B000100, RET),  # W8 = W1+1; X0 = X8+X0, proving W->X zero extension
+    (0xD3410028, 0xD37FFC00, 0xAA080000, RET),  # LSL X8,X1,#63; LSR X0,X0,#63; ORR
+    (0x53010000, RET),  # LSL W0,W0,#31 at the 32-bit upper boundary
+    (0x8A41FC00, RET),  # AND X0,X0,X1,LSR#63
+    (0x2A017C00, RET),  # ORR W0,W0,W1,LSL#31
+    (0x4A417C00, RET),  # EOR W0,W0,W1,LSR#31
+    (0xCB41FC00, RET),  # SUB X0,X0,X1,LSR#63
+    (0x0B017C00, RET),  # ADD W0,W0,W1,LSL#31
+    (0xF2FFFFE0, RET),  # MOVK X0,#0xffff,LSL#48 preserves lower48
+    (0x72A24680, 0x91000400, RET),  # MOVK W0,#0x1234,LSL#16 then read X0
+    (0xD2800028, 0xF2FFFFE8, 0xAA0803E0, RET),  # initialized temporary plus MOVK
+    (0x11000421, 0xAA0103E0, RET),  # overwrite declared X1 through W1, then read X1
+])
+def test_real_ndk_generated_extended_subset_matches_independent_isa_words(tmp_path, machine_words):
+    ndk = real_ndk()
+    original = words(*machine_words)
+    report = lift_integer_leaf(original, symbol="isa_leaf")
+    assert report["status"] == "SOURCE_GENERATED", report
+    build = build_candidate(report["source"], tmp_path / "candidate", BuildConfig(
+        ndk, expected_exports=("isa_leaf",)))
+    assert build["status"] == "PASS", build
+    actual = extract_function(tmp_path / "candidate/libcandidate.so", "isa_leaf")
+    proof = verify_machine_code(original, actual)
+    assert proof["semantic"]["status"] == "EXACT_EQUIVALENT", proof
+    assert proof["semantic"]["precondition_satisfiable"]
+    assert proof["semantic"]["path_coverage_complete_within_bound"]
+    assert not next(item for item in proof["semantic"]["assumptions"]
+                    if item["kind"] == "machine_model")["target_execution"]
+
+
+def test_actual_compiler_new_bitfield_opcode_does_not_inherit_source_lifting_support(tmp_path):
+    ndk = real_ndk()
+    # All original words fit the source subset; the real optimizer changes
+    # the W-register extraction to UBFX X8,X1,#31,#1, outside the verifier.
+    original = words(0x531F7C28, 0x53010000, 0x2A080000, RET)
+    lifted = lift_integer_leaf(original, symbol="bitfield_candidate")
+    assert lifted["status"] == "SOURCE_GENERATED"
+    build = build_candidate(lifted["source"], tmp_path / "candidate", BuildConfig(
+        ndk, expected_exports=("bitfield_candidate",)))
+    assert build["status"] == "PASS"
+    actual = extract_function(tmp_path / "candidate/libcandidate.so", "bitfield_candidate")
+    proof = verify_machine_code(original, actual)
+    assert proof["semantic"]["status"] == "UNKNOWN"
+    assert any(item["side"] == "candidate" and item["opcode"] == "ubfx"
+               for item in proof["semantic"]["unsupported_operations"])
+    assert proof["semantic"]["solver_result"] == "not_run"
+
+
+@pytest.mark.parametrize("name,body,opcodes", [
+    ("mixed64", "return (a ^ (b << 13U)) + 0x0123456789abcdefULL;", {"MOVK", "EOR", "ADD"}),
+    ("mixed32", "return (static_cast<unsigned int>(a) ^ (static_cast<unsigned int>(b) >> 31U)) + 0x89abcdefU;",
+     {"MOVK", "EOR", "ADD"}),
+    ("shift63", "return (a >> 63U) ^ (b << 63U);", {"LSR", "ORR"}),
+    ("w_to_x", "unsigned int t = static_cast<unsigned int>(b) + 1U; return a + static_cast<unsigned long long>(t);",
+     {"ADD"}),
+])
+def test_real_ndk_extended_original_source_recovery_retains_runtime_gaps(tmp_path, name, body, opcodes):
+    ndk = real_ndk()
+    source = ('extern "C" __attribute__((visibility("default"))) '
+              f'unsigned long long {name}(unsigned long long a, unsigned long long b) {{ {body} }}\n')
+    build = build_candidate(source, tmp_path / "original", BuildConfig(
+        ndk, expected_exports=(name,), soname="liboriginal.so"))
+    assert build["status"] == "PASS", build
+    original_library = tmp_path / "original/liboriginal.so"
+    original_code = extract_function(original_library, name)
+    lifted = lift_integer_leaf(original_code, symbol=name)
+    assert lifted["status"] == "SOURCE_GENERATED", lifted
+    assert opcodes <= {record["opcode"] for record in lifted["instructions"]}
+    assert any(record.get("destination") in {"x8", "x9", "w8", "w9"}
+               for record in lifted["instructions"])
+    report = recover_subset(original_library, tmp_path / "recovered", ndk)
+    recovered = next(item for item in report["functions"] if item["name"] == name)
+    assert recovered["semantic_status"] == "EXACT_EQUIVALENT", recovered
+    assert report["artifact_grade"] == "A1"
+    assert report["coverage"]["unsupported_functions"] > 0
+    assert report["scope"]["denominator"] == len(report["functions"])
+    assert not report["scope"]["whole_library_complete"]
+    assert report["abi"]["status"] == report["semantic"]["status"] == "UNKNOWN"
+    assert not report["execution_policy"]["target_or_candidate_executed"]
+
+
+@pytest.mark.parametrize("original,good_text,bad_text", [
+    (words(0xD37FFC00, RET), ">> 63U", ">> 62U"),
+    (words(0x11000428, 0x8B000100, RET),
+     "static_cast<unsigned int>(ar_a1) + 1U", "ar_a1 + 1ULL"),
+    (words(0x72A24680, RET), "65535U", "65534U"),
+])
+def test_real_ndk_shift_w_zero_extension_and_movk_mutations_have_counterexamples(
+        tmp_path, original, good_text, bad_text):
+    ndk = real_ndk()
+    generated = lift_integer_leaf(original, symbol="mutation_leaf")["source"]
+    assert good_text in generated
+    if good_text == "static_cast<unsigned int>(ar_a1) + 1U":
+        # Remove the entire W8 truncation and zero extension, preserving
+        # high X1 bits in a genuinely compiled wrong candidate.
+        mutated = generated.replace(
+            "static_cast<unsigned long long>(static_cast<unsigned int>(static_cast<unsigned int>(ar_a1) + 1U))",
+            bad_text)
+    else:
+        mutated = generated.replace(good_text, bad_text)
+    assert mutated != generated
+    build = build_candidate(mutated, tmp_path / "mutated", BuildConfig(
+        ndk, expected_exports=("mutation_leaf",)))
+    assert build["status"] == "PASS", build
+    proof = verify_machine_code(original, extract_function(tmp_path / "mutated/libcandidate.so", "mutation_leaf"))
+    assert proof["semantic"]["status"] == "DIFFERENT", proof
+    assert proof["semantic"]["solver_result"] == "sat"
+    assert proof["counterexample"]
 
 
 @pytest.mark.parametrize("name,body,golden", [

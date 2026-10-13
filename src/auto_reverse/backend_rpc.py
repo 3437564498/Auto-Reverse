@@ -26,7 +26,7 @@ import uuid
 from pydantic import ValidationError
 
 from .artifacts import ArtifactError, ArtifactStore
-from .contracts import Proposal, RecoveryPolicy, WorkPackageSpec
+from .contracts import CppSourceCandidate, Proposal, RecoveryPolicy, WorkPackageSpec
 from .domain import DomainError, DomainStore, _json, _string, _strings, _token_hash
 
 
@@ -384,7 +384,8 @@ class BackendRPC:
             policy = RecoveryPolicy.model_validate_json(self.objects.resolve_artifact(json.loads(job["data"])["policy_ref"]).read_bytes())
             return {"work": {**work, "attempt_id": attempt["attempt_id"],
                              "candidate_namespace": self._namespace(work) + "/" + attempt["attempt_id"]},
-                    "policy": policy.model_dump(mode="json")}
+                    "policy": policy.model_dump(mode="json"),
+                    "source_candidate_contract": CppSourceCandidate.model_json_schema()}
 
     def _attempt_failure(self, params: dict) -> dict:
         attempt_id = _string(params.get("attempt_id"), "attempt_id")

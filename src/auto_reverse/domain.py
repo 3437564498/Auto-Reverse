@@ -261,6 +261,12 @@ class DomainStore:
         return int(cursor.lastrowid)
 
     @staticmethod
+    def _has_validation_activities(connection: sqlite3.Connection) -> bool:
+        return connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='validation_activities'"
+        ).fetchone() is not None
+
+    @staticmethod
     def _cleanup(connection: sqlite3.Connection, job_id: str) -> str:
         states = {
             row[0]
@@ -268,10 +274,29 @@ class DomainStore:
                 "SELECT cleanup_status FROM attempts WHERE job_id=?", (job_id,)
             )
         }
+        if DomainStore._has_validation_activities(connection):
+            states.update(row[0] for row in connection.execute(
+                "SELECT cleanup_status FROM validation_activities WHERE job_id=?", (job_id,)
+            ))
         for status in ("QUARANTINED", "UNCONFIRMED", "PENDING"):
             if status in states:
                 return status
         return "CONFIRMED" if states else "NOT_REQUIRED"
+
+    @staticmethod
+    def _resources_occupied(connection: sqlite3.Connection, job_id: str) -> bool:
+        if connection.execute(
+            "SELECT 1 FROM attempts WHERE job_id=? AND occupied=1", (job_id,)
+        ).fetchone():
+            return True
+        return bool(DomainStore._has_validation_activities(connection) and connection.execute(
+            "SELECT 1 FROM validation_activities WHERE job_id=? AND occupied=1", (job_id,)
+        ).fetchone())
+
+    def _finish_cancellation_if_clean(self, connection: sqlite3.Connection, job_id: str) -> None:
+        job = self._row(connection, "jobs", "job_id", job_id)
+        if job["state"] == "CANCELLING" and not self._resources_occupied(connection, job_id):
+            self._change_job(connection, job_id, "CANCELLED", "all execution resources confirmed stopped")
 
     def _job(self, connection: sqlite3.Connection, row: sqlite3.Row) -> dict[str, Any]:
         return {
@@ -424,11 +449,14 @@ class DomainStore:
             ).fetchall()
             if any(row["state"] not in TERMINAL_TASKS for row in unfinished):
                 raise DomainError("UNFINISHED_PLAN", "Job has unfinished work packages")
+            if self._has_validation_activities(connection) and connection.execute(
+                "SELECT 1 FROM validation_activities WHERE job_id=? "
+                "AND state IN ('READY','RUNNING','QUARANTINED')", (job_id,)
+            ).fetchone():
+                raise DomainError("UNFINISHED_VALIDATION", "Job has unfinished independent validation")
         if (
             next_state == "CANCELLED"
-            and connection.execute(
-                "SELECT 1 FROM attempts WHERE job_id=? AND occupied=1", (job_id,)
-            ).fetchone()
+            and self._resources_occupied(connection, job_id)
         ):
             raise DomainError(
                 "CLEANUP_PENDING", "Cancellation cannot finish before resource cleanup"
@@ -1240,6 +1268,24 @@ class DomainStore:
                 "UPDATE attempts SET state='CANCELLED',updated_at=? WHERE job_id=? AND occupied=1",
                 (time.time(), job_id),
             )
+            if self._has_validation_activities(connection):
+                pending = connection.execute(
+                    "SELECT activity_id,state FROM validation_activities WHERE job_id=? "
+                    "AND state IN ('READY','RUNNING','QUARANTINED')", (job_id,)
+                ).fetchall()
+                for activity in pending:
+                    connection.execute(
+                        "UPDATE validation_activities SET cancel_requested=1,updated_at=? WHERE activity_id=?",
+                        (time.time(), activity["activity_id"]),
+                    )
+                    if activity["state"] == "READY":
+                        connection.execute(
+                            "UPDATE validation_activities SET state='CANCELED',cleanup_status='CONFIRMED' "
+                            "WHERE activity_id=?", (activity["activity_id"],)
+                        )
+                    self._emit(connection, job_id, "validation.cancel_requested", {
+                        "activity_id": activity["activity_id"], "resources_stopped": activity["state"] == "READY",
+                    })
             self._change_job(
                 connection, job_id, "CANCELLING", "dispatch stopped; cleanup requested"
             )
@@ -1257,10 +1303,7 @@ class DomainStore:
                 "leases_fenced": True,
             }
             connection.execute("INSERT INTO cancellations VALUES (?,?)", (job_id, _json(receipt)))
-            if not connection.execute(
-                "SELECT 1 FROM attempts WHERE job_id=? AND occupied=1", (job_id,)
-            ).fetchone():
-                self._change_job(connection, job_id, "CANCELLED", "no execution resources remain")
+            self._finish_cancellation_if_clean(connection, job_id)
             return {
                 **self._job(connection, self._row(connection, "jobs", "job_id", job_id)),
                 "cancel_receipt": receipt,
@@ -1313,19 +1356,8 @@ class DomainStore:
                     "FAILED_INFRASTRUCTURE",
                     "cleanup unconfirmed; resources quarantined",
                 )
-            elif (
-                confirmed
-                and job["state"] == "CANCELLING"
-                and not connection.execute(
-                    "SELECT 1 FROM attempts WHERE job_id=? AND occupied=1", (attempt["job_id"],)
-                ).fetchone()
-            ):
-                self._change_job(
-                    connection,
-                    attempt["job_id"],
-                    "CANCELLED",
-                    "all execution resources confirmed stopped",
-                )
+            elif confirmed:
+                self._finish_cancellation_if_clean(connection, attempt["job_id"])
             return self._attempt(self._row(connection, "attempts", "attempt_id", attempt_id))
 
     def list_workers(self, job_id: str, cursor: int = 0, limit: int = 100) -> dict[str, Any]:

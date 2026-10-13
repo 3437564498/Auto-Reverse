@@ -47,6 +47,21 @@ def create_server(state_dir, *, host="127.0.0.1", port=8765):
         return service.read_job_artifact(job_id, artifact_ref, offset, limit)
 
     @server.tool()
+    def list_validations(job_id: str, cursor: int = 0, limit: int = 100) -> dict[str, Any]:
+        """Read independent build/verification activities; creates no activity or tool process."""
+        return service.list_validations(job_id, cursor=cursor, limit=limit)
+
+    @server.tool()
+    def get_validation(job_id: str, activity_id: str) -> dict[str, Any]:
+        """Read a job-bound validation result and report reference; does not promote quality."""
+        return service.get_validation(job_id, activity_id)
+
+    @server.tool()
+    def read_validation_report(job_id: str, activity_id: str, offset: int = 0, limit: int = 65536) -> dict[str, Any]:
+        """Read a bounded Activity-owned report, including canceled historical diagnostics."""
+        return service.read_validation_report(job_id, activity_id, offset, limit)
+
+    @server.tool()
     def cancel_job(job_id: str) -> dict[str, Any]:
         """Request cancellation; consult cleanup state for resource confirmation."""
         return service.domain.request_cancel(job_id)

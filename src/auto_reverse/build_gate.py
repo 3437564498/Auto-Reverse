@@ -204,6 +204,51 @@ def _diagnostic(path: Path) -> dict[str, Any]:
             "truncated": path.stat().st_size > _MAX_DIAGNOSTIC_BYTES}
 
 
+def _confirm_process_group_stopped(process_group: int, timeout: float = 1.0) -> dict[str, Any]:
+    """Observe group termination; reaping only the compiler parent is insufficient.
+
+    Linux zombies have exited and cannot execute or retain open tool descriptors.
+    Escaped sessions are outside the pinned compiler's process-group containment.
+    """
+    deadline = time.monotonic() + timeout
+    observation: dict[str, Any] = {"process_group_stopped_confirmed": False,
+                                    "observation": "unavailable", "live_group_processes": []}
+    while True:
+        try:
+            os.killpg(process_group, 0)
+        except ProcessLookupError:
+            return {**observation, "process_group_stopped_confirmed": True,
+                    "observation": "process-group-absent"}
+        except OSError:
+            return observation
+        try:
+            entries = list(Path("/proc").iterdir())
+        except OSError:
+            return observation
+        members, live, unreadable = [], [], False
+        for entry in entries:
+            if not entry.name.isdecimal():
+                continue
+            try:
+                stat = (entry / "stat").read_text()
+                fields = stat[stat.rfind(")") + 2:].split()
+                if int(fields[2]) == process_group:
+                    members.append(int(entry.name))
+                    if fields[0] not in {"Z", "X"}:
+                        live.append(int(entry.name))
+            except FileNotFoundError:
+                continue
+            except (OSError, ValueError, IndexError):
+                unreadable = True
+        observation = {"process_group_stopped_confirmed": bool(members) and not live and not unreadable,
+                       "observation": "linux-proc-group-state",
+                       "live_group_processes": live, "exited_group_processes": len(members) - len(live),
+                       "process_observation_complete": not unreadable}
+        if observation["process_group_stopped_confirmed"] or time.monotonic() >= deadline:
+            return observation
+        time.sleep(0.01)
+
+
 def _run_compiler(
     argv: list[str], output: Path, phase: str, timeout: float, environment: dict[str, str]
 ) -> dict[str, Any]:
@@ -217,7 +262,9 @@ def _run_compiler(
                                        stdout=out, stderr=err, start_new_session=True, shell=False)
         except OSError as exc:
             result["spawn_error"] = str(exc)
-            result["cleanup"] = {"compiler_reaped": True, "process_group_sigkill_sent": False}
+            result["cleanup"] = {"compiler_reaped": True, "process_group_sigkill_sent": False,
+                                   "process_group_stopped_confirmed": True,
+                                   "observation": "process-not-started"}
         else:
             try:
                 process.wait(timeout=timeout)
@@ -240,11 +287,16 @@ def _run_compiler(
                     killed = True
                 except ProcessLookupError:
                     pass
-                process.wait()
+                reaped = True
+                try:
+                    process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    reaped = False
                 result["returncode"] = process.returncode
-                result["cleanup"] = {"compiler_reaped": True,
+                result["cleanup"] = {"compiler_reaped": reaped,
                                        "process_group_sigkill_sent": killed,
-                                       "escaped_process_containment": False}
+                                       "escaped_process_containment": False,
+                                       **_confirm_process_group_stopped(process.pid)}
     result["elapsed_seconds"] = round(time.monotonic() - started, 6)
     result["stdout"], result["stderr"] = _diagnostic(stdout), _diagnostic(stderr)
     return result

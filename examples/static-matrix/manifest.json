@@ -1,0 +1,425 @@
+{
+  "schema_version": 1,
+  "matrix_id": "ndk-r27c-aarch64-m0-static-1",
+  "scope": "supplied micro-function entry pairs, declared register/byte-memory observations and external RET boundary",
+  "full_m0_s_exit_satisfied": false,
+  "source_kind": "versioned trusted assembler fixtures; no candidate/model-supplied build options",
+  "observed_registers": [
+    "x0",
+    "sp",
+    "x19",
+    "x20",
+    "x21",
+    "x22",
+    "x23",
+    "x24",
+    "x25",
+    "x26",
+    "x27",
+    "x28",
+    "x29"
+  ],
+  "sources": {
+    "original": {
+      "file": "original.S",
+      "sha256": "91493cee71931f7cf175ef575a6d55788e67b4c89912fca1121a637565c96483"
+    },
+    "candidate": {
+      "file": "candidate.S",
+      "sha256": "d81244ad9b8b2e1de1c038c343b3b7ba513282aa49eb2dd44b92337e279f8c08"
+    }
+  },
+  "cases": [
+    {
+      "id": "integer64_equal",
+      "symbol": "integer64_equal",
+      "category": "integer64",
+      "expected_status": "EXACT_EQUIVALENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "integer64_changed",
+      "symbol": "integer64_changed",
+      "category": "integer64",
+      "expected_status": "DIFFERENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "integer32_equal",
+      "symbol": "integer32_equal",
+      "category": "integer32",
+      "expected_status": "EXACT_EQUIVALENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "integer32_changed",
+      "symbol": "integer32_changed",
+      "category": "integer32",
+      "expected_status": "DIFFERENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "branch_equal",
+      "symbol": "branch_equal",
+      "category": "branch",
+      "expected_status": "EXACT_EQUIVALENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "branch_changed",
+      "symbol": "branch_changed",
+      "category": "branch",
+      "expected_status": "DIFFERENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "memory64_equal",
+      "symbol": "memory64_equal",
+      "category": "memory64",
+      "expected_status": "EXACT_EQUIVALENT",
+      "contract": {
+        "preconditions": [
+          {
+            "register": "x1",
+            "value": "0x80000000",
+            "evidence_ref": "fixture://normal-memory-pointer"
+          }
+        ],
+        "memory_regions": [
+          {
+            "base": "0x80000000",
+            "size": 8,
+            "permissions": "rw",
+            "evidence_ref": "fixture://declared-normal-byte-buffer"
+          }
+        ]
+      },
+      "expected_reason": null
+    },
+    {
+      "id": "memory64_changed",
+      "symbol": "memory64_changed",
+      "category": "memory64",
+      "expected_status": "DIFFERENT",
+      "contract": {
+        "preconditions": [
+          {
+            "register": "x1",
+            "value": "0x80000000",
+            "evidence_ref": "fixture://normal-memory-pointer"
+          }
+        ],
+        "memory_regions": [
+          {
+            "base": "0x80000000",
+            "size": 8,
+            "permissions": "rw",
+            "evidence_ref": "fixture://declared-normal-byte-buffer"
+          }
+        ]
+      },
+      "expected_reason": null
+    },
+    {
+      "id": "memory32_equal",
+      "symbol": "memory32_equal",
+      "category": "memory32",
+      "expected_status": "EXACT_EQUIVALENT",
+      "contract": {
+        "preconditions": [
+          {
+            "register": "x1",
+            "value": "0x80000000",
+            "evidence_ref": "fixture://normal-memory-pointer"
+          }
+        ],
+        "memory_regions": [
+          {
+            "base": "0x80000000",
+            "size": 4,
+            "permissions": "rw",
+            "evidence_ref": "fixture://declared-normal-byte-buffer"
+          }
+        ]
+      },
+      "expected_reason": null
+    },
+    {
+      "id": "memory32_changed",
+      "symbol": "memory32_changed",
+      "category": "memory32",
+      "expected_status": "DIFFERENT",
+      "contract": {
+        "preconditions": [
+          {
+            "register": "x1",
+            "value": "0x80000000",
+            "evidence_ref": "fixture://normal-memory-pointer"
+          }
+        ],
+        "memory_regions": [
+          {
+            "base": "0x80000000",
+            "size": 4,
+            "permissions": "rw",
+            "evidence_ref": "fixture://declared-normal-byte-buffer"
+          }
+        ]
+      },
+      "expected_reason": null
+    },
+    {
+      "id": "signed_load_equal",
+      "symbol": "signed_load_equal",
+      "category": "signed-memory",
+      "expected_status": "EXACT_EQUIVALENT",
+      "contract": {
+        "preconditions": [
+          {
+            "register": "x1",
+            "value": "0x80000000",
+            "evidence_ref": "fixture://normal-memory-pointer"
+          }
+        ],
+        "memory_regions": [
+          {
+            "base": "0x80000000",
+            "size": 1,
+            "permissions": "r",
+            "evidence_ref": "fixture://declared-normal-byte-buffer"
+          }
+        ]
+      },
+      "expected_reason": null
+    },
+    {
+      "id": "signed_load_changed",
+      "symbol": "signed_load_changed",
+      "category": "signed-memory",
+      "expected_status": "DIFFERENT",
+      "contract": {
+        "preconditions": [
+          {
+            "register": "x1",
+            "value": "0x80000000",
+            "evidence_ref": "fixture://normal-memory-pointer"
+          }
+        ],
+        "memory_regions": [
+          {
+            "base": "0x80000000",
+            "size": 1,
+            "permissions": "r",
+            "evidence_ref": "fixture://declared-normal-byte-buffer"
+          }
+        ]
+      },
+      "expected_reason": null
+    },
+    {
+      "id": "memory_oob",
+      "symbol": "memory_oob",
+      "category": "invalid-memory",
+      "expected_status": "UNKNOWN",
+      "contract": {
+        "preconditions": [
+          {
+            "register": "x1",
+            "value": "0x80000000",
+            "evidence_ref": "fixture://normal-memory-pointer"
+          }
+        ],
+        "memory_regions": [
+          {
+            "base": "0x80000000",
+            "size": 8,
+            "permissions": "rw",
+            "evidence_ref": "fixture://declared-normal-byte-buffer"
+          }
+        ]
+      },
+      "expected_reason": "memory_access_not_proved_in_declared_valid_region"
+    },
+    {
+      "id": "memory_missing_region",
+      "symbol": "memory_missing_region",
+      "category": "invalid-memory",
+      "expected_status": "UNKNOWN",
+      "contract": {},
+      "expected_reason": "memory_access_not_proved_in_declared_valid_region"
+    },
+    {
+      "id": "memory_readonly_write",
+      "symbol": "memory_readonly_write",
+      "category": "invalid-memory",
+      "expected_status": "UNKNOWN",
+      "contract": {
+        "preconditions": [
+          {
+            "register": "x1",
+            "value": "0x80000000",
+            "evidence_ref": "fixture://normal-memory-pointer"
+          }
+        ],
+        "memory_regions": [
+          {
+            "base": "0x80000000",
+            "size": 8,
+            "permissions": "r",
+            "evidence_ref": "fixture://declared-normal-byte-buffer"
+          }
+        ]
+      },
+      "expected_reason": "memory_access_not_proved_in_declared_valid_region"
+    },
+    {
+      "id": "empty_domain",
+      "symbol": "empty_domain",
+      "category": "empty-domain",
+      "expected_status": "INVALID_PRECONDITION",
+      "contract": {
+        "preconditions": false
+      },
+      "expected_reason": "input_precondition_has_empty_domain"
+    },
+    {
+      "id": "contradictory_domain",
+      "symbol": "contradictory_domain",
+      "category": "empty-domain",
+      "expected_status": "INVALID_PRECONDITION",
+      "contract": {
+        "preconditions": [
+          {
+            "register": "x0",
+            "value": 1
+          },
+          {
+            "register": "x0",
+            "value": 2
+          }
+        ]
+      },
+      "expected_reason": "input_precondition_has_empty_domain"
+    },
+    {
+      "id": "callee_saved_changed",
+      "symbol": "callee_saved_changed",
+      "category": "abi-observation",
+      "expected_status": "DIFFERENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "stack_changed",
+      "symbol": "stack_changed",
+      "category": "abi-observation",
+      "expected_status": "DIFFERENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "exclusive_original",
+      "symbol": "exclusive_original",
+      "category": "unsupported",
+      "expected_status": "UNKNOWN",
+      "contract": {
+        "preconditions": [
+          {
+            "register": "x1",
+            "value": "0x80000000",
+            "evidence_ref": "fixture://normal-memory-pointer"
+          }
+        ],
+        "memory_regions": [
+          {
+            "base": "0x80000000",
+            "size": 8,
+            "permissions": "rw",
+            "evidence_ref": "fixture://declared-normal-byte-buffer"
+          }
+        ]
+      },
+      "expected_reason": "original_or_candidate_has_unsupported_opcode"
+    },
+    {
+      "id": "exclusive_candidate",
+      "symbol": "exclusive_candidate",
+      "category": "unsupported",
+      "expected_status": "UNKNOWN",
+      "contract": {
+        "preconditions": [
+          {
+            "register": "x1",
+            "value": "0x80000000",
+            "evidence_ref": "fixture://normal-memory-pointer"
+          }
+        ],
+        "memory_regions": [
+          {
+            "base": "0x80000000",
+            "size": 8,
+            "permissions": "rw",
+            "evidence_ref": "fixture://declared-normal-byte-buffer"
+          }
+        ]
+      },
+      "expected_reason": "original_or_candidate_has_unsupported_opcode"
+    },
+    {
+      "id": "pac",
+      "symbol": "pac",
+      "category": "unsupported",
+      "expected_status": "UNKNOWN",
+      "contract": {},
+      "expected_reason": "original_or_candidate_has_unsupported_opcode"
+    },
+    {
+      "id": "dmb",
+      "symbol": "dmb",
+      "category": "unsupported",
+      "expected_status": "UNKNOWN",
+      "contract": {},
+      "expected_reason": "original_or_candidate_has_unsupported_opcode"
+    },
+    {
+      "id": "unknown_opcode",
+      "symbol": "unknown_opcode",
+      "category": "unsupported",
+      "expected_status": "UNKNOWN",
+      "contract": {},
+      "expected_reason": "original_or_candidate_has_unsupported_opcode"
+    },
+    {
+      "id": "unclosed_loop",
+      "symbol": "unclosed_loop",
+      "category": "unclosed-path",
+      "expected_status": "UNKNOWN",
+      "contract": {
+        "max_steps": 16
+      },
+      "expected_reason": "instruction_budget_exhausted_unclosed_path"
+    },
+    {
+      "id": "external_branch",
+      "symbol": "external_branch",
+      "category": "unclosed-path",
+      "expected_status": "UNKNOWN",
+      "contract": {},
+      "expected_reason": "control_flow_leaves_declared_code_scope"
+    },
+    {
+      "id": "indirect_branch",
+      "symbol": "indirect_branch",
+      "category": "unsupported",
+      "expected_status": "UNKNOWN",
+      "contract": {},
+      "expected_reason": "original_or_candidate_has_unsupported_opcode"
+    }
+  ]
+}

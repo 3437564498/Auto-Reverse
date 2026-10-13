@@ -6,7 +6,7 @@ Lease/control credentials deliberately are not model-visible fields.
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class Contract(BaseModel):
@@ -76,6 +76,22 @@ class Proposal(Contract):
     assumptions: list[str] = Field(default_factory=list)
     gaps: list[str] = Field(default_factory=list)
     requested_followup_tasks: list[dict] = Field(default_factory=list)
+
+
+class CppSourceCandidate(Contract):
+    """Source submitted as data; verification and build settings belong to the host."""
+
+    schema_version: Literal[1]
+    kind: Literal["cpp_source"]
+    symbol: str = Field(min_length=1, max_length=256, pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")
+    source: str = Field(min_length=1, max_length=1048576)
+
+    @field_validator("schema_version", mode="before")
+    @classmethod
+    def integer_version(cls, value):
+        if type(value) is not int:
+            raise ValueError("schema_version must be an integer")
+        return value
 
 
 class AgentPolicy(Contract):
@@ -168,7 +184,8 @@ def write_schemas(directory):
     root = Path(directory)
     root.mkdir(parents=True, exist_ok=True)
     for name, model in [("work-package", WorkPackage), ("work-package-spec", WorkPackageSpec),
-                        ("proposal", Proposal), ("policy", RecoveryPolicy)]:
+                        ("proposal", Proposal), ("policy", RecoveryPolicy),
+                        ("cpp-source-candidate", CppSourceCandidate)]:
         (root / f"{name}.schema.json").write_text(
             json.dumps(model.model_json_schema(), ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
