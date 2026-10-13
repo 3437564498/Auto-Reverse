@@ -25,6 +25,9 @@ export interface WorkPackage {
   missing_evidence_policy: 'report_gap';
 }
 
+/** Frozen task contract before the Domain atomically creates an Attempt. */
+export type WorkPackageSpec = Omit<WorkPackage, 'attempt_id'>;
+
 export interface AttemptBinding {
   work: WorkPackage;
   epoch: number;
@@ -55,17 +58,19 @@ export interface WorkerLease {
 
 export interface ActivationIdentity { session_id: string; activation_id: string }
 export interface ProposalReceipt { execution_key: string; disposition: 'RECORDED'; event_sequence: number }
-export interface BatchPlan { batch_ref: string; job_id: string; attempts: AttemptBinding[] }
+export interface BatchPlan { batch_ref: string; job_id: string; tasks: WorkPackageSpec[] }
+export interface AcquiredWorker { binding: AttemptBinding; lease: WorkerLease }
 export interface ProfileReport {
   dsh_commit: string;
   provider: string;
   /** Host attestation of its effective, inspected configuration. */
   inspected: boolean;
+  missingPreflight?: string[];
   max_active_subagents: number;
   max_tokens_as_success: boolean;
   global_worker_limit: 32;
   control_channel_authenticated: boolean;
-  tool_mode: 'native';
+  tool_mode: 'native' | 'ptc' | 'unobserved';
 }
 
 /** Cross-runtime quota, queue, fencing and persistence belong to the Domain service. */
@@ -73,7 +78,7 @@ export interface DomainClient {
   loadBatch(batchRef: string): Promise<BatchPlan>;
   inspectProfile(): Promise<ProfileReport>;
   /** Null means durably queued in Domain; the runner does not busy retry. */
-  tryAcquireWorker(binding: AttemptBinding, signal: AbortSignal): Promise<WorkerLease | null>;
+  tryAcquireWorker(task: WorkPackageSpec, signal: AbortSignal): Promise<AcquiredWorker | null>;
   bindActivation(binding: AttemptBinding, lease: WorkerLease, identity: ActivationIdentity): Promise<void>;
   commitProposal(binding: AttemptBinding, lease: WorkerLease, proposal: Proposal): Promise<ProposalReceipt>;
   recordFailure(binding: AttemptBinding, code: string): Promise<void>;
@@ -84,16 +89,17 @@ export interface DomainClient {
   releaseWorker(binding: AttemptBinding, lease: WorkerLease): Promise<void>;
   quarantineWorker(binding: AttemptBinding, lease: WorkerLease, reason: string): Promise<void>;
   readEvidence(binding: AttemptBinding, ref: string, cursor: string | undefined, signal: AbortSignal): Promise<Json>;
+  stageCandidate(binding: AttemptBinding, name: string, content: string, signal: AbortSignal): Promise<Json>;
   readContract(binding: AttemptBinding, signal: AbortSignal): Promise<Json>;
   reportTask(binding: AttemptBinding, reason: 'NEEDS_EVIDENCE' | 'BLOCKED' | 'NO_PROGRESS', details: string, signal: AbortSignal): Promise<Json>;
-  auditTool(binding: AttemptBinding | undefined, info: { session_id: string; name: string; is_error: boolean }): Promise<void>;
+  auditTool(binding: AttemptBinding | undefined, info: { session_id: string; name: string; is_error: boolean; job_id?: string; batch_ref?: string }): Promise<void>;
 }
 
 /** Separate trusted host control, never a model tool or SDK request() extension. */
 export interface RecoveryHost {
   authorizeRoot(sessionId: string): Promise<{ job_id: string; batch_ref: string } | undefined>;
   /** Installs authenticated control transport; disposer drains owned resources. */
-  installControl(handler: (jobId: string) => Promise<void>): () => void;
+  installControl(handler: (jobId: string) => Promise<void>): () => void | Promise<void>;
 }
 
 export interface ActivationHandle extends ActivationIdentity {

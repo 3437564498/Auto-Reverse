@@ -35,6 +35,11 @@ export function apply(ctx: Context): void {
       isConcurrencySafe: () => true,
       execute: (_args, exec) => domain.readContract(policy.worker(exec.agent), exec.signal),
     }));
+    if (binding.work.allowed_operations.includes('candidate_submit')) scoped.tools.register(defineTool({
+      name: 'candidate_stage', description: 'Store a JSON candidate document in the real immutable CAS and return its authorized artifact reference. No source or binary is executed.',
+      parameters: { name: { type: 'string', required: true }, content: { type: 'string', required: true } }, output: jsonOutput,
+      execute: (args, exec) => domain.stageCandidate(policy.worker(exec.agent), args.name, args.content, exec.signal),
+    }));
     if (binding.work.allowed_operations.includes('task_report')) scoped.tools.register(defineTool({
       name: 'task_report', description: 'Report a bounded evidence gap, block or lack of progress; never sets semantic quality.',
       parameters: { reason: { type: 'string', enum: ['NEEDS_EVIDENCE', 'BLOCKED', 'NO_PROGRESS'], required: true }, details: { type: 'string', required: true } },
@@ -81,14 +86,14 @@ export function apply(ctx: Context): void {
   ctx.on('tools/result', (exec, result) => {
     if (exec.agent === undefined) return;
     const binding = policy.get(exec.agent);
-    const write = domain.auditTool(binding?.kind === 'worker' ? binding.attempt : undefined, { session_id: exec.agent.id, name: exec.name, is_error: result.isError });
+    const write = domain.auditTool(binding?.kind === 'worker' ? binding.attempt : undefined, { session_id: exec.agent.id, name: exec.name, is_error: result.isError, ...(binding?.kind === 'root' ? { job_id: binding.job_id, batch_ref: binding.batch_ref } : {}) });
     auditWrites.add(write);
     void write.then(() => auditWrites.delete(write), () => { auditWrites.delete(write); auditFailed = true; });
   });
   ctx.effect(() => {
     const stopControl = ctx.recoveryHost.installControl(jobId => runner.cancel(jobId));
     return async () => {
-      stopControl();
+      await stopControl();
       const current = runner.current();
       if (current !== undefined) await runner.cancel(current.job_id);
       await Promise.allSettled(auditWrites);

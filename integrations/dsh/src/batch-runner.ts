@@ -1,10 +1,11 @@
+import { isDeepStrictEqual } from 'node:util';
 import type { Agent } from '@deepseek-ai/dsh-agent';
-import { DSH_COMMIT, ROLES, type ActivationHandle, type ActivationProvider, type AttemptBinding, type DomainClient, type WorkerLease } from './contracts.js';
-import { PROPOSAL_SCHEMA, validateProposal, validateWork } from './proposal.js';
+import { DSH_COMMIT, ROLES, type ActivationHandle, type ActivationProvider, type AttemptBinding, type DomainClient, type WorkerLease, type WorkPackageSpec } from './contracts.js';
+import { PROPOSAL_SCHEMA, validateProposal, validateWork, validateTask } from './proposal.js';
 
-export interface WorkerOutcome { attempt_id: string; state: 'RECORDED' | 'QUEUED' | 'FAILED' | 'CANCELLED' | 'QUARANTINED'; code?: string }
+export interface WorkerOutcome { task_id: string; attempt_id?: string; state: 'RECORDED' | 'QUEUED' | 'FAILED' | 'CANCELLED' | 'QUARANTINED'; code?: string }
 export interface BatchOutcome { job_id: string; batch_ref: string; workers: WorkerOutcome[] }
-interface WorkerEntry { binding: AttemptBinding; lease?: WorkerLease; handle?: ActivationHandle; startup?: Promise<ActivationHandle>; disposal?: Promise<void>; quarantined: boolean; released: boolean }
+interface WorkerEntry { task: WorkPackageSpec; binding?: AttemptBinding; lease?: WorkerLease; handle?: ActivationHandle; startup?: Promise<ActivationHandle>; disposal?: Promise<void>; quarantined: boolean; released: boolean }
 interface ActiveBatch { job_id: string; batch_ref: string; controller: AbortController; stopRequested: boolean; entries: WorkerEntry[]; cancellation?: Promise<void>; settled: Promise<void>; settle: () => void }
 
 async function deadline<T>(operation: Promise<T>, ms: number): Promise<T> {
@@ -53,18 +54,19 @@ export class BatchRunner {
     const plan = structuredClone(await abortable(this.domain.loadBatch(active.batch_ref), active.controller.signal));
     if (plan.job_id !== active.job_id || plan.batch_ref !== active.batch_ref) throw new Error('BATCH_AUTHORIZATION_MISMATCH');
     // A batch can contain a bounded ready list larger than 32: excess remains durably queued.
-    if (plan.attempts.length > 64) throw new Error('BATCH_TOO_LARGE');
+    if (Array.isArray(plan.tasks) && plan.tasks.length > 64) throw new Error('BATCH_TOO_LARGE');
+    if (!Array.isArray(plan.tasks) || Object.hasOwn(plan, 'attempts') || Object.keys(plan).some(key => !['job_id', 'batch_ref', 'tasks'].includes(key))) throw new Error('INVALID_FROZEN_BATCH');
     const identities = new Set<string>();
-    for (const binding of plan.attempts) {
-      validateWork(binding);
-      if (binding.work.job_id !== active.job_id || binding.work.schema_version !== 1 || !ROLES.includes(binding.work.role) || identities.has(binding.work.attempt_id) || !binding.work.attempt_id || !binding.work.task_id || !binding.execution_key || !Number.isSafeInteger(binding.epoch) || binding.epoch < 0 || binding.work.limits.max_agent_depth !== 1 || !Number.isSafeInteger(binding.work.limits.max_tool_calls) || binding.work.limits.max_tool_calls <= 0 || !Number.isFinite(binding.work.limits.wall_timeout_seconds) || binding.work.limits.wall_timeout_seconds <= 0) throw new Error('INVALID_FROZEN_BATCH');
-      identities.add(binding.work.attempt_id);
+    for (const task of plan.tasks) {
+      validateTask(task);
+      if (task.job_id !== active.job_id || identities.has(task.task_id) || !ROLES.includes(task.role)) throw new Error('INVALID_FROZEN_BATCH');
+      identities.add(task.task_id);
     }
     await abortable(this.preflight(), active.controller.signal);
     const outcomes: WorkerOutcome[] = [];
     // Domain grants shared capacity atomically. No local counter pretends to enforce all Runtimes.
-    const workers = plan.attempts.map(binding => {
-      const entry: WorkerEntry = { binding, quarantined: false, released: false };
+    const workers = plan.tasks.map(task => {
+      const entry: WorkerEntry = { task, quarantined: false, released: false };
       active.entries.push(entry);
       return this.executeWorker(active, entry, parent).then(outcome => { outcomes.push(outcome); });
     });
@@ -74,20 +76,26 @@ export class BatchRunner {
     return { job_id: active.job_id, batch_ref: active.batch_ref, workers: outcomes };
   }
   private async executeWorker(active: ActiveBatch, entry: WorkerEntry, parent: Agent): Promise<WorkerOutcome> {
-    const binding = entry.binding;
-    let outcome: WorkerOutcome = { attempt_id: binding.work.attempt_id, state: 'FAILED' };
+    let binding: AttemptBinding | undefined;
+    let outcome: WorkerOutcome = { task_id: entry.task.task_id, state: 'FAILED' };
     const controller = new AbortController();
     const abort = () => controller.abort();
     active.controller.signal.addEventListener('abort', abort, { once: true });
     if (active.controller.signal.aborted) controller.abort();
-    const timer = setTimeout(() => controller.abort(), binding.work.limits.wall_timeout_seconds * 1000);
+    const timer = setTimeout(() => controller.abort(), entry.task.limits.wall_timeout_seconds * 1000);
     const disposeOnAbort = () => { if (entry.handle !== undefined) void this.dispose(entry).catch(() => undefined); };
     controller.signal.addEventListener('abort', disposeOnAbort, { once: true });
     try {
-      if (controller.signal.aborted || active.stopRequested) return { attempt_id: binding.work.attempt_id, state: 'CANCELLED' };
-      const lease = await this.domain.tryAcquireWorker(binding, controller.signal);
-      if (lease === null) return { attempt_id: binding.work.attempt_id, state: 'QUEUED' };
-      entry.lease = lease;
+      if (controller.signal.aborted || active.stopRequested) return { task_id: entry.task.task_id, state: 'CANCELLED' };
+      const acquired = await this.domain.tryAcquireWorker(entry.task, controller.signal);
+      if (acquired === null) return { task_id: entry.task.task_id, state: 'QUEUED' };
+      binding = entry.binding = acquired.binding;
+      const lease = entry.lease = acquired.lease;
+      validateWork(binding);
+      if (!Number.isSafeInteger(binding.epoch) || binding.epoch < 0 || !binding.execution_key || !lease.token) throw new Error('INVALID_LEASE_BINDING');
+      const { attempt_id: _attempt, candidate_namespace: namespace, ...frozen } = binding.work;
+      const { candidate_namespace: taskNamespace, ...spec } = entry.task;
+      if (!isDeepStrictEqual(frozen, spec) || namespace !== `${taskNamespace}/${binding.work.attempt_id}`) throw new Error('LEASE_TASK_MISMATCH');
       if (controller.signal.aborted || active.stopRequested) throw new Error('CANCELLED_BEFORE_START');
       entry.startup = this.provider.startActivation({ binding, parent, signal: controller.signal, outputSchema: structuredClone(PROPOSAL_SCHEMA), persona: `You are the ${binding.work.role} worker for exactly one frozen work package. Investigate evidence and submit a proposal. Never execute binaries, claim independent quality acceptance, delegate work, or change the runtime.`, maxDepth: 1, toolFilter: { allow: [] }, delivery: 'caller' });
       // Retain late publication even after a bounded wait has quarantined the lease.
@@ -107,18 +115,24 @@ export class BatchRunner {
       const proposal = validateProposal(result.structured, binding);
       if (active.stopRequested) throw new Error('CANCELLED_BEFORE_COMMIT');
       await this.domain.commitProposal(binding, lease, proposal);
-      outcome = { attempt_id: binding.work.attempt_id, state: 'RECORDED' };
+      outcome = { task_id: entry.task.task_id, attempt_id: binding.work.attempt_id, state: 'RECORDED' };
     } catch (error) {
       // Never persist provider diagnostics or arbitrary Error messages that may contain secrets.
       const known = ['OUTPUT_TRUNCATED', 'ACTIVATION_NOT_COMPLETED', 'INVALID_PROPOSAL_SCHEMA', 'PROPOSAL_IDENTITY_MISMATCH', 'ARTIFACT_SCOPE_MISMATCH', 'INVALID_CONTRACT_REVISION', 'WALL_TIMEOUT'];
       const code = active.stopRequested ? 'CANCELLED' : controller.signal.aborted ? 'WALL_TIMEOUT' : error instanceof Error && known.includes(error.message) ? error.message : 'ADAPTER_INFRASTRUCTURE_FAILURE';
-      outcome = { attempt_id: binding.work.attempt_id, state: active.stopRequested ? 'CANCELLED' : 'FAILED', code };
-      await this.domain.recordFailure(binding, code);
+      outcome = { task_id: entry.task.task_id, ...(binding === undefined ? {} : { attempt_id: binding.work.attempt_id }), state: active.stopRequested ? 'CANCELLED' : 'FAILED', code };
+      if (binding !== undefined && !active.stopRequested) {
+        try { await this.domain.recordFailure(binding, code); }
+        catch {
+          await this.quarantine(entry).catch(() => undefined);
+          outcome = { task_id: entry.task.task_id, attempt_id: binding.work.attempt_id, state: 'QUARANTINED', code: 'FAILURE_FENCING_UNCONFIRMED' };
+        }
+      }
     } finally {
       clearTimeout(timer);
       active.controller.signal.removeEventListener('abort', abort);
       controller.signal.removeEventListener('abort', disposeOnAbort);
-      if (entry.lease !== undefined && !entry.released && !entry.quarantined) {
+      if (binding !== undefined && entry.lease !== undefined && !entry.released && !entry.quarantined) {
         try {
           if (entry.startup !== undefined) await deadline(entry.startup.then(() => undefined, () => undefined), this.cleanupTimeoutMs);
           await this.dispose(entry);
@@ -127,8 +141,8 @@ export class BatchRunner {
           await this.domain.releaseWorker(binding, entry.lease);
           entry.released = true;
         } catch {
-          await this.quarantine(entry);
-          outcome = { attempt_id: binding.work.attempt_id, state: 'QUARANTINED', code: 'CLEANUP_UNCONFIRMED' };
+          await this.quarantine(entry).catch(() => undefined);
+          outcome = { task_id: entry.task.task_id, attempt_id: binding.work.attempt_id, state: 'QUARANTINED', code: 'CLEANUP_UNCONFIRMED' };
         }
       }
     }
@@ -140,7 +154,7 @@ export class BatchRunner {
     return entry.disposal;
   }
   private async quarantine(entry: WorkerEntry): Promise<void> {
-    if (entry.quarantined || entry.released || entry.lease === undefined) return;
+    if (entry.quarantined || entry.released || entry.lease === undefined || entry.binding === undefined) return;
     entry.quarantined = true;
     this.quarantinedRuntime = true;
     await this.domain.quarantineWorker(entry.binding, entry.lease, 'CLEANUP_UNCONFIRMED');

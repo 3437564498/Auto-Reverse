@@ -25,6 +25,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        id: dsh-python
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.lock
+      - run: python -m pip install -e . --no-deps
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -34,3 +41,5 @@ jobs:
         working-directory: integrations/dsh
       - run: npm test
         working-directory: integrations/dsh
+        env:
+          AUTO_REVERSE_PYTHON: ${{ steps.dsh-python.outputs.python-path }}

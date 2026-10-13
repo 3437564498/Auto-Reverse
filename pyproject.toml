@@ -26,6 +26,9 @@ arm64-recover = "auto_reverse.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+auto_reverse = ["resources/*.hpp", "resources/*.java", "resources/*.json"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"

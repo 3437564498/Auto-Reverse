@@ -7,17 +7,18 @@ from pathlib import Path
 import yaml
 
 from . import __version__
-from .artifacts import ArtifactStore
+from .backend_rpc import BackendRPC
 from .contracts import RecoveryPolicy
-from .domain import DomainError, DomainStore
+from .domain import DomainError
 from .intake import inspect_elf
 
 
 class RecoveryService:
     def __init__(self, state_dir: str | Path):
         self.state_dir = Path(state_dir)
-        self.objects = ArtifactStore(self.state_dir)
-        self.domain = DomainStore(self.state_dir, artifact_resolver=self.objects.get_metadata)
+        self.backend = BackendRPC(self.state_dir)
+        self.objects = self.backend.objects
+        self.domain = self.backend.domain
 
     def describe_capabilities(self) -> dict:
         return {
@@ -26,12 +27,20 @@ class RecoveryService:
             "target": {"platform": "android", "abi": "arm64-v8a"},
             "static_only": True,
             "implemented": ["elf_intake", "content_addressed_evidence", "durable_job_ledger",
-                            "mcp_stdio", "mcp_streamable_http", "restricted_machine_semantics"],
+                            "mcp_stdio", "mcp_streamable_http", "restricted_machine_semantics",
+                            "private_python_dsh_bridge", "ghidra_raw_pcode_export",
+                            "controlled_ndk_build", "integer_leaf_cpp_recovery"],
             "recovery_system_complete": False,
             "dsh_model_integration_verified": False,
             "ndk_build_integration_verified": False,
             "m0_s_complete": False,
             "m0_r_complete": False,
+            "integration_boundaries": {
+                "dsh": "Python domain/CAS and offline Runtime preflight; model acceptance pending",
+                "ghidra": "Pinned 11.3.2; configured by trusted host path; export is evidence",
+                "ndk": "Pinned r27c; configured by trusted host path; compile/link only",
+                "recovery": "Restricted integer leaves; partial A1 maximum; original ABI unknown",
+            },
             "worker_global_max": 32,
             "verification_scope": "Explicit function scope; no whole-library equivalence claim",
         }
@@ -58,6 +67,10 @@ class RecoveryService:
     def analyze_job(self, job_id: str) -> dict:
         job = self.domain.get_job(job_id)
         if job["execution_state"] not in {"QUEUED", "RUNNING"}:
+            return job
+        if self.domain.has_work_packages(job_id):
+            # The DAG owns these jobs; an intake polling worker must not finish
+            # their plan or classify an unfinished batch as infrastructure failure.
             return job
         try:
             if job["execution_state"] == "QUEUED":
@@ -116,10 +129,10 @@ class RecoveryService:
         destination.mkdir(parents=True, exist_ok=True)
         for item in self.domain.list_artifacts(job["job_id"])["items"]:
             ref = item.get("artifact_ref", item.get("artifact_id"))
-            metadata = self.objects.get_metadata(ref)
+            metadata = self.backend.resolve_artifact_metadata(ref)
             kind = metadata.get("kind", item.get("kind", "artifact"))
             if kind in {"elf_intake", "analysis_report"}:
-                data = self.objects.resolve_artifact(ref).read_bytes()
+                data = self.objects.resolve_artifact(metadata["artifact_id"]).read_bytes()
                 temporary = destination / f".{kind}.{os.getpid()}.tmp"
                 temporary.write_bytes(data)
                 temporary.replace(destination / f"{kind}.json")
@@ -138,7 +151,10 @@ class RecoveryService:
         while True:
             page = self.domain.list_artifacts(job_id, cursor=cursor, limit=100)
             if any(item.get("artifact_ref", item.get("artifact_id")) == artifact_ref for item in page["items"]):
-                return self.objects.read_artifact(artifact_ref, offset=offset, limit=limit)
+                metadata = self.backend.resolve_artifact_metadata(artifact_ref)
+                content_ref = metadata["artifact_id"]
+                return {**self.objects.read_artifact(content_ref, offset=offset, limit=limit),
+                        "artifact_ref": artifact_ref, "content_ref": content_ref}
             next_cursor = page.get("next_cursor")
             if not page["items"] or next_cursor is None or next_cursor <= cursor:
                 raise ValueError("artifact does not belong to this job")

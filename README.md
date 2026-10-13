@@ -2,7 +2,7 @@
 
 面向 Android `arm64-v8a` 共享库 `.so` 的全自动、纯静态 C++ 源码重建方案。采用版本化证据与 ABI 约束、有界多 Agent、小工作包、独立构建及静态语义验证；DeepSeek Harness（DSH）为客户端与 Agent Runtime，定制插件补齐业务能力。
 
-当前主方案为 **1.0-design（V1）**。仓库已进入 **M0 原型开发**：提供可安装 Python 包、静态 ELF 体检、内容寻址证据、持久任务账本、CLI/MCP 和受限 ARM64 SMT 比较；DSH 定制插件使用固定官方包构建。完整 C++ 恢复系统、Ghidra/NDK 链路、真实模型联调和 32 路恢复吞吐仍待实现或验收。
+当前主方案为 **1.0-design（V1）**。已接通 Python–DSH 的真实账本/CAS、专用 SDK 离线启动，以及 Ghidra Raw P-code、Android NDK 和受限整数叶函数的 `.so → C++ → 编译 → 静态比较` 链路。完整类型/ABI、整库 C++ 恢复、真实模型验收和模型 32 路吞吐仍待完成；M0 的完整退出条件尚未通过。
 
 ## 开发与运行
 
@@ -30,6 +30,21 @@ npm test
 
 MCP 使用登记后的 `input_ref`/`policy_ref`，短提交后由独立 worker 处理。stdio 和本地 Streamable HTTP 提供提交、查询、分页、取消和产物读取；目前为单用户本地服务，远端身份认证尚未接入。详细交付范围、实际验证和后续工包见 [实施记录](docs/implementation-status.md)。
 
+受限恢复链路只执行分析器、编译器和 Solver，不运行库：
+
+```bash
+.venv/bin/python scripts/install_static_toolchains.py
+export JAVA_HOME="$PWD/work/tools/jdk-21.0.8+9"
+.venv/bin/python scripts/build_ndk_samples.py --output work/ndk-samples
+.venv/bin/arm64-recover recover-leaf \
+  --binary work/ndk-samples/original/libmicro.so --output work/recovered-leaf \
+  --ndk-root work/tools/android-ndk-r27c --ghidra-home work/tools/ghidra_11.3.2_PUBLIC
+cd integrations/dsh
+npm run preflight
+```
+
+恢复范围自动保留全部已发现符号和可执行字节分母；暂不支持的函数形成缺口。实际源码编译并核对产物指纹后最高交付 A1；局部机器验证不会提升为整库通过。`preflight` 使用真实 DSH SDK 启停和有效配置核查，模型调用数为零；详情见 [DSH 接线与真实模型后续验收](integrations/dsh/README.md)。
+
 ## 文档
 
 | 文档 | 内容 |
@@ -53,4 +68,4 @@ MCP 使用登记后的 `input_ref`/`policy_ref`，短提交后由独立 worker �
 
 M0-S 静态语义与 M0-R DSH 受控运行两项原型的完整退出条件尚未全部通过；通过后重新冻结 MVP 子集、工期、成本和验收门槛。性能数字是待校准研发目标，不能解释为 Android `.so` 实测成功率。
 
-更新日期：2026-10-13（Asia/Singapore）。
+更新日期：2026-10-14（Asia/Singapore）。

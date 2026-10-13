@@ -48,6 +48,24 @@ def test_unknown_remote_paths_and_cross_job_objects_are_rejected(tmp_path):
         service.read_job_artifact(job["job_id"], secret["artifact_id"])
 
 
+def test_intake_worker_preserves_jobs_owned_by_the_persistent_task_dag(tmp_path):
+    service = RecoveryService(tmp_path / "state")
+    registered = service.register_input(write_minimal_elf(tmp_path / "input.so"))
+    policy = service.register_policy()
+    job = service.submit_job(registered["input_ref"], policy["policy_ref"], "dag-job")
+    evidence = service.objects.put_json({"immutable": "input evidence"})
+    task = service.domain.create_work_package({
+        "job_id": job["job_id"], "task_id": "recovery-task", "role": "recovery",
+        "input_snapshot_id": job["input_snapshot_id"], "contract_revision": 1,
+        "evidence_manifest_ref": evidence["artifact_id"],
+    })
+    before = service.domain.get_job(job["job_id"])
+    result = service.analyze_job(job["job_id"])
+    assert result == before
+    assert service.domain.get_work_package(task["task_id"])["state"] == "READY"
+    assert service.domain.list_artifacts(job["job_id"])["items"] == []
+
+
 def test_real_stdio_mcp_handshake_and_short_idempotent_submit(tmp_path):
     state = tmp_path / "state"
     service = RecoveryService(state)

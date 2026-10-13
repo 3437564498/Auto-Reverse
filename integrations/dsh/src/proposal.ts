@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { Ajv } from 'ajv';
 import { assertObjectJsonSchema, validateJsonSchemaValue, type JsonSchemaNode, type ObjectJsonSchema } from '@deepseek-ai/dsh-tools';
-import type { AttemptBinding, Proposal } from './contracts.js';
+import type { AttemptBinding, Proposal, WorkPackageSpec } from './contracts.js';
 
 const ajv = new Ajv({ allErrors: true, strict: true });
 export const SHARED_PROPOSAL_SCHEMA = JSON.parse(readFileSync(new URL('../../../../schemas/proposal.schema.json', import.meta.url), 'utf8')) as Record<string, unknown>;
@@ -23,6 +23,10 @@ function project(source: Record<string, unknown>): JsonSchemaNode {
 export const PROPOSAL_SCHEMA = project(SHARED_PROPOSAL_SCHEMA) as ObjectJsonSchema;
 assertObjectJsonSchema(PROPOSAL_SCHEMA);
 
+export function validateTask(task: WorkPackageSpec): void {
+  if (task === null || typeof task !== 'object' || Object.hasOwn(task, 'attempt_id') || !fullWork({ ...task, attempt_id: 'schema-validation-only' })) throw new Error('INVALID_FROZEN_TASK');
+}
+
 export function validateWork(binding: AttemptBinding): void {
   if (!fullWork(binding.work)) throw new Error('INVALID_FROZEN_WORK_PACKAGE');
 }
@@ -40,5 +44,5 @@ export function validateProposal(value: unknown, binding: AttemptBinding): Propo
 
 export function frozenPrompt(binding: AttemptBinding): string {
   // Serialize only the work contract, excluding lease, epoch and execution key.
-  return JSON.stringify({ work_package: binding.work, output_contract: 'proposal/v1', instructions: binding.instructions ?? 'Investigate only this frozen work package. Submit PROPOSED output through structured_output; all independent quality decisions belong to the service.' });
+  return JSON.stringify({ work_package: binding.work, output_contract: 'proposal/v1', instructions: binding.instructions ?? 'Investigate only this frozen work package using its authorized contract_read and evidence_read tools. Stage a JSON candidate document through candidate_stage and use only the returned artifact_ref in a complete PROPOSED structured_output. State missing premises in gaps. Never execute target or candidate libraries; all independent quality decisions belong to the service.' });
 }
