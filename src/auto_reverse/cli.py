@@ -21,6 +21,24 @@ def main(argv=None):
     policy = commands.add_parser("register-policy")
     policy.add_argument("path", nargs="?")
     commands.add_parser("capabilities")
+    commands.add_parser("domain-rpc", help="Private host stdio RPC; not a model-facing tool")
+    ghidra = commands.add_parser("import-ghidra", help="Static headless import and Raw P-code export")
+    ghidra.add_argument("--binary", required=True)
+    ghidra.add_argument("--output", required=True)
+    ghidra.add_argument("--ghidra-home", required=True)
+    ghidra.add_argument("--timeout-seconds", type=int, default=300)
+    build = commands.add_parser("build-candidate", help="Compile-only controlled Android NDK gate")
+    build.add_argument("--source", required=True)
+    build.add_argument("--output", required=True)
+    build.add_argument("--ndk-root", required=True)
+    build.add_argument("--api-level", type=int, default=21)
+    build.add_argument("--expected-export", action="append")
+    recover = commands.add_parser("recover-leaf", help="Recover supported integer leaves, build and verify statically")
+    recover.add_argument("--binary", required=True)
+    recover.add_argument("--output", required=True)
+    recover.add_argument("--ndk-root", required=True)
+    recover.add_argument("--api-level", type=int, default=21)
+    recover.add_argument("--ghidra-home")
     status = commands.add_parser("get-job")
     status.add_argument("job_id")
     worker = commands.add_parser("worker", help="Process durable static-intake jobs")
@@ -36,11 +54,28 @@ def main(argv=None):
     verify.add_argument("--output")
     args = parser.parse_args(argv)
     try:
-        if args.command == "mcp":
+        if args.command == "domain-rpc":
+            from .backend_rpc import run_stdio
+            run_stdio(args.state_dir)
+            return 0
+        if args.command == "import-ghidra":
+            from .ghidra import analyze_with_ghidra
+            result = analyze_with_ghidra(args.binary, args.output, args.ghidra_home,
+                                         timeout_seconds=args.timeout_seconds)
+        elif args.command == "build-candidate":
+            from .build_gate import BuildConfig, build_candidate
+            config = BuildConfig(ndk_root=Path(args.ndk_root), api_level=args.api_level,
+                                 expected_exports=tuple(args.expected_export) if args.expected_export else None)
+            result = build_candidate(Path(args.source).read_text(encoding="utf-8"), Path(args.output), config)
+        elif args.command == "recover-leaf":
+            from .recovery import recover_subset
+            result = recover_subset(args.binary, args.output, args.ndk_root,
+                                    api_level=args.api_level, ghidra_home=args.ghidra_home)
+        elif args.command == "mcp":
             from .mcp_server import create_server
             create_server(args.state_dir, port=args.port).run(transport=args.transport)
             return 0
-        if args.command == "verify":
+        elif args.command == "verify":
             from .intake import extract_function, function_info
             from .semantics import verify_machine_code
             locations = {}

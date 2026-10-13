@@ -3,17 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Pinned DeepSeek Harness recovery adapter and Cordis plugin prototype; not M0-R acceptance",
+  "description": "Pinned DeepSeek Harness Cordis plugin with real Python SQLite/CAS RPC and offline SDK preflight; M0-R model acceptance pending",
   "engines": {
     "node": ">=22.19.0"
   },
   "exports": {
     ".": "./dist/src/index.js",
-    "./plugin": "./dist/src/plugin.js"
+    "./plugin": "./dist/src/plugin.js",
+    "./host-plugin": "./dist/src/host-plugin.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "npm run build && node --test dist/tests/*.test.js"
+    "test": "npm run build && node --test dist/tests/*.test.js",
+    "preflight": "npm run build && node examples/sdk-host.mjs"
   },
   "dependencies": {
     "@deepseek-ai/cordis": "4.0.5-alpha.1",
@@ -27,6 +29,8 @@
   "devDependencies": {
     "@deepseek-ai/dsh-llm": "0.2.1-alpha.2",
     "@deepseek-ai/dsh-scope": "0.2.1-alpha.2",
+    "@deepseek-ai/dsh-sdk-client": "0.2.1-alpha.2",
+    "@deepseek-ai/dsh-subagent-spawn-in-process": "0.2.1-alpha.2",
     "@deepseek-ai/dsh-system-prompt": "0.2.1-alpha.2",
     "@types/node": "22.20.1",
     "typescript": "6.0.3"

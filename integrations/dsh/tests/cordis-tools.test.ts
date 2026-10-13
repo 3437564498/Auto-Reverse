@@ -31,7 +31,7 @@ test('official Cordis scoped registry preserves worker own tools and monotonic g
   const work: AttemptBinding = { epoch: 1, execution_key: 'execution', work: {
     schema_version: 1, job_id: 'job', task_id: 'task', attempt_id: 'attempt', role: 'reviewer', scope: { function_ids: ['fn'], region_ids: [] },
     input_snapshot_id: 'snapshot', contract_revision: 1, dependencies: [], evidence_manifest_ref: 'evidence://job/fn', candidate_namespace: 'candidate://job/attempt',
-    allowed_operations: ['evidence_read', 'task_report'], limits: { wall_timeout_seconds: 30, max_tool_calls: 80, max_agent_depth: 1 }, stop_conditions: [], missing_evidence_policy: 'report_gap',
+    allowed_operations: ['evidence_read', 'task_report', 'candidate_submit'], limits: { wall_timeout_seconds: 30, max_tool_calls: 80, max_agent_depth: 1 }, stop_conditions: [], missing_evidence_policy: 'report_gap',
   } };
   policy.bindWorker(child, work);
   let ranShell = false;
@@ -43,14 +43,17 @@ test('official Cordis scoped registry preserves worker own tools and monotonic g
   rootScope.ctx.tools.register(tool('run_recovery_batch'));
   childScope.ctx.tools.restrict({ allow: [] });
   childScope.ctx.tools.register(tool('evidence_read'));
+  childScope.ctx.tools.register(tool('candidate_stage'));
   childScope.ctx.tools.register(tool('structured_output'));
   ctx.tools.guard(exec => policy.deny(exec.agent, exec.name));
   // A later permissive pre-execute plugin cannot reverse the monotonic guard.
   ctx.on('tools/pre-execute', async () => ({ kind: 'allow' }));
   assert.deepEqual(ctx.tools.schemas(root).map(tool => tool.name), ['run_recovery_batch']);
-  assert.deepEqual(ctx.tools.schemas(child).map(tool => tool.name), ['evidence_read', 'structured_output']);
+  assert.deepEqual(ctx.tools.schemas(child).map(tool => tool.name), ['evidence_read', 'candidate_stage', 'structured_output']);
   const evidence = await ctx.tools.execute({ callId: 'read-1' as ToolCallId, name: 'evidence_read', arguments: {}, agent: child, signal: new AbortController().signal });
   assert.equal(evidence.isError, false);
+  const staged = await ctx.tools.execute({ callId: 'stage-1' as ToolCallId, name: 'candidate_stage', arguments: {}, agent: child, signal: new AbortController().signal });
+  assert.equal(staged.isError, false);
   const structure = await ctx.tools.execute({ callId: 'output-1' as ToolCallId, name: 'structured_output', arguments: {}, agent: child, signal: new AbortController().signal });
   assert.equal(structure.isError, false);
   // Own-scope additions bypass restrict visibility, so guard must still reject execution.

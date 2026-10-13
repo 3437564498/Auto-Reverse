@@ -6,9 +6,9 @@ import type { Agent } from '@deepseek-ai/dsh-agent';
 import { SessionId } from '@deepseek-ai/dsh-session';
 import type { SubagentResult } from '@deepseek-ai/dsh-subagent';
 import { BatchRunner } from '../src/batch-runner.js';
-import { DSH_COMMIT, type ActivationHandle, type ActivationProvider, type ActivationRequest, type AttemptBinding, type BatchPlan, type DomainClient, type Json, type ProfileReport, type Proposal, type ProposalReceipt, type WorkerLease } from '../src/contracts.js';
+import { DSH_COMMIT, type ActivationHandle, type ActivationProvider, type ActivationRequest, type AttemptBinding, type BatchPlan, type DomainClient, type Json, type ProfileReport, type Proposal, type ProposalReceipt, type WorkerLease, type WorkPackageSpec, type AcquiredWorker } from '../src/contracts.js';
 import { StaticPolicy } from '../src/policy.js';
-import { frozenPrompt, PROPOSAL_SCHEMA, SHARED_PROPOSAL_SCHEMA, validateProposal, validateWork } from '../src/proposal.js';
+import { frozenPrompt, PROPOSAL_SCHEMA, SHARED_PROPOSAL_SCHEMA, validateProposal, validateWork, validateTask } from '../src/proposal.js';
 import * as plugin from '../src/plugin.js';
 
 function deferred<T>() { let resolve!: (value: T) => void; let reject!: (error: Error) => void; const promise = new Promise<T>((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; }
@@ -18,13 +18,14 @@ function binding(index = 0): AttemptBinding {
     epoch: 1, execution_key: `secret-execution-${index}`,
     work: { schema_version: 1, job_id: 'job-1', task_id: `task-${index}`, attempt_id: `attempt-${index}`, role: 'recovery',
       scope: { function_ids: [`fn-${index}`], region_ids: [] }, input_snapshot_id: 'snapshot-1', contract_revision: 1,
-      evidence_manifest_ref: `evidence://job-1/fn-${index}`, candidate_namespace: `candidate://job-1/attempt-${index}`,
+      evidence_manifest_ref: `evidence://job-1/fn-${index}`, candidate_namespace: `candidate://job-1/task-${index}/attempt-${index}`,
       dependencies: [], allowed_operations: ['evidence_read', 'contract_read', 'candidate_submit', 'task_report'],
       limits: { wall_timeout_seconds: 30, max_tool_calls: 80, max_agent_depth: 1 },
       stop_conditions: ['proposal_submitted'], missing_evidence_policy: 'report_gap',
     },
   };
 }
+function task(index = 0): WorkPackageSpec { const { attempt_id: _id, ...work } = binding(index).work; work.candidate_namespace = `candidate://job-1/task-${index}`; return work; }
 function proposal(b: AttemptBinding): Proposal {
   const w = b.work;
   return { schema_version: 1, job_id: w.job_id, task_id: w.task_id, attempt_id: w.attempt_id, input_snapshot_id: w.input_snapshot_id, contract_revision: w.contract_revision, disposition: 'PROPOSED', artifact_refs: [`${w.candidate_namespace}/source`], evidence_refs: [w.evidence_manifest_ref], assumptions: [], gaps: [], requested_followup_tasks: [] };
@@ -37,9 +38,10 @@ class Domain implements DomainClient {
   constructor(readonly plan: BatchPlan) {}
   async loadBatch(): Promise<BatchPlan> { return this.plan; }
   async inspectProfile(): Promise<ProfileReport> { return this.profile; }
-  async tryAcquireWorker(b: AttemptBinding): Promise<WorkerLease | null> {
+  async tryAcquireWorker(t: WorkPackageSpec): Promise<AcquiredWorker | null> {
+    const b = binding(Number(t.task_id.split('-').at(-1))); b.work = { ...structuredClone(t), attempt_id: b.work.attempt_id, candidate_namespace: `${t.candidate_namespace}/${b.work.attempt_id}` };
     if (this.cancelled || this.leases === 32) { this.events.push(`queued:${b.work.attempt_id}`); return null; }
-    this.leases += 1; this.peak = Math.max(this.peak, this.leases); return { token: `secret-lease-${b.work.attempt_id}` };
+    this.leases += 1; this.peak = Math.max(this.peak, this.leases); return { binding: b, lease: { token: `secret-lease-${b.work.attempt_id}` } };
   }
   async bindActivation(_b: AttemptBinding, _l: WorkerLease, id: { session_id: string; activation_id: string }): Promise<void> { this.bound.push(id.activation_id); }
   async commitProposal(b: AttemptBinding, _l: WorkerLease, p: Proposal): Promise<ProposalReceipt> {
@@ -51,6 +53,7 @@ class Domain implements DomainClient {
   async releaseWorker(b: AttemptBinding): Promise<void> { this.events.push('released'); this.releases.push(b.work.attempt_id); this.leases -= 1; }
   async quarantineWorker(b: AttemptBinding): Promise<void> { this.quarantines.push(b.work.attempt_id); }
   async readEvidence(): Promise<Json> { return {}; }
+  async stageCandidate(): Promise<Json> { return {}; }
   async readContract(): Promise<Json> { return {}; }
   async reportTask(): Promise<Json> { return {}; }
   async auditTool(): Promise<void> {}
@@ -71,7 +74,7 @@ class Provider implements ActivationProvider {
     };
   }
 }
-function fixture(count = 1) { const domain = new Domain({ batch_ref: 'batch-1', job_id: 'job-1', attempts: Array.from({ length: count }, (_, i) => binding(i)) }); const provider = new Provider(); return { domain, provider, runner: new BatchRunner(domain, provider, 20) }; }
+function fixture(count = 1) { const domain = new Domain({ batch_ref: 'batch-1', job_id: 'job-1', tasks: Array.from({ length: count }, (_, i) => task(i)) }); const provider = new Provider(); return { domain, provider, runner: new BatchRunner(domain, provider, 20) }; }
 
 // These are injected adapter tests, not claims of real model or Harness execution.
 test('two injected fresh worker handles keep distinct provider identities and record proposals independently', async () => {
@@ -124,6 +127,10 @@ test('exact Agent binding, root restrictions and own-scope additions deny shell 
     assert.equal(policy.deny(worker, name), 'STATIC_TOOL_DENIED'); assert.equal(policy.deny(parent, name), 'ROOT_TOOL_DENIED');
   }
   assert.equal(policy.deny({ id: worker.id } as Agent, 'evidence_read'), 'UNBOUND_AGENT');
+  assert.equal(policy.deny(worker, 'candidate_stage'), undefined);
+  const limited = { id: SessionId('limited') } as Agent; const limitedBinding = binding(); limitedBinding.work.allowed_operations = ['evidence_read']; policy.bindWorker(limited, limitedBinding);
+  assert.equal(policy.deny(limited, 'candidate_stage'), 'OPERATION_DENIED');
+  assert.equal(policy.deny(limited, 'structured_output'), 'OPERATION_DENIED');
   assert.equal(policy.deny(worker, 'evidence_read'), undefined); assert.equal(policy.deny(worker, 'structured_output'), undefined);
   assert.throws(() => policy.assertSurface(worker, ['structured_output', 'shell']), /UNSAFE_EFFECTIVE_TOOL_SURFACE/);
   policy.deactivate(worker); assert.equal(policy.deny(worker, 'evidence_read'), 'INACTIVE_ATTEMPT');
@@ -215,11 +222,20 @@ test('real Cordis entry is dependency-gated rather than pretending missing servi
 });
 
 test('wall deadline alone aborts a permanently pending result and preserves failed-disposal occupancy', async () => {
-  const { runner, provider, domain } = fixture(); domain.plan.attempts[0]!.work.limits.wall_timeout_seconds = 1;
+  const { runner, provider, domain } = fixture(); domain.plan.tasks[0]!.limits.wall_timeout_seconds = 1;
   provider.hook = async request => provider.handle(request, new Promise(() => {}), () => new Promise(() => {}));
   const started = Date.now();
   const outcome = await runner.runBatch('batch-1', 'job-1', parent);
   assert.ok(Date.now() - started < 3000);
   assert.equal(outcome.workers[0]?.state, 'QUARANTINED');
   assert.deepEqual(domain.failures, ['WALL_TIMEOUT']); assert.equal(domain.releases.length, 0); assert.equal(domain.leases, 1);
+});
+
+
+test('frozen task schema rejects legacy pre-generated attempts before acquisition', async () => {
+  assert.throws(() => validateTask(binding().work), /INVALID_FROZEN_TASK/);
+  const f = fixture();
+  (f.domain as unknown as { plan: object }).plan = { batch_ref: 'batch-1', job_id: 'job-1', attempts: [binding()] };
+  await assert.rejects(f.runner.runBatch('batch-1', 'job-1', parent), /INVALID_FROZEN_BATCH/);
+  assert.equal(f.domain.leases, 0);
 });

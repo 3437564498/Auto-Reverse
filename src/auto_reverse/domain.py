@@ -374,6 +374,14 @@ class DomainStore:
         with closing(self._connect()) as connection:
             return self._job(connection, self._row(connection, "jobs", "job_id", job_id))
 
+    def has_work_packages(self, job_id: str) -> bool:
+        """Distinguish DAG jobs from the standalone intake worker's jobs."""
+        with self._connect() as connection:
+            self._row(connection, "jobs", "job_id", job_id)
+            return connection.execute(
+                "SELECT 1 FROM tasks WHERE job_id=? LIMIT 1", (job_id,)
+            ).fetchone() is not None
+
     def list_jobs(
         self, states: list[str] | None = None, cursor: int = 0, limit: int = 100
     ) -> dict[str, Any]:
@@ -996,6 +1004,7 @@ class DomainStore:
         metadata: dict[str, Any],
         job_id: str | None = None,
     ) -> None:
+        metadata = {**metadata, "artifact_ref": artifact_ref}
         existing = connection.execute(
             "SELECT metadata FROM artifacts WHERE artifact_ref=?", (artifact_ref,)
         ).fetchone()
@@ -1345,14 +1354,14 @@ class DomainStore:
         with closing(self._connect()) as connection:
             self._row(connection, "jobs", "job_id", job_id)
             rows = connection.execute(
-                "SELECT j.seq,a.metadata FROM job_artifacts j JOIN artifacts a ON a.artifact_ref=j.artifact_ref WHERE j.job_id=? AND j.seq>? ORDER BY j.seq LIMIT ?",
+                "SELECT j.seq,a.artifact_ref,a.metadata FROM job_artifacts j JOIN artifacts a ON a.artifact_ref=j.artifact_ref WHERE j.job_id=? AND j.seq>? ORDER BY j.seq LIMIT ?",
                 (job_id, cursor, limit + 1),
             ).fetchall()
             page = rows[:limit]
             # Revalidate existence and hash on reads, not just at registration.
             items = [
                 self._verified_artifact(
-                    json.loads(row["metadata"])["artifact_ref"], json.loads(row["metadata"])
+                    row["artifact_ref"], json.loads(row["metadata"])
                 )
                 for row in page
             ]

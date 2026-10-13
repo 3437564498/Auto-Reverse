@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "integration_version": "0.1.0",
-  "verification_level": "adapter-only",
+  "verification_level": "python-rpc-cas-and-sdk-offline",
   "m0_r_accepted": false,
   "upstream": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness",
@@ -31,20 +31,24 @@
   },
   "verified": {
     "typescript_build": true,
-    "tests": 19,
+    "tests": 28,
     "official_cordis_tool_registry": true,
     "injected_adapter_lifecycle_tests": true,
-    "upstream_api_source_review": true
+    "upstream_api_source_review": true,
+    "real_python_domain_rpc": true,
+    "real_sqlite_cross_process_quota_32": true,
+    "real_cas_candidate_staging": true,
+    "real_sdk_runtime_offline_start_close": true,
+    "effective_dedicated_profile_inspected_offline": true,
+    "authenticated_local_control_socket": true,
+    "model_calls": 0
   },
   "not_verified": [
-    "real SDK Runtime launch",
     "real model credentials/call",
     "two real fresh model workers",
-    "Python DomainClient/IPC connection",
-    "production host control endpoint",
-    "installed effective Profile",
-    "durable cross-Runtime 32-worker load test",
-    "full M0-R fault and reconnect acceptance",
+    "production host deployment",
+    "full M0-R model fault and reconnect acceptance",
+    "8/16/32 real-model resource/throughput measurements",
     "target/candidate recovery"
   ],
   "static_execution": {
