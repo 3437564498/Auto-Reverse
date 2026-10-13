@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "integration_version": "0.1.0",
+  "verification_level": "adapter-only",
+  "m0_r_accepted": false,
+  "upstream": {
+    "repository": "https://github.com/deepseek-ai/deepseek-harness",
+    "commit": "d743267388641bc76f17c45ce8b4c231aed1d32c",
+    "dsh_package_version": "0.2.1-alpha.2",
+    "cordis_version": "4.0.5-alpha.1",
+    "schemastery_version": "3.18.5-alpha.1",
+    "source_archive_sha256": "414db357dda081d11d531ea3e9969f48fa0502809ff579396c3c2bbf7e109253",
+    "npm_integrity_lock": "package-lock.json",
+    "npm_artifact_commit_provenance": "not independently attested; installed public version and published types checked against pinned source"
+  },
+  "wire_schemas": {
+    "work-package.schema.json": "a5b8c7d1836d866de750c576cf7ebd34fd3c18fbd17c919e24162fb90c9428be",
+    "proposal.schema.json": "f8a9c65c0378bbe49b2222d84e3d6e7614141cd90f96aa864907b38b27a5880d"
+  },
+  "effective_profile_requirements": {
+    "provider": "spawn",
+    "inherits_parent_context": false,
+    "local": true,
+    "tool_mode": "native",
+    "max_active_subagents": 32,
+    "max_tokens_as_success": false,
+    "global_worker_limit": 32,
+    "max_agent_depth": 1,
+    "control_channel_authenticated": true,
+    "profile_inspected": true
+  },
+  "verified": {
+    "typescript_build": true,
+    "tests": 19,
+    "official_cordis_tool_registry": true,
+    "injected_adapter_lifecycle_tests": true,
+    "upstream_api_source_review": true
+  },
+  "not_verified": [
+    "real SDK Runtime launch",
+    "real model credentials/call",
+    "two real fresh model workers",
+    "Python DomainClient/IPC connection",
+    "production host control endpoint",
+    "installed effective Profile",
+    "durable cross-Runtime 32-worker load test",
+    "full M0-R fault and reconnect acceptance",
+    "target/candidate recovery"
+  ],
+  "static_execution": {
+    "targets_executed": false,
+    "candidates_executed": false,
+    "user_dsh_configuration_modified": false
+  },
+  "source_review_paths": [
+    "packages/subagent/subagent/src/types.ts",
+    "packages/subagent/subagent/src/index.ts",
+    "packages/subagent/subagent/src/manager.ts",
+    "packages/subagent/subagent/src/structured.ts",
+    "packages/subagent/subagent-spawn-in-process/src/index.ts",
+    "packages/core/tools/src/index.ts",
+    "packages/core/tools/src/schema.ts",
+    "packages/core/tools/src/json-schema.ts",
+    "packages/core/agent/src/runtime-types.ts",
+    "packages/sdk/client/src/types.ts",
+    "packages/sdk/client/src/api.ts"
+  ]
+}

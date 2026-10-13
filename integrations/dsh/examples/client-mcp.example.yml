@@ -1,0 +1,12 @@
+# 用户客户端配置片段；本轮未修改用户的实际 DSH 安装。
+# 后端 CLI/工作区 staging 要由部署提供，客户端路径不是服务器路径。
+- id: arm64-recovery-mcp
+  name: '@deepseek-ai/dsh-mcp-client'
+  config:
+    serverName: arm64_recovery
+    transport: stdio
+    command: arm64-recover
+    args: ['mcp', '--transport', 'stdio']
+    toolCallTimeoutMs: 60000
+    failOnStartupError: true
+# 连接后先调用 describe_capabilities，再使用短 submit/query/cancel 工具。

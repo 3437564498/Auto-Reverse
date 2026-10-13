@@ -5,6 +5,8 @@
 > 更新日期：2026-10-13（Asia/Singapore）。基础调研日期：2026-10-12。
 >
 > 本版统一需求、架构、数据契约、DSH 多 Agent 与插件、实施及验收。替代 0.2-draft；历史版本保存在 [0.2 快照](snapshots/android-arm64-so-cpp-recovery-0.2-DRAFT-2026-10-13.md) 和 [0.1 快照](snapshots/android-arm64-so-cpp-recovery-INITIAL-2026-10-12.md)。
+
+> 实施状态：本设计中的规划与既有调研记录保留为基线；M0 开发已启动，当前代码能力、实际验证和未完成项以[实施记录](implementation-status.md)为准。
 >
 > 用户本轮批准六项优化，并明确采用多 Agent、每个 Agent 少量任务、可配置 32 路并发，以及 DSH 定制插件。32 是设计容量上限与验收档位，当前尚未修改用户 DSH 安装配置，也未测得持续吞吐。
 

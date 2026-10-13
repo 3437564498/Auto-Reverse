@@ -1,0 +1,89 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "job_id": {
+      "minLength": 1,
+      "title": "Job Id",
+      "type": "string"
+    },
+    "task_id": {
+      "minLength": 1,
+      "title": "Task Id",
+      "type": "string"
+    },
+    "attempt_id": {
+      "minLength": 1,
+      "title": "Attempt Id",
+      "type": "string"
+    },
+    "input_snapshot_id": {
+      "minLength": 1,
+      "title": "Input Snapshot Id",
+      "type": "string"
+    },
+    "contract_revision": {
+      "minimum": 1,
+      "title": "Contract Revision",
+      "type": "integer"
+    },
+    "disposition": {
+      "const": "PROPOSED",
+      "default": "PROPOSED",
+      "title": "Disposition",
+      "type": "string"
+    },
+    "artifact_refs": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Artifact Refs",
+      "type": "array"
+    },
+    "evidence_refs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Refs",
+      "type": "array"
+    },
+    "assumptions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Assumptions",
+      "type": "array"
+    },
+    "gaps": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Gaps",
+      "type": "array"
+    },
+    "requested_followup_tasks": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Requested Followup Tasks",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "task_id",
+    "attempt_id",
+    "input_snapshot_id",
+    "contract_revision",
+    "artifact_refs"
+  ],
+  "title": "Proposal",
+  "type": "object"
+}
