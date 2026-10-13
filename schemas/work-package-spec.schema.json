@@ -1,0 +1,160 @@
+{
+  "$defs": {
+    "Limits": {
+      "additionalProperties": false,
+      "properties": {
+        "wall_timeout_seconds": {
+          "default": 900,
+          "maximum": 86400,
+          "minimum": 1,
+          "title": "Wall Timeout Seconds",
+          "type": "integer"
+        },
+        "max_tool_calls": {
+          "default": 80,
+          "maximum": 10000,
+          "minimum": 1,
+          "title": "Max Tool Calls",
+          "type": "integer"
+        },
+        "max_agent_depth": {
+          "const": 1,
+          "default": 1,
+          "title": "Max Agent Depth",
+          "type": "integer"
+        }
+      },
+      "title": "Limits",
+      "type": "object"
+    },
+    "Scope": {
+      "additionalProperties": false,
+      "properties": {
+        "function_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Function Ids",
+          "type": "array"
+        },
+        "region_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Region Ids",
+          "type": "array"
+        }
+      },
+      "title": "Scope",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "job_id": {
+      "minLength": 1,
+      "title": "Job Id",
+      "type": "string"
+    },
+    "task_id": {
+      "minLength": 1,
+      "title": "Task Id",
+      "type": "string"
+    },
+    "role": {
+      "enum": [
+        "planning",
+        "evidence",
+        "type_abi",
+        "recovery",
+        "reviewer",
+        "repair",
+        "integration",
+        "naming",
+        "reporting"
+      ],
+      "title": "Role",
+      "type": "string"
+    },
+    "scope": {
+      "$ref": "#/$defs/Scope"
+    },
+    "input_snapshot_id": {
+      "minLength": 1,
+      "title": "Input Snapshot Id",
+      "type": "string"
+    },
+    "contract_revision": {
+      "minimum": 1,
+      "title": "Contract Revision",
+      "type": "integer"
+    },
+    "dependencies": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Dependencies",
+      "type": "array"
+    },
+    "evidence_manifest_ref": {
+      "minLength": 1,
+      "title": "Evidence Manifest Ref",
+      "type": "string"
+    },
+    "candidate_namespace": {
+      "minLength": 1,
+      "title": "Candidate Namespace",
+      "type": "string"
+    },
+    "allowed_operations": {
+      "items": {
+        "enum": [
+          "evidence_read",
+          "contract_read",
+          "candidate_submit",
+          "constraint_submit",
+          "task_report",
+          "diagnostic_read"
+        ],
+        "type": "string"
+      },
+      "title": "Allowed Operations",
+      "type": "array"
+    },
+    "limits": {
+      "$ref": "#/$defs/Limits"
+    },
+    "stop_conditions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Stop Conditions",
+      "type": "array"
+    },
+    "missing_evidence_policy": {
+      "const": "report_gap",
+      "default": "report_gap",
+      "title": "Missing Evidence Policy",
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id",
+    "task_id",
+    "role",
+    "scope",
+    "input_snapshot_id",
+    "contract_revision",
+    "evidence_manifest_ref",
+    "candidate_namespace",
+    "allowed_operations"
+  ],
+  "title": "WorkPackageSpec",
+  "type": "object"
+}

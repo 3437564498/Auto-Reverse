@@ -1,0 +1,20 @@
+# 已核查字段的宿主 overlay 片段，不是完整或已验收的可启动 Profile。
+# 由部署从专用 profile 物化；已有同服务插件应覆盖而非重复挂载。
+# 必须预先安装真实 recoveryDomain/recoveryHost 宿主服务插件。
+# 移除 Shell、run_code、自由 Workflow、动态插件安装与原生再委托工具。
+- name: '@deepseek-ai/dsh-subagent'
+  config:
+    maxActiveSubagents: 32
+    maxDepth: 1
+- name: '@deepseek-ai/dsh-subagent-spawn-in-process'
+  config:
+    providerName: spawn
+- name: '@deepseek-ai/dsh-tools'
+  config:
+    mode: native
+- name: '@deepseek-ai/dsh-sdk-jsonrpc-server'
+  config:
+    maxTokensAsSuccess: false
+- name: '../dist/src/plugin.js'
+# 首选定制 BatchRunner 不启用 PTC/Workflow。
+# 全局 32、24+8 可借用共享策略来自领域服务，不是以上原生配置的跨 Runtime 保证。

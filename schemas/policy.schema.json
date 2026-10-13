@@ -1,0 +1,342 @@
+{
+  "$defs": {
+    "AgentPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "topology": {
+          "const": "shallow_fresh",
+          "default": "shallow_fresh",
+          "title": "Topology",
+          "type": "string"
+        },
+        "one_active_work_package_per_agent": {
+          "const": true,
+          "default": true,
+          "title": "One Active Work Package Per Agent",
+          "type": "boolean"
+        },
+        "default_functions_per_recovery_package": {
+          "const": 1,
+          "default": 1,
+          "title": "Default Functions Per Recovery Package",
+          "type": "integer"
+        },
+        "simple_group_max_functions": {
+          "default": 4,
+          "maximum": 4,
+          "minimum": 1,
+          "title": "Simple Group Max Functions",
+          "type": "integer"
+        },
+        "context_soft_target_tokens": {
+          "default": 64000,
+          "minimum": 1,
+          "title": "Context Soft Target Tokens",
+          "type": "integer"
+        },
+        "active_workers_global_max": {
+          "default": 32,
+          "maximum": 32,
+          "minimum": 1,
+          "title": "Active Workers Global Max",
+          "type": "integer"
+        },
+        "active_workers_per_runtime_max": {
+          "default": 32,
+          "maximum": 32,
+          "minimum": 1,
+          "title": "Active Workers Per Runtime Max",
+          "type": "integer"
+        },
+        "recovery_soft_quota": {
+          "default": 24,
+          "maximum": 32,
+          "minimum": 0,
+          "title": "Recovery Soft Quota",
+          "type": "integer"
+        },
+        "review_repair_evidence_reserved": {
+          "default": 8,
+          "maximum": 32,
+          "minimum": 0,
+          "title": "Review Repair Evidence Reserved",
+          "type": "integer"
+        },
+        "max_delegation_depth": {
+          "const": 1,
+          "default": 1,
+          "title": "Max Delegation Depth",
+          "type": "integer"
+        },
+        "max_starts_per_batch": {
+          "default": 64,
+          "maximum": 64,
+          "minimum": 1,
+          "title": "Max Starts Per Batch",
+          "type": "integer"
+        },
+        "one_job_per_runtime": {
+          "const": true,
+          "default": true,
+          "title": "One Job Per Runtime",
+          "type": "boolean"
+        },
+        "tools_mode": {
+          "const": "native",
+          "default": "native",
+          "title": "Tools Mode",
+          "type": "string"
+        },
+        "runner": {
+          "const": "recovery_batch_plugin",
+          "default": "recovery_batch_plugin",
+          "title": "Runner",
+          "type": "string"
+        }
+      },
+      "title": "AgentPolicy",
+      "type": "object"
+    },
+    "AnalysisPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "static_only": {
+          "const": true,
+          "default": true,
+          "title": "Static Only",
+          "type": "boolean"
+        },
+        "inventory_scope": {
+          "const": "whole_library",
+          "default": "whole_library",
+          "title": "Inventory Scope",
+          "type": "string"
+        },
+        "allow_partial_obfuscation": {
+          "const": true,
+          "default": true,
+          "title": "Allow Partial Obfuscation",
+          "type": "boolean"
+        },
+        "runtime_generated_code": {
+          "const": "exclude",
+          "default": "exclude",
+          "title": "Runtime Generated Code",
+          "type": "string"
+        }
+      },
+      "title": "AnalysisPolicy",
+      "type": "object"
+    },
+    "ExecutionPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "target_execution": {
+          "const": false,
+          "default": false,
+          "title": "Target Execution",
+          "type": "boolean"
+        },
+        "candidate_execution": {
+          "const": false,
+          "default": false,
+          "title": "Candidate Execution",
+          "type": "boolean"
+        },
+        "emulator_execution": {
+          "const": false,
+          "default": false,
+          "title": "Emulator Execution",
+          "type": "boolean"
+        }
+      },
+      "title": "ExecutionPolicy",
+      "type": "object"
+    },
+    "GenerationPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "quality_first": {
+          "const": true,
+          "default": true,
+          "title": "Quality First",
+          "type": "boolean"
+        },
+        "initial_candidates": {
+          "default": 4,
+          "minimum": 1,
+          "title": "Initial Candidates",
+          "type": "integer"
+        },
+        "max_repair_rounds": {
+          "default": 8,
+          "minimum": 0,
+          "title": "Max Repair Rounds",
+          "type": "integer"
+        },
+        "preserve_best_candidate": {
+          "const": true,
+          "default": true,
+          "title": "Preserve Best Candidate",
+          "type": "boolean"
+        },
+        "require_complete_evidence_marker": {
+          "const": true,
+          "default": true,
+          "title": "Require Complete Evidence Marker",
+          "type": "boolean"
+        }
+      },
+      "title": "GenerationPolicy",
+      "type": "object"
+    },
+    "OrchestrationPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "deployment_profile": {
+          "const": "single_host_durable",
+          "default": "single_host_durable",
+          "title": "Deployment Profile",
+          "type": "string"
+        },
+        "production_preselection": {
+          "const": "temporal",
+          "default": "temporal",
+          "title": "Production Preselection",
+          "type": "string"
+        },
+        "idempotent_receipts": {
+          "const": true,
+          "default": true,
+          "title": "Idempotent Receipts",
+          "type": "boolean"
+        },
+        "transactional_outbox": {
+          "const": true,
+          "default": true,
+          "title": "Transactional Outbox",
+          "type": "boolean"
+        },
+        "fence_stale_attempts": {
+          "const": true,
+          "default": true,
+          "title": "Fence Stale Attempts",
+          "type": "boolean"
+        }
+      },
+      "title": "OrchestrationPolicy",
+      "type": "object"
+    },
+    "TargetPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "platform": {
+          "const": "android",
+          "default": "android",
+          "title": "Platform",
+          "type": "string"
+        },
+        "abi": {
+          "const": "arm64-v8a",
+          "default": "arm64-v8a",
+          "title": "Abi",
+          "type": "string"
+        },
+        "android_profile_ref": {
+          "default": "android-profile/m0",
+          "title": "Android Profile Ref",
+          "type": "string"
+        }
+      },
+      "title": "TargetPolicy",
+      "type": "object"
+    },
+    "ValidationPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "compile_actual_candidate": {
+          "const": true,
+          "default": true,
+          "title": "Compile Actual Candidate",
+          "type": "boolean"
+        },
+        "static_ub_audit": {
+          "const": true,
+          "default": true,
+          "title": "Static Ub Audit",
+          "type": "boolean"
+        },
+        "instruction_capability_check_both_sides": {
+          "const": true,
+          "default": true,
+          "title": "Instruction Capability Check Both Sides",
+          "type": "boolean"
+        },
+        "abi_check": {
+          "const": true,
+          "default": true,
+          "title": "Abi Check",
+          "type": "boolean"
+        },
+        "semantic_check": {
+          "const": true,
+          "default": true,
+          "title": "Semantic Check",
+          "type": "boolean"
+        },
+        "unknown_is_equivalent": {
+          "const": false,
+          "default": false,
+          "title": "Unknown Is Equivalent",
+          "type": "boolean"
+        },
+        "bounded_is_unbounded": {
+          "const": false,
+          "default": false,
+          "title": "Bounded Is Unbounded",
+          "type": "boolean"
+        },
+        "prohibit_original_binary_forwarding": {
+          "const": true,
+          "default": true,
+          "title": "Prohibit Original Binary Forwarding",
+          "type": "boolean"
+        }
+      },
+      "title": "ValidationPolicy",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "target": {
+      "$ref": "#/$defs/TargetPolicy"
+    },
+    "analysis": {
+      "$ref": "#/$defs/AnalysisPolicy"
+    },
+    "agents": {
+      "$ref": "#/$defs/AgentPolicy"
+    },
+    "generation": {
+      "$ref": "#/$defs/GenerationPolicy"
+    },
+    "validation": {
+      "$ref": "#/$defs/ValidationPolicy"
+    },
+    "execution": {
+      "$ref": "#/$defs/ExecutionPolicy"
+    },
+    "orchestration": {
+      "$ref": "#/$defs/OrchestrationPolicy"
+    }
+  },
+  "title": "RecoveryPolicy",
+  "type": "object"
+}

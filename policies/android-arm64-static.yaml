@@ -1,0 +1,50 @@
+schema_version: 1
+target:
+  platform: android
+  abi: arm64-v8a
+  android_profile_ref: android-profile/m0
+analysis:
+  static_only: true
+  inventory_scope: whole_library
+  allow_partial_obfuscation: true
+  runtime_generated_code: exclude
+agents:
+  topology: shallow_fresh
+  one_active_work_package_per_agent: true
+  default_functions_per_recovery_package: 1
+  simple_group_max_functions: 4
+  context_soft_target_tokens: 64000
+  active_workers_global_max: 32
+  active_workers_per_runtime_max: 32
+  recovery_soft_quota: 24
+  review_repair_evidence_reserved: 8
+  max_delegation_depth: 1
+  max_starts_per_batch: 64
+  one_job_per_runtime: true
+  tools_mode: native
+  runner: recovery_batch_plugin
+generation:
+  quality_first: true
+  initial_candidates: 4
+  max_repair_rounds: 8
+  preserve_best_candidate: true
+  require_complete_evidence_marker: true
+validation:
+  compile_actual_candidate: true
+  static_ub_audit: true
+  instruction_capability_check_both_sides: true
+  abi_check: true
+  semantic_check: true
+  unknown_is_equivalent: false
+  bounded_is_unbounded: false
+  prohibit_original_binary_forwarding: true
+execution:
+  target_execution: false
+  candidate_execution: false
+  emulator_execution: false
+orchestration:
+  deployment_profile: single_host_durable
+  production_preselection: temporal
+  idempotent_receipts: true
+  transactional_outbox: true
+  fence_stale_attempts: true

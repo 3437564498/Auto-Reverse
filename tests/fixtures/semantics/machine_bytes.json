@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "architecture": "aarch64-little-endian",
+  "origin": "Fixed ISA instruction encodings; static formulas only; no target execution",
+  "pairs": [
+    {"name": "identical_constant", "original": "200080d2c0035fd6", "candidate": "200080d2c0035fd6", "expected": "EXACT_EQUIVALENT"},
+    {"name": "constant_mutation", "original": "200080d2c0035fd6", "candidate": "400080d2c0035fd6", "expected": "DIFFERENT"},
+    {"name": "nop_identity", "original": "1f2003d5c0035fd6", "candidate": "c0035fd6", "expected": "EXACT_EQUIVALENT"},
+    {"name": "exclusive_load_not_normal_load", "original": "207c5fc8c0035fd6", "candidate": "200040f9c0035fd6", "expected": "UNKNOWN"},
+    {"name": "barrier_not_nop", "original": "bf3b03d5c0035fd6", "candidate": "1f2003d5c0035fd6", "expected": "UNKNOWN"},
+    {"name": "pac_not_nop", "original": "3f2303d5c0035fd6", "candidate": "1f2003d5c0035fd6", "expected": "UNKNOWN"}
+  ]
+}
