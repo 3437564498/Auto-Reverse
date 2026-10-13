@@ -1,16 +1,16 @@
 # 主会话—子会话、多 Agent 执行与 DSH 兼容调研
 
-> 日期：2026-10-12。
+> 初次调研：2026-10-12；V1 复核与更新：2026-10-13（Asia/Singapore）。
 >
-> 状态：初稿增补调研，不是已完成的客户端兼容测试。
+> 状态：V1 配套调研；已核查源码，尚未安装/启动 DSH 或完成实际模型兼容测试。
 >
 > 用户已确认 DSH 指 DeepSeek 官方 DeepSeek Harness。
 >
-> 对应主方案：[Android ARM64 重建初稿](android-arm64-so-cpp-recovery-DRAFT.md)。
+> 对应主方案：[Android ARM64 重建方案 V1](android-arm64-so-cpp-recovery-V1.md)。
 
 ## 1. 调研问题与结论
 
-本次解决的是产品运行时的 Agent 架构，而不是用多个角色名称包装同一个无限增长的会话。
+本调研关注产品运行时的 Agent 架构。V1 已采用多 Agent、小工作包、单 Agent 少量任务和可配置 32 路并发；DSH 定制插件承担所需能力。
 
 需要回答：
 
@@ -23,7 +23,7 @@
 
 推荐方向：**持久任务 DAG + 版本化事实库 + 有边界的 Agent 会话 + 独立验收服务**。DSH 为客户端和预选 Agent Runtime；生产持久编排预选 Temporal。大多数工作采用 fresh 子会话；同一工作包内部可多轮；不同任务不共享无限增长的聊天记忆。
 
-这些是针对本项目的设计判断，不是某个框架自动提供的完整方案。
+这些是针对本项目的设计判断，不是某个框架自动提供的完整方案。用户于 2026-10-13 批准六项优化，并补充 32 路及定制插件方向；主方案统一契约与验收，本文件保留源码能力及取舍依据。
 
 ## 2. 核查方法与 DSH 基线
 
@@ -34,13 +34,13 @@
 | 仓库 | deepseek-ai/deepseek-harness |
 | Commit | `d743267388641bc76f17c45ce8b4c231aed1d32c` |
 | CLI 包版本 | `0.2.1-alpha.2` |
-| 查询日期 | 2026-10-12 |
+| 查询日期 | 2026-10-12；2026-10-13 再次核验相同 HEAD |
 | API 状态 | 官方仓库说明公共 API 尚未稳定 |
 | 实际执行 | 未安装／启动 DSH，未调用真实模型 |
 
 [固定仓库快照](https://github.com/deepseek-ai/deepseek-harness/tree/d743267388641bc76f17c45ce8b4c231aed1d32c)、[CLI 包版本](https://github.com/deepseek-ai/deepseek-harness/blob/d743267388641bc76f17c45ce8b4c231aed1d32c/apps/cli/package.json)、[仓库 API 状态说明](https://github.com/deepseek-ai/deepseek-harness/blob/d743267388641bc76f17c45ce8b4c231aed1d32c/AGENTS.md)
 
-本文所有“DSH 支持”均限定此核查基线；“本项目将提供”属于拟开发能力。
+本文所有“DSH 支持”均限定此核查基线；“本项目将提供”属于拟开发能力。2026-10-13 下载的当前默认分支仍是该提交，CLI 仍为 0.2.1-alpha.2。未因版本漂移改变基础选型。
 
 ## 3. DSH 子会话：三种后端不是同一种保证
 
@@ -70,7 +70,7 @@ Fork 复制父会话已完成回合的平衡日志前缀，不包括当前正在
 
 本地子 Session 可以持久保留，但每次执行是一个 Activation。结构化输出是本次 Activation 的要求，不代表以后冷恢复仍自动继承；持久描述符也不保存此前的输出 Token 预算。[Subagent 说明](https://github.com/deepseek-ai/deepseek-harness/blob/d743267388641bc76f17c45ce8b4c231aed1d32c/packages/subagent/subagent/README.md)、[持久描述符源码](https://github.com/deepseek-ai/deepseek-harness/blob/d743267388641bc76f17c45ce8b4c231aed1d32c/packages/subagent/subagent/src/descriptor.ts)
 
-本项目每个尝试显式提供任务标识、契约、限制和提交字段；冷恢复不能只说“继续刚才任务”。
+本项目每个 Attempt 绑定一次 Activation；同 Session 短修复的后续 Activation 使用新 Attempt。每次显式提供任务标识、契约、限制和提交字段；冷恢复不能只说“继续刚才任务”。
 
 ### 4.2 创建返回不是完成
 
@@ -82,13 +82,13 @@ Fork 复制父会话已完成回合的平衡日志前缀，不包括当前正在
 
 标准本地控制支持直接父子消息；消息返回表示接受，不代表收件方已经处理。中断返回表示请求已接受，不代表进程与子孙工作已静止。当前回合中断还可能保留本地子孙工作。[控制工具说明](https://github.com/deepseek-ai/deepseek-harness/blob/d743267388641bc76f17c45ce8b4c231aed1d32c/packages/subagent/tool-subagent-control/README.md)
 
-取消整个业务任务必须由业务取消令牌传播，并等待或隔离相关执行资源，不能只调用一次 interrupt。
+取消整个业务任务必须由业务取消令牌传播，并等待或隔离相关执行资源，不能只调用一次 interrupt。发布后的精确 Activation 由插件持有 handle 并调用 dispose；调用方 signal 的 startup 取消不能视为已发布运行及子孙清理保证。
 
 ### 4.4 容量不是持久队列
 
 当前默认每棵激活树最多 8 个活动／创建中的子 Agent，根不占槽位；等待、停止中等激活仍计数。容量满时拒绝，不排队。[容量说明](https://github.com/deepseek-ai/deepseek-harness/blob/d743267388641bc76f17c45ce8b4c231aed1d32c/packages/subagent/subagent/README.md)
 
-本项目由外部调度器排队和背压；首版采用浅层会话树，禁止用全部子槽位创建等待中的管理 Agent。
+本项目由外部调度器排队和背压；V1 将 maxActiveSubagents 显式设为 32，并联动 Workflow 与 PTC 限制，见第 11 节。保持浅层树，禁止用全部槽位创建等待中的管理 Agent。32 是配置目标，不是官方默认值或实测吞吐。
 
 ## 5. DSH Workflow：适合有边界批次，不适合单独承载全库持久任务
 
@@ -110,7 +110,7 @@ stdio 有启动探测，服务的 initialize／list_tools 不得启动恢复任�
 
 TypeScript SDK 通过 stdio JSON-RPC 管理 Runtime，提供 Session、事件和生命周期。其 finalResponse 是收集区间内最后的根响应，不是天然按业务任务绑定的产物证明。[SDK 说明](https://github.com/deepseek-ai/deepseek-harness/blob/d743267388641bc76f17c45ce8b4c231aed1d32c/packages/sdk/client/README.md)
 
-因此每个根 Session 限定一个批次控制任务，提交记录必须带 task／attempt 标识，不能并发向同一 Session 塞入不相关工作，再靠最后一段文本判断结果。
+因此每个根 Session 限定一个批次控制任务，提交记录必须带 task／attempt 标识，不能并发向同一 Session 塞入不相关工作，再靠最后一段文本判断结果。SDK 无 mid-turn prompt-cancel；定制插件提供专用受鉴权控制通道及 handle.dispose，失败时关闭该 Job Runtime。普通 SDK Profile 的 maxTokensAsSuccess 默认 true，V1 显式改为 false 并独立校验所有提案。
 
 ### 6.3 Experimental Agent Team
 
@@ -189,14 +189,16 @@ Google 的研究对比多种 Agent 拓扑，显示并行任务和顺序任务对
   → Recovery 领域服务和持久任务账本
   → Durable Orchestrator（生产预选 Temporal）
   → DSH Runner Adapter
-  → 有边界的根批次 Session
-  → Fresh 子 Session 执行工作包
+  → 有边界的根批次 Session + 定制 Recovery 插件
+  → 最多 32 路 Fresh 工作子 Activation，各自一份小工作包
   → 独立构建、ABI、语义检查与候选提交
 ```
 
 - M0 可以用单机持久队列验证接口，但重启恢复是必需功能；不以进程内数组替代。
 - DSH Native Spawn 为首选子会话模式。
-- 同一工包的短修复可以在同一子会话；契约或输入变化后优先新会话。
+- 默认一个 Agent 一份小工作包、一种候选方向；完成或上下文压力时轮换。同版本短修复可同 Session 的新 Activation，身份与限制重新绑定；输入/角色变化后新 Session。
+- 单 Runtime 一次只承载同 Job 的一批任务，后端配额控制全部 Runtime 的工作者总数；逐项提交不等整批结束。
+- 定制插件是正式实施模块；原生 Workflow 只作为可选可信批次适配，不持有业务真值。
 - 不引入多个互相竞争的全局 Supervisor。
 - DSH Team 插件、完整原生远程任务树 UI、第三方 Runner 留作后续评估。
 
@@ -214,3 +216,85 @@ Google 的研究对比多种 Agent 拓扑，显示并行任务和顺序任务对
 | 模型与 SDK 版本 | 固定源码基线 | 固定可安装版本并真实预检 |
 
 研究结论不能代替这些兼容测试。本轮仅编写方案，不宣称已经支持 DSH 成品运行。
+
+
+## 11. 32 路配置：三个独立限制与业务配额
+
+用户已确认可调整 Workflow 并发到32。固定源码表明必须同时考虑：
+
+| 层 | 核查事实 | V1 策略 |
+|---|---|---|
+| Workflow maxConcurrentAgents | 默认0自动估算，源码 `min(16, max(1, cores-2))` | 若启用显式32 |
+| Subagent maxActiveSubagents | 默认8，每棵Activation树；根不占槽，停止中仍计数 | 显式32，浅层，清理后归还 |
+| PTC maxPendingCalls | 默认128，child启动/结果等待/清理共享host calls | 初始128，容量实验核查headroom |
+| Workflow maxTotalAgents | 默认1000，单run累计创建次数，不是并发 | V1有界批次建议64，续批不扩大单Agent职责 |
+| ToolRuntime maxParallelSubCalls | PTC工具模式的独立限制，默认10 | 工作者默认native模式；不与32路worker混淆 |
+| 领域/Runner配额 | 不由DSH跨Runtime提供 | 单机初始全局32，24恢复+8审查/修复/补证据可借用 |
+
+配置片段不是可直接安装的完整Profile：
+
+```yaml
+- name: '@deepseek-ai/dsh-subagent'
+  config:
+    maxActiveSubagents: 32
+    maxDepth: 1
+- name: '@deepseek-ai/dsh-workflow-ptc'
+  config:
+    provider: spawn
+    maxConcurrentAgents: 32
+    maxTotalAgents: 64
+    maxItemsPerCall: 64
+- name: '@deepseek-ai/dsh-ptc-runtime-node'
+  config:
+    maxPendingCalls: 128
+- name: '@deepseek-ai/dsh-tools'
+  config:
+    mode: native
+- name: '@deepseek-ai/dsh-sdk-jsonrpc-server'
+  config:
+    maxTokensAsSuccess: false
+```
+
+已有Profile覆盖对应行，不重复挂载服务。首选定制BatchRunner的程序侧 fan-out 不受 Workflow 配置自动约束，插件自己执行32路配额；若复用 Workflow 才启用Workflow/PTC相关行。程序侧启动还要显式深度/工具限制，不能只写 maxDepth=1。
+
+32路为共享上限：恢复、审查、修复和补证据合计不超过32；不是32+8。运行中的后端批次最多一个根，一个Agent一工作包，通常一函数一候选；证据全量保存，32–64K上下文是软组织目标而非截断许可。
+
+额外任务入持久队列。Ghidra、构建、Solver、模型请求并发各有单独资源配额。正式验收8/16/32档，比较质量、未知、上下文峰值、Token、尾延迟、RSS及清理，不承诺32倍吞吐。
+
+来源：[Workflow字段与自动上限](https://github.com/deepseek-ai/deepseek-harness/blob/d743267388641bc76f17c45ce8b4c231aed1d32c/packages/workflow/workflow-ptc/src/index.ts)、[Workflow通道关系](https://github.com/deepseek-ai/deepseek-harness/blob/d743267388641bc76f17c45ce8b4c231aed1d32c/packages/workflow/workflow-ptc/README.md)、[PTC配置](https://github.com/deepseek-ai/deepseek-harness/blob/d743267388641bc76f17c45ce8b4c231aed1d32c/packages/ptc-runtime/ptc-runtime-node/README.md)、[Subagent默认](https://github.com/deepseek-ai/deepseek-harness/blob/d743267388641bc76f17c45ce8b4c231aed1d32c/packages/subagent/subagent/README.md)、[ToolRuntime](https://github.com/deepseek-ai/deepseek-harness/blob/d743267388641bc76f17c45ce8b4c231aed1d32c/packages/core/tools/README.md)。
+
+## 12. 定制插件路径与原生 Workflow 的参数边界
+
+官方插件通过 Cordis Context 注册服务与工具，依赖通过 inject 声明，不依靠YAML行顺序。defineTool/ctx.tools.register负责typed工具；restrict提供作用域可见集，guard提供单调拒绝，tools/result捕获最终审计。[插件教程](https://github.com/deepseek-ai/deepseek-harness/blob/d743267388641bc76f17c45ce8b4c231aed1d32c/docs/cordis-tutorial/01-first-plugin.md)、[扩展机制](https://github.com/deepseek-ai/deepseek-harness/blob/d743267388641bc76f17c45ce8b4c231aed1d32c/docs/cookbook/extension-cookbook.md)
+
+V1拟开发模块：TaskContext、EvidenceTools、ProposalTools、BatchRunner、StaticPolicy、Control/Audit。任务Agent只调查并提出候选，不编辑验收规则；工具代理从真实Agent/Attempt绑定身份，scope不是模型填写的权限凭证。完整设计见主方案第20—24节。
+
+首选BatchRunner直接 startActivation，显式outputSchema、toolFilter、Persona、深度、路由及caller delivery，保存精确handle；根只调用 run_recovery_batch(batch_ref)，服务冻结计划。不是通过自由JS代码让模型决定任意排程。
+
+核查 Workflow agent()只支持 label/phase/schema/provider/model，host未转发逐子的toolFilter/Persona/maxDepth。若复用Workflow，使用固定可信脚本、专用Profile和受控工具代理，或经验证定制适配；不能传不支持参数后静默省略限制。[参数源码](https://github.com/deepseek-ai/deepseek-harness/blob/d743267388641bc76f17c45ce8b4c231aed1d32c/packages/workflow/workflow-ptc/src/runtime.ts)、[启动源码](https://github.com/deepseek-ai/deepseek-harness/blob/d743267388641bc76f17c45ce8b4c231aed1d32c/packages/workflow/workflow-ptc/src/host.ts)
+
+原生Workflow/Code Mode的Node VM不是安全边界，文件限制不限制所有网络/子进程行为。Worker使用native工具模式、根/子均无任意Shell或动态插件执行；可选Workflow脚本只由受信插件物化并结合进程/文件/网络策略。[PTC边界](https://github.com/deepseek-ai/deepseek-harness/blob/d743267388641bc76f17c45ce8b4c231aed1d32c/packages/ptc-runtime/ptc-runtime-node/README.md)
+
+restrict对继承的全局工具做mask，子作用域工具仍可见。部署需核查实际schema/lookup并对新增作用域工具实施guard；允许本地outputSchema要求的structured_output终结工具，避免政策误拦完成。其记录不是业务等价通过。[结构化终结工具](https://github.com/deepseek-ai/deepseek-harness/blob/d743267388641bc76f17c45ce8b4c231aed1d32c/packages/subagent/subagent/src/structured.ts)
+
+定制控制通道为独立鉴权IPC/端点，不假设SDK任意request方法可扩展。取消先停派发/拒绝过期提交，然后精确dispose并确认子孙和工具资源；失败关闭该Job Runtime，清理未确认则隔离并占用容量。不同Job不共享同一运行批次，避免进程关闭影响别的Job。
+
+sdk-minimal默认含持久Shell且没有Subagent，不直接作为恢复Profile；普通sdk默认maxTokensAsSuccess=true，配置false只解决传输状态，还需领域提案校验。[sdk-minimal](https://github.com/deepseek-ai/deepseek-harness/blob/d743267388641bc76f17c45ce8b4c231aed1d32c/packages/bundle/sdk-minimal/README.md)、[sdk默认](https://github.com/deepseek-ai/deepseek-harness/blob/d743267388641bc76f17c45ce8b4c231aed1d32c/packages/bundle/sdk-app/cordis.patch.yml)
+
+发布前固定Profile/插件版本和最终能力指纹，运行期不让Agent热装插件扩权。不修改DSH核心持久日志格式；UI增强从业务事件投影。
+
+## 13. V1 补充验收与复核状态
+
+| 事项 | V1验证要求 | 当前事实 |
+|---|---|---|
+| 32路容量联动 | 有效Profile值、全局配额、32+排队、清理占位 | 字段/源码已核查，未压测 |
+| 一Agent少量任务 | 单包/单候选绑定、完成释放、上下文软目标/完读记录 | 设计契约已加入 |
+| 定制插件/guard | 作用域、依赖就绪、提交代理、单调拒绝、禁止Shell | 官方扩展点已核查，插件尚未开发 |
+| 截断 | maxTokensAsSuccess=false，max-tokens/length不登记为成功产物 | 默认行为已核查，尚未联调 |
+| 取消 | startup/published/commit窗口，handle.dispose/Runtime关闭与工具清理 | 协议和生命周期已核查，尚未实验 |
+| 提案原子性 | 对象写入→DB回执/outbox，丢回报可重放，迟到写拒绝 | 领域设计，尚未实现 |
+| 持久规模 | 子Workflow/Continue-As-New、对象引用、有限历史 | 官方Temporal资料复核，尚未压测 |
+
+M0-R先两个会话验证受控运行，再逐步8/16/32；M0-S独立核查ARM64精确语义子集。上述支持声明不代替安装/模型/共享库恢复实验，原有团队/工期估算在M0后重新校准。
+
+初稿配套调研另存[历史记录](snapshots/main-child-agent-DSH-RESEARCH-INITIAL-2026-10-12.md)。当前主方案为V1，0.2的6/8容量建议和旧状态例子仅保留历史，不作为现行策略。

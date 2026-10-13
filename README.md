@@ -1,29 +1,30 @@
 # Auto-Reverse
 
-面向 Android `arm64-v8a` 共享库 `.so` 的全自动、纯静态 C++ 源码重建方案。设计采用持久任务调度、有边界的多 Agent 工作包、独立构建与静态语义验证，并预选 DeepSeek Harness（DSH）作为客户端和 Agent Runtime。
+面向 Android `arm64-v8a` 共享库 `.so` 的全自动、纯静态 C++ 源码重建方案。采用版本化证据与 ABI 约束、有界多 Agent、小工作包、独立构建及静态语义验证；DeepSeek Harness（DSH）为客户端与 Agent Runtime，定制插件补齐业务能力。
 
-当前处于调研与方案设计阶段，主方案版本为 **0.2-draft**，尚未定稿为 V1，也尚未实现恢复系统或完成 DSH 联调。
+当前主方案为 **1.0-design（V1）**，已完成经用户批准的文档整合。当前仓库仍处于设计阶段，尚未实现恢复系统、开发定制插件、完成 DSH 联调或测得 32 路恢复吞吐。
 
 ## 文档
 
 | 文档 | 内容 |
 |---|---|
-| [主方案初稿](docs/android-arm64-so-cpp-recovery-DRAFT.md) | 项目调研、架构、实施、验收，以及主／子会话和 DSH 增补，共 66 节 |
-| [主／子会话与 DSH 调研](docs/main-child-agent-DSH-RESEARCH.md) | DSH 源码能力、生命周期限制、预选框架和相关文章 |
-| [已确认设计范围](docs/confirmed-scope.md) | 用户已确认的目标、静态约束、加固范围和客户端要求 |
-| [初始方案快照](docs/snapshots/android-arm64-so-cpp-recovery-INITIAL-2026-10-12.md) | 0.1-draft 历史版本，保留用于追溯；当前方案以主稿为准 |
+| [V1 主方案](docs/android-arm64-so-cpp-recovery-V1.md) | 47 节统一需求、架构、DSH/插件、契约、实施与验收 |
+| [DSH 专项调研](docs/main-child-agent-DSH-RESEARCH.md) | 固定源码能力、32 路联动配置、插件扩展和生命周期 |
+| [已确认范围](docs/confirmed-scope.md) | 用户确认的目标、静态约束、多 Agent、32 路与插件方向 |
+| [0.2 初稿快照](docs/snapshots/android-arm64-so-cpp-recovery-0.2-DRAFT-2026-10-13.md) | 本轮优化前的 66 节工作稿，原文保存 |
+| [0.1 初始快照](docs/snapshots/android-arm64-so-cpp-recovery-INITIAL-2026-10-12.md) | 初始版本，用于追溯 |
+| [DSH 初稿调研快照](docs/snapshots/main-child-agent-DSH-RESEARCH-INITIAL-2026-10-12.md) | V1 更新前的配套研究 |
 
-## 已确认方向
+## V1 设计基线
 
-- 仅 Android ARM64，不包含其他 Linux 目标或其他架构。
-- 每个恢复任务全自动；分析和验收保持纯静态，禁止执行目标或候选库。
-- 允许部分混淆，排除需要运行时解密或生成代码的区域。
-- 质量优先，不通过省略必要证据减少 Token。
-- 大阶段拆成有边界的 Agent 工作包，任务状态和验收结论由持久服务管理。
-- 兼容官方 DSH，客户端 MCP 接入与后端 SDK 执行分别设计和验收。
+- 仅 Android ARM64；任务全自动；禁止运行目标、候选库、模拟器和设备程序。
+- 部分混淆可处理；运行时解密/代码生成区域排除，缺口传播到入口闭包。
+- 多 Agent、每个 Agent 少量任务：默认一个工作包、一个函数、一种候选方向，完成或上下文压力时轮换。
+- 初始配置 32 路工作者，联动 Workflow/Subagent/PTC 与业务配额；Ghidra、构建、Solver 和模型请求独立背压。
+- DSH 定制插件负责工包执行、证据读取、提案、策略、取消和审计，业务事实与验收由领域服务持有。
+- Raw P-code 不自动代表完整机器语义；两侧按原始指令检查能力，C++ UB 保真、有限/条件/UNKNOWN 分别报告。
+- 回执、Outbox、版本检查和历史轮换保障持久恢复；Job 结束与产物质量分开。
 
-## 文档维护
+M0-S 静态语义与 M0-R DSH 受控运行两项原型通过后，重新冻结 MVP 子集、工期、成本和验收门槛。性能数字是待校准研发目标，不能解释为 Android `.so` 实测成功率。
 
-先确认大方向和初稿内容，再统一整合、校对任务与状态契约、调整实施及验收方案，形成 V1。当前性能门槛属于研发目标，不是已经测得的 Android `.so` 恢复成功率。
-
-本次文档调研日期：2026-10-12。
+更新日期：2026-10-13（Asia/Singapore）。
