@@ -1,0 +1,33 @@
+name: Clean up merged development branches
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions: {}
+
+jobs:
+  cleanup:
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.event.pull_request.head.ref, 'codex/') &&
+      github.event.pull_request.head.ref != github.event.repository.default_branch &&
+      github.event.pull_request.head.ref != 'main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Load trusted cleanup script from the default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: true
+          sparse-checkout: .github/scripts
+          sparse-checkout-cone-mode: false
+      - name: Delete only the unchanged merged development branch
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { cleanupMergedBranch } = require('./.github/scripts/cleanup-merged-branch.cjs');
+            await cleanupMergedBranch({ github, context, core });

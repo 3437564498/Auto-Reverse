@@ -30,7 +30,8 @@ class RecoveryService:
                             "mcp_stdio", "mcp_streamable_http", "restricted_machine_semantics",
                             "private_python_dsh_bridge", "ghidra_raw_pcode_export",
                             "controlled_ndk_build", "integer_leaf_cpp_recovery",
-                            "elf_abi_structure_comparison", "durable_candidate_validation"],
+                            "elf_abi_structure_comparison", "durable_candidate_validation",
+                            "bounded_repair_feedback", "current_candidate_selection"],
             "recovery_system_complete": False,
             "dsh_model_integration_verified": False,
             "ndk_build_integration_verified": False,
@@ -41,7 +42,8 @@ class RecoveryService:
                 "ghidra": "Pinned 11.3.2; configured by trusted host path; export is evidence",
                 "ndk": "Pinned r27c; configured by trusted host path; compile/link only",
                 "recovery": "Restricted integer leaves; partial A1 maximum; original ABI unknown",
-                "candidate_validation": "Trusted host queue; independent build and function proof; job quality unchanged",
+                "candidate_validation": "Trusted host queue; independent build and function proof",
+                "selection": "Best available local candidates; unintegrated collection; whole-library quality unknown",
             },
             "worker_global_max": 32,
             "verification_scope": "Explicit function scope; no whole-library equivalence claim",
@@ -178,3 +180,27 @@ class RecoveryService:
         # even when it was excluded from the Job's current candidate namespace.
         return {**self.objects.read_artifact(activity["report_ref"], offset=offset, limit=limit),
                 "activity_id": activity_id, "artifact_ref": activity["report_ref"]}
+
+    def get_candidate_selection(self, job_id: str) -> dict:
+        from .candidate_selection import CandidateSelectionService
+        return CandidateSelectionService(self.state_dir).get_view(job_id)
+
+    def get_job(self, job_id: str) -> dict:
+        job = self.domain.get_job(job_id)
+        selection = self.get_candidate_selection(job_id)
+        if selection.get("selection_snapshot_id") and not selection["current_valid"]:
+            job.update(historical_quality=job["quality"], quality=selection["quality"],
+                       quality_is_current=False)
+        return job
+
+    def list_candidates(self, job_id: str, cursor=0, limit=100) -> dict:
+        from .candidate_selection import CandidateSelectionService
+        return CandidateSelectionService(self.state_dir).list_candidates(job_id, cursor=cursor, limit=limit)
+
+    def list_feedback(self, job_id: str, cursor=0, limit=100) -> dict:
+        from .repair_feedback import RepairFeedbackService
+        return RepairFeedbackService(self.state_dir).list(job_id, cursor=cursor, limit=limit)
+
+    def get_feedback(self, job_id: str, decision_id: str) -> dict:
+        from .repair_feedback import RepairFeedbackService
+        return RepairFeedbackService(self.state_dir).get_view(job_id, decision_id)

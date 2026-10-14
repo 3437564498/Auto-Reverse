@@ -2,7 +2,9 @@
 
 面向 Android `arm64-v8a` 共享库 `.so` 的全自动、纯静态 C++ 源码重建方案。采用版本化证据与 ABI 约束、有界多 Agent、小工作包、独立构建及静态语义验证；DeepSeek Harness（DSH）为客户端与 Agent Runtime，定制插件补齐业务能力。
 
-当前主方案为 **1.0-design（V1）**。已接通 Python–DSH 的真实账本/CAS、专用 SDK 离线启动、Ghidra/NDK 静态恢复、原始 ELF ABI 结构对照，以及候选提交后的持久独立构建和机器验证。整数叶恢复 v2 支持已初始化临时寄存器、逻辑/移位/MOVK，真实静态矩阵有 27 项正反分类。完整类型/调用 ABI、整库恢复、自动修复闭环和真实模型验收仍待完成；M0/M1 的完整退出条件尚未通过。
+不熟悉 GitHub 时，可先读 [GitHub 使用与交付](docs/github-usage.md)：平时查看 `main`，新更新集中在 [待审核更新](https://github.com/3437564498/Auto-Reverse/pulls)，正常只有一个活动 PR，无需切换多个开发分支。已合并旧分支已清理；自动清理流程进入 main 后，后续合并按审核提交清理开发分支。
+
+当前主方案为 **1.0-design（V1）**。已接通 Python–DSH 账本/CAS、SDK 离线启动、Ghidra/NDK 静态恢复和持久独立验证；实际反例可生成有界修复工包，修复后保留当前最佳候选。整数叶恢复 v2 与 27 项真实静态矩阵已验证。完整类型/调用 ABI、整库工程集成、补证据交付消费和真实模型验收仍待完成；M0/M1 的完整退出条件尚未通过。
 
 ## 开发与运行
 
@@ -53,9 +55,11 @@ npm run preflight
   --output work/static-matrix-new
 .venv/bin/python scripts/run_candidate_validation_sample.py \
   --ndk-root work/tools/android-ndk-r27c --output work/validation-sample-new
+.venv/bin/python scripts/run_repair_loop_sample.py \
+  --ndk-root work/tools/android-ndk-r27c --output work/repair-sample-new
 ```
 
-候选回执仍只表示 RECORDED，独立活动结果不自动提升 Job quality。宿主排队与公开读取接口见 [候选提交与持久独立验收](docs/candidate-validation.md)。普通 CI 未安装 NDK/Ghidra 时明确 skip；手动静态验收 workflow 下载固定工具并上传实际证据。
+候选回执仍只表示 RECORDED。可信后处理可以选择局部 `BEST_AVAILABLE`，实际编译集合最高 A1；全库未集成时 Job 保持 A0，整体构建/ABI/语义/完整性 UNKNOWN。宿主排队、反馈和公开读取见 [候选提交与持久独立验收](docs/candidate-validation.md)。普通 CI 未安装 NDK/Ghidra 时明确 skip；手动静态验收 workflow 下载固定工具并上传实际证据。
 
 ## 文档
 

@@ -24,7 +24,7 @@ def create_server(state_dir, *, host="127.0.0.1", port=8765):
     @server.tool()
     def get_job(job_id: str) -> dict[str, Any]:
         """Read execution, quality and cleanup independently."""
-        return service.domain.get_job(job_id)
+        return service.get_job(job_id)
 
     @server.tool()
     def get_events(job_id: str, cursor: int = 0, limit: int = 100) -> dict[str, Any]:
@@ -60,6 +60,26 @@ def create_server(state_dir, *, host="127.0.0.1", port=8765):
     def read_validation_report(job_id: str, activity_id: str, offset: int = 0, limit: int = 65536) -> dict[str, Any]:
         """Read a bounded Activity-owned report, including canceled historical diagnostics."""
         return service.read_validation_report(job_id, activity_id, offset, limit)
+
+    @server.tool()
+    def get_candidate_selection(job_id: str) -> dict[str, Any]:
+        """Read current best available candidates and preserved gaps; never selects a release."""
+        return service.get_candidate_selection(job_id)
+
+    @server.tool()
+    def list_candidates(job_id: str, cursor: int = 0, limit: int = 100) -> dict[str, Any]:
+        """Read local candidate classifications; overall library equivalence remains unknown."""
+        return service.list_candidates(job_id, cursor, limit)
+
+    @server.tool()
+    def list_feedback(job_id: str, cursor: int = 0, limit: int = 100) -> dict[str, Any]:
+        """Read bounded repair/evidence decisions without creating or leasing a Task."""
+        return service.list_feedback(job_id, cursor, limit)
+
+    @server.tool()
+    def get_feedback(job_id: str, decision_id: str) -> dict[str, Any]:
+        """Read a Job-owned feedback decision and frozen diagnostic references."""
+        return service.get_feedback(job_id, decision_id)
 
     @server.tool()
     def cancel_job(job_id: str) -> dict[str, Any]:
