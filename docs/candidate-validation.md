@@ -4,6 +4,8 @@
 
 Agent 的提案只登记为 `RECORDED`。领域服务保存真实回执后，由可信宿主单独排队构建和验证；Agent 不获得 Shell、编译参数、验收结果写入或资源清理确认权限。
 
+证据与类型工包采用独立 JSON envelope，不进入 C++ 编译队列。实际补证据交付消费和原始标量声明的版本冻结见 [证据与声明契约](evidence-contracts.md)；冻结以后旧来源的新验证请求被拒绝，原 idempotency key 的历史回放仍可读取。
+
 ## 源码候选格式
 
 `contract_read` 返回 `source_candidate_contract`，同一 Schema 保存于 `schemas/cpp-source-candidate.schema.json`。恢复/修复工作者将以下四字段 JSON 文本提交给 `candidate_stage`，再使用实际返回的 artifact_ref 提交 Proposal：

@@ -2,6 +2,7 @@
 
 import json
 import os
+from contextlib import closing
 from pathlib import Path
 
 import yaml
@@ -31,7 +32,9 @@ class RecoveryService:
                             "private_python_dsh_bridge", "ghidra_raw_pcode_export",
                             "controlled_ndk_build", "integer_leaf_cpp_recovery",
                             "elf_abi_structure_comparison", "durable_candidate_validation",
-                            "bounded_repair_feedback", "current_candidate_selection"],
+                            "bounded_repair_feedback", "current_candidate_selection",
+                            "scoped_evidence_delivery", "original_scalar_dwarf_evidence",
+                            "versioned_scalar_abi_constraints"],
             "recovery_system_complete": False,
             "dsh_model_integration_verified": False,
             "ndk_build_integration_verified": False,
@@ -44,6 +47,8 @@ class RecoveryService:
                 "recovery": "Restricted integer leaves; partial A1 maximum; original ABI unknown",
                 "candidate_validation": "Trusted host queue; independent build and function proof",
                 "selection": "Best available local candidates; unintegrated collection; whole-library quality unknown",
+                "evidence_delivery": "Bounded auxiliary findings/gaps; no trusted-fact or quality promotion",
+                "scalar_abi": "Original unsigned 32/64 DWARF declarations only; calling ABI remains unverified",
             },
             "worker_global_max": 32,
             "verification_scope": "Explicit function scope; no whole-library equivalence claim",
@@ -204,3 +209,24 @@ class RecoveryService:
     def get_feedback(self, job_id: str, decision_id: str) -> dict:
         from .repair_feedback import RepairFeedbackService
         return RepairFeedbackService(self.state_dir).get_view(job_id, decision_id)
+
+    def list_evidence_deliveries(self, job_id: str, cursor=0, limit=100) -> dict:
+        from .evidence_delivery import EvidenceDeliveryService
+        return EvidenceDeliveryService.for_read(self.backend).list_deliveries(job_id, cursor=cursor, limit=limit)
+
+    def get_evidence_delivery(self, job_id: str, delivery_id: str) -> dict:
+        from .evidence_delivery import EvidenceDeliveryService
+        return EvidenceDeliveryService.for_read(self.backend).get_view(job_id, delivery_id)
+
+    def get_abi_contracts(self, job_id: str) -> dict:
+        from .abi_contracts import AbiContractService
+        with closing(self.domain._connect()) as connection:
+            connection.execute("BEGIN")
+            return AbiContractService.read_current(connection, job_id, self.objects)
+
+    def list_abi_contracts(self, job_id: str, cursor=0, limit=100) -> dict:
+        from .abi_contracts import AbiContractService
+        cursor, limit = self.domain._page(cursor, limit)
+        with closing(self.domain._connect()) as connection:
+            connection.execute("BEGIN")
+            return AbiContractService.read_history(connection, job_id, cursor=cursor, limit=limit)

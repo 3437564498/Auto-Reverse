@@ -8,6 +8,7 @@ from .backend_rpc import BackendRPC
 from .candidate_selection import CandidateSelectionService
 from .candidate_validation import CandidateValidationService
 from .domain import DomainError
+from .evidence_delivery import EvidenceDeliveryService
 from .repair_feedback import RepairFeedbackService
 
 
@@ -30,6 +31,7 @@ class CandidatePostprocessor:
         self.validation = CandidateValidationService(state_dir)
         self.selection = CandidateSelectionService(state_dir)
         self.feedback = RepairFeedbackService(state_dir)
+        self.evidence = EvidenceDeliveryService(state_dir)
 
     def run(self, job_id: str, *, max_activities: int = 64) -> dict:
         if type(max_activities) is not int or not 1 <= max_activities <= 128:
@@ -39,6 +41,25 @@ class CandidatePostprocessor:
             raise DomainError("JOB_NOT_WRITABLE", "An ended or cancelling Job cannot dispatch followups")
         if job["execution_state"] == "QUEUED":
             self.backend.domain.transition_job(job_id, "RUNNING", "trusted candidate postprocessing")
+        # Auxiliary evidence is consumed separately from C++ validation. Its
+        # completion cannot enqueue a compiler or silently promote a fact.
+        with self.backend.domain._transaction() as connection:
+            evidence_rows = connection.execute("""
+                SELECT r.execution_key,p.payload FROM receipts r
+                JOIN proposals p ON p.attempt_id=r.attempt_id
+                JOIN tasks t ON t.task_id=p.task_id
+                WHERE t.job_id=? AND t.state IN ('RESULT_PROPOSED','CHECKING')
+                    AND p.disposition='RECORDED' AND json_extract(t.data,'$.role')='evidence'
+                ORDER BY p.proposal_id LIMIT ?
+            """, (job_id, max_activities + 1)).fetchall()
+        evidence_deliveries, evidence_deferred, evidence_rejected = [], [], []
+        for row in evidence_rows[:max_activities]:
+            refs = json.loads(row["payload"])["artifact_refs"]
+            try:
+                evidence_deliveries.append(self.evidence.consume(row["execution_key"], refs[0]))
+            except DomainError as exc:
+                result = {"execution_key": row["execution_key"], "reason_code": exc.code}
+                (evidence_deferred if exc.code == "CLEANUP_PENDING" else evidence_rejected).append(result)
         self.selection.refresh(job_id)
         processed = {(decision["activity_id"], decision["report_ref"])
                      for decision in _all_pages(self.feedback.list, job_id)}
@@ -74,7 +95,10 @@ class CandidatePostprocessor:
             batch = self.backend.dispatch("batch.create", {
                 "job_id": job_id, "task_ids": task_ids, "idempotency_key": f"feedback-batch:{digest}"})
         return {"job_id": job_id, "decisions": decisions, "deferred": deferred,
-                "has_more": len(pending) > max_activities or bool(remaining_ready), "selection": view,
+                "evidence_deliveries": evidence_deliveries, "evidence_deferred": evidence_deferred,
+                "evidence_rejected": evidence_rejected,
+                "has_more": len(pending) > max_activities or len(evidence_rows) > max_activities
+                or bool(remaining_ready), "selection": view,
                 "ready_followup_task_ids": task_ids, "batch_ref": batch["batch_ref"] if batch else None,
                 "remaining_ready_followup_task_ids": remaining_ready,
                 "model_dispatch": "NOT_STARTED", "model_calls": 0,

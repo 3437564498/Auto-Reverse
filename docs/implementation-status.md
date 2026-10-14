@@ -1,15 +1,15 @@
 # 静态基础与持久候选验收记录
 
-更新：2026-10-14（Asia/Singapore）。设计基线：V1 `30c31f9`；首批原型：`2e2a23f`；真实工具链：`0b40909`；独立候选验证：`4725297`（PR #3 已合并）。历史草稿保持原文，实施事实在本页更新。
+更新：2026-10-14（Asia/Singapore）。设计基线：V1 `30c31f9`；首批原型：`2e2a23f`；真实工具链：`0b40909`；独立候选验证：`4725297`；修复/选择：`54ee058`（PR #5 已合并）。历史草稿保持原文，实施事实在本页更新。
 
-本轮完成有界修复/补证据反馈计划、最佳候选/当前质量管理和单机后处理，真实反例 → repair 工包 → 修复候选 → NDK/SMT → 保留较好候选的设施闭环已跑通。GitHub 已清理全部已合并旧开发分支，并加入使用说明和合并后条件清理规则。**V1、M0-S、M0-R 和 M1 的完整退出条件均尚未全部验收**。用户明确暂时无法提供 DSH 模型环境，没有运行真实模型或宣称模型恢复吞吐。
+此前有界修复、最佳候选与单机后处理设施已落地；本轮新增实际补证据提案消费、原 ELF 自带 DWARF 的有限 unsigned 标量声明提取、可信宿主核验与版本冻结。实际静态样例已验证 gap 完成任务、无可信升级，revision 变更使旧来源失效并保留历史。GitHub 已清理旧开发分支，PR #5 合并后的条件清理实际生效；新工作只保留一个开发分支。**V1、M0-S、M0-R 和 M1 的完整退出条件均尚未全部验收**。用户明确暂时无法提供 DSH 模型环境，没有运行真实模型或宣称模型恢复吞吐。
 
 ## 实际验收结果
 
 | 检查 | 结果 | 范围 |
 |---|---|---|
-| Python 完整套件 | **998 passed** | 最终冻结代码；启用真实 NDK/Ghidra 集成，无 skip；包括 300 个实际 SMT 非等价变异与独立审查 |
-| TypeScript/Cordis | **28 passed** | 真实 Python RPC/SQLite/CAS、两独立进程共享配额、鉴权控制、官方工具 registry、实际 SDK 启停与有效 Profile |
+| Python 完整套件 | **1153 passed** | 最终冻结代码；启用真实 NDK/Ghidra 集成，无 skip；包括 300 个实际 SMT 非等价变异与独立审查 |
+| TypeScript/Cordis | **30 passed** | 真实 Python RPC/SQLite/CAS、辅助 JSON 交付、两独立进程共享配额、鉴权控制、官方工具 registry、实际 SDK 启停与有效 Profile |
 | NDK r27c | PASS | ARM64/API21；shared/static libc++；C++17 helpers 和实际样本只编译链接 |
 | Ghidra 11.3.2 | exported | 真实 ELF 静态导入、Raw P-code、原始地址/字节交叉核验、Java home 与进程组清理 |
 | 受限恢复闭环 | 部分 A1 | NDK 原始微库 → Ghidra → C++ → NDK → 实际机器字节 SMT |
@@ -17,7 +17,10 @@
 | ELF ABI 结构 | **59 项测试通过** | 含真实 NDK 数据尺寸与动态版本样本；结构 PASS 不提升原调用 ABI |
 | 持久候选活动 | 实际正反闭环通过 | 真实回执/CAS → NDK → ABI → SMT；幂等、重启读取、取消、隔离、当前版本校验 |
 | 修复反馈与选择 | 实际三阶段样例通过 | DIFFERENT → 局部 EXACT → 晚 DIFFERENT；冻结反馈 batch 幂等，无提前 Attempt，保留较好候选 |
-| 分支清理 | **13 项通过** | 含真实本地 Git 删除审核提交、并发新提交触发 lease 拒绝；自动流程进入 main 后生效 |
+| 补证据消费 | **37 项测试通过** | 实际 receipt/CAS/全页送达/祖先校验、单事务分类、纯读历史；辅助发现无可信升级 |
+| 原始标量声明 | **55 项测试通过** | 真实 NDK DWARF4/5、范围/PCS/类型/预算；扩展 `_BitInt(33)` 不误作标准64位 |
+| 契约版本冻结 | **49 项测试通过** | 原始声明独立核验、revision CAS、epoch 失效、资源容量保留、纯读合同历史；另有12项独立审查 |
+| 分支清理 | **13 项通过** | 含真实本地 Git 删除审核提交、并发新提交触发 lease 拒绝；PR #5 合并后旧分支已自动删除 |
 | SDK 离线预检 | PASS，模型调用数 **0** | 真实 `start/initialize/close`，native/spawn/32/maxTokensAsSuccess=false 有效值已观察 |
 
 Python 有一条第三方 MCP settings forward-reference 警告，协议测试通过。注入 Activation Provider 的两个工作者只证明真实账本/CAS 集成；没有被当成真实模型子会话。
@@ -38,6 +41,8 @@ Ruff、全部 Schema 与 DSH 锁指纹、wheel 构建及打包资源检查通过
 | `repair_feedback.py` | 实际报告/proof/工具/epoch 校验，原子分类和冻结单函数 repair/evidence 计划；真实读取证据进展、预算/重复失败/更好候选停止 |
 | `candidate_selection.py` | 当前 `BEST_AVAILABLE`、不可变快照/CAS/Outbox；变化立即撤销当前标记，保留原库符号与执行字节分母；无发布选择 |
 | `postprocessing.py` | 可信宿主处理新报告版本、分类/选择/反馈、每批≤64 frozen Tasks与持久余量；不调用模型 |
+| `evidence_delivery.py` | 实际反馈证据 Proposal 消费、完整送达/祖先/资源核验、CAS/事件/Outbox、辅助交付与有界 gap、纯读历史 |
+| `scalar_abi.py` / `abi_contracts.py` | 原始嵌入 DWARF 的 unsigned32/64 声明、独立核验/原子冻结/旧版本失效；最多64 symbol，不证明调用ABI |
 | `recovery.py` v2 | unsigned 整数叶函数 C++ 生成、已初始化 x8..17 临时、逻辑/移位/MOVK、源映射与真实重编译/SMT；原类型/调用 ABI 仍 UNKNOWN |
 | CLI/MCP/CI | 静态分析、工具链/受限恢复命令、输入/策略登记、私有 RPC、公开产物视图、Python/TS CI |
 
@@ -47,7 +52,7 @@ MCP 与私有 RPC 共用账本和候选别名解析。通过 RPC 提交的候选
 
 独立验证使用 `cpp_source` 四字段 envelope，当前实际回执/函数范围及 host 配置都由服务核对。两个独立宿主只能取得一个活动；已完成报告重启可读。运行中取消、旧 snapshot/epoch、同路径工具变化、旧 owner 或未确认清理均阻断当前成功发布。Job 取消/清理同时聚合 Agent 和验证工具资源，未完成验证阻止提前 COMPLETED。完整接口及当前边界见 [候选提交与持久独立验收](candidate-validation.md)。
 
-反馈会累计真实 root 候选的 repair 预算，evidence 最多一次；只自报引用、局部页读取或循环读取自身诊断不算新增进展。成功页在真实 lease/Activation/manifest 授权事务内登记范围，完整覆盖才计交付。重复机器码/诊断、能力缺口、预算耗尽或同范围已有更好有效局部精确候选，均终止方向。补证据提案独立消费和类型/ABI 契约冻结仍未完成。
+反馈会累计真实 root 候选的 repair 预算，evidence 最多一次；只自报引用、局部页读取或循环读取自身诊断不算新增进展。成功页在真实 lease/Activation/manifest 授权事务内登记范围，完整覆盖才计交付。重复机器码/诊断、能力缺口、预算耗尽或同范围已有更好有效局部精确候选，均终止方向。补证据交付已可独立消费，仍只记录辅助信息，不自动改变访存前提或派新修复。声明冻结仅覆盖有界原始 unsigned 标量 DWARF；完整类型约束求解和候选签名核验仍待完成，详见 [证据与声明契约](evidence-contracts.md)。
 
 只选 `BEST_AVAILABLE`。局部 A1 编译集合不等于完整集成库，Job 保持 A0、整体 build/abi/semantic/completeness UNKNOWN；所选集合的 A1/PASS 另列范围。公开读取立即核验失效，不通过读接口修改 Job 或派发任务。实际选择清单保留 6 个已发现定义函数、另列 2 个导入函数及全部 152 可执行字节，当前只选 1 个定义函数/8 字节。恢复清单将定义/导入合计为8；两者都保留原始符号清单，完整函数总数与发现完整性仍未知。
 
@@ -84,6 +89,8 @@ GHIDRA_HOME="$PWD/work/tools/ghidra_11.3.2_PUBLIC" .venv/bin/pytest -q
   --ndk-root work/tools/android-ndk-r27c --output work/validation-sample-new
 .venv/bin/python scripts/run_repair_loop_sample.py \
   --ndk-root work/tools/android-ndk-r27c --output work/repair-sample-new
+.venv/bin/python scripts/run_evidence_contract_sample.py \
+  --ndk-root work/tools/android-ndk-r27c --output work/evidence-contract-new
 node --test .github/scripts/cleanup-merged-branch.test.cjs
 cd integrations/dsh
 npm ci
@@ -95,7 +102,7 @@ npm run preflight
 
 本批最终证据保存在 `work/static-matrix-final-acceptance/`、`work/candidate-validation-final-acceptance/`、`work/leaf-v2-ghidra-mixed64/` 和 `work/validation-final-pytest.log`；可审阅摘要见 [本地验收记录](acceptance/2026-10-14-validation.json)。上一批证据仍在原 work 目录。SDK private runtime 含控制凭据，不纳入 Git；公开锁及文档只保存能力/版本事实。
 
-本轮新增最终证据为 `work/repair-loop-final-acceptance/repair-loop-sample.json` 与 `work/feedback-final-pytest.log`，公开摘要见 [修复与分支验收](acceptance/2026-10-14-feedback.json)。GitHub 日常查看 [使用说明](github-usage.md) 和唯一活动 PR；V1 未完退出条件集中在 [总清单 #4](https://github.com/3437564498/Auto-Reverse/issues/4)。自动清理尚待本轮代码进入 main 后生效；已经合并的三条旧开发分支已由宿主核实 commit containment 和 SHA lease 后删除。
+此前修复证据为 `work/repair-loop-final-acceptance/repair-loop-sample.json` 与 `work/feedback-final-pytest.log`，公开摘要见 [修复与分支验收](acceptance/2026-10-14-feedback.json)。本轮最终证据为 `work/evidence-contract-final-acceptance/evidence-contract-sample.json` 与 `work/evidence-abi-final-pytest.log`，摘要见 [证据与声明验收](acceptance/2026-10-14-evidence-contract.json)。GitHub 日常查看 [使用说明](github-usage.md) 和唯一活动 PR；V1 未完退出条件集中在 [总清单 #4](https://github.com/3437564498/Auto-Reverse/issues/4)。PR #5 已进入 main 且旧分支自动清理完成，新批只增加一个开发分支。
 
 ## 独立审查修复
 
@@ -108,12 +115,15 @@ npm run preflight
 - 发布事务前 config 变化、只回收 compiler parent 就释放工具资源：事务内重核验，观察进程组退出，未知清理保留隔离。
 - 旧 compiler/helper/proof 指纹仍触发反馈：重核当前工具和证明，旧报告不得派新任务。
 - READY反馈超过64使批次失败、同Activity重排新报告被旧决策压掉：分批保留余量，按(activity_id,report_ref)处理新版本。
+- 已取消且未启动的兄弟验证活动阻挡证据消费：严格确认 CANCELED/NOT_REQUIRED/无占位后允许消费，已运行或隔离仍阻断。
+- Clang `_BitInt(33)` 的 debug 存储宽度被误当标准64位：标准基础声明/unsigned编码/宽度共同限制，真实编译独立回归保持UNKNOWN。
+- 新验证 idempotency key 沿用旧来源绕过当前版本核验：新key重核当前authority，旧exactkey只保留历史回放。
 
 ## 后续仍需完成
 
 1. 有真实模型环境后，执行至少两个真实 Fresh DSH 工作者的成功、截断、工具限制、取消/重连及资源对账验收。脚本见 `integrations/dsh/README.md`；不得把注入 Provider 或离线启动当作模型通过。
 2. M0-S 已有固定 27 项矩阵，仍需扩大指令/ABI/完整性/UB 义务及独立 ISA 校验；该子集通过不代表整个 M0-S 完成。
-3. M1 补证据交付独立消费/类型与 ABI 契约冻结、入口/全局闭包及完整工程集成、可信宿主工具恢复对账；当前确定性修复设施样例不代表真实模型无人值守全库恢复。
+3. M1 辅助证据转独立核验事实并继续恢复、完整类型/ABI约束求解、候选签名匹配、入口/全局闭包及完整工程集成、可信宿主工具恢复对账；当前确定性修复与声明样例不代表真实模型无人值守全库恢复。
 4. 后续类型/JNI/TLS/重定位、C++ 对象、异常/并发能力增量，以及实际 8/16/32 模型实验、生产 Temporal 和发布验收。
 
 已完成设施与静态链路继续保留；V1 完成判断仍以各里程碑全部退出条件和固定样本验收为准。

@@ -261,6 +261,9 @@ class CandidateValidationService:
             if prior:
                 if prior["payload_hash"] != request_hash:
                     raise DomainError("IDEMPOTENCY_CONFLICT", "Recorded candidate has another config")
+                # Exact idempotency-key replay above remains a historical read.
+                # A new request key must not acquire authority for stale work.
+                self._current(connection, prior)
                 connection.execute("INSERT INTO validation_idempotency VALUES (?,?,?)",
                                    (idempotency_key, prior["activity_id"], request_hash))
                 return self._record(prior)

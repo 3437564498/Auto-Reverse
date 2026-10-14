@@ -1,0 +1,67 @@
+{
+  "additionalProperties": false,
+  "description": "Auxiliary text with auditable, actually delivered evidence citations.",
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "kind": {
+      "enum": [
+        "scoped_evidence",
+        "evidence_gap"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "symbol": {
+      "maxLength": 256,
+      "minLength": 1,
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+      "title": "Symbol",
+      "type": "string"
+    },
+    "findings": {
+      "items": {
+        "maxLength": 4096,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 64,
+      "title": "Findings",
+      "type": "array"
+    },
+    "gaps": {
+      "items": {
+        "maxLength": 4096,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 64,
+      "title": "Gaps",
+      "type": "array"
+    },
+    "evidence_refs": {
+      "items": {
+        "maxLength": 128,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 64,
+      "minItems": 1,
+      "title": "Evidence Refs",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "symbol",
+    "findings",
+    "gaps",
+    "evidence_refs"
+  ],
+  "title": "EvidenceDeliveryEnvelope",
+  "type": "object"
+}

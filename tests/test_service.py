@@ -86,6 +86,7 @@ def test_real_stdio_mcp_handshake_and_short_idempotent_submit(tmp_path):
                     "list_validations", "get_validation",
                     "read_validation_report",
                     "get_candidate_selection", "list_candidates", "list_feedback", "get_feedback",
+                "list_evidence_deliveries", "get_evidence_delivery", "get_abi_contracts", "list_abi_contracts",
                 }
                 assert service.domain.list_jobs()["items"] == []
                 arguments = {"input_ref": registered["input_ref"],

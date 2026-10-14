@@ -82,6 +82,26 @@ def create_server(state_dir, *, host="127.0.0.1", port=8765):
         return service.get_feedback(job_id, decision_id)
 
     @server.tool()
+    def list_evidence_deliveries(job_id: str, cursor: int = 0, limit: int = 100) -> dict[str, Any]:
+        """Read auxiliary evidence/gap deliveries; never promotes facts or starts followups."""
+        return service.list_evidence_deliveries(job_id, cursor, limit)
+
+    @server.tool()
+    def get_evidence_delivery(job_id: str, delivery_id: str) -> dict[str, Any]:
+        """Read a Job-owned delivery, including current/stale classification."""
+        return service.get_evidence_delivery(job_id, delivery_id)
+
+    @server.tool()
+    def get_abi_contracts(job_id: str) -> dict[str, Any]:
+        """Read frozen original scalar declaration constraints; calling ABI remains unverified."""
+        return service.get_abi_contracts(job_id)
+
+    @server.tool()
+    def list_abi_contracts(job_id: str, cursor: int = 0, limit: int = 100) -> dict[str, Any]:
+        """Read declaration-constraint history without freezing or changing a revision."""
+        return service.list_abi_contracts(job_id, cursor, limit)
+
+    @server.tool()
     def cancel_job(job_id: str) -> dict[str, Any]:
         """Request cancellation; consult cleanup state for resource confirmation."""
         return service.domain.request_cancel(job_id)

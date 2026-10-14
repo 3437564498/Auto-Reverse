@@ -4,7 +4,7 @@
 
 不熟悉 GitHub 时，可先读 [GitHub 使用与交付](docs/github-usage.md)：平时查看 `main`，新更新集中在 [待审核更新](https://github.com/3437564498/Auto-Reverse/pulls)，正常只有一个活动 PR，无需切换多个开发分支。已合并旧分支已清理；自动清理流程进入 main 后，后续合并按审核提交清理开发分支。
 
-当前主方案为 **1.0-design（V1）**。已接通 Python–DSH 账本/CAS、SDK 离线启动、Ghidra/NDK 静态恢复和持久独立验证；实际反例可生成有界修复工包，修复后保留当前最佳候选。整数叶恢复 v2 与 27 项真实静态矩阵已验证。完整类型/调用 ABI、整库工程集成、补证据交付消费和真实模型验收仍待完成；M0/M1 的完整退出条件尚未通过。
+当前主方案为 **1.0-design（V1）**。已接通 Python–DSH 账本/CAS、SDK 离线启动、Ghidra/NDK 静态恢复和持久独立验证；实际反例可生成有界修复工包，修复后保留当前最佳候选。补证据提案可独立消费，原 ELF 的有限 unsigned 标量 DWARF 声明可核验并冻结版本。整数叶恢复 v2 与 27 项真实静态矩阵已验证。完整类型/调用 ABI、候选签名匹配、整库工程集成和真实模型验收仍待完成；M0/M1 的完整退出条件尚未通过。
 
 ## 开发与运行
 
@@ -57,6 +57,8 @@ npm run preflight
   --ndk-root work/tools/android-ndk-r27c --output work/validation-sample-new
 .venv/bin/python scripts/run_repair_loop_sample.py \
   --ndk-root work/tools/android-ndk-r27c --output work/repair-sample-new
+.venv/bin/python scripts/run_evidence_contract_sample.py \
+  --ndk-root work/tools/android-ndk-r27c --output work/evidence-contract-new
 ```
 
 候选回执仍只表示 RECORDED。可信后处理可以选择局部 `BEST_AVAILABLE`，实际编译集合最高 A1；全库未集成时 Job 保持 A0，整体构建/ABI/语义/完整性 UNKNOWN。宿主排队、反馈和公开读取见 [候选提交与持久独立验收](docs/candidate-validation.md)。普通 CI 未安装 NDK/Ghidra 时明确 skip；手动静态验收 workflow 下载固定工具并上传实际证据。
@@ -67,6 +69,7 @@ npm run preflight
 |---|---|
 | [V1 主方案](docs/android-arm64-so-cpp-recovery-V1.md) | 47 节统一需求、架构、DSH/插件、契约、实施与验收 |
 | [DSH 专项调研](docs/main-child-agent-DSH-RESEARCH.md) | 固定源码能力、32 路联动配置、插件扩展和生命周期 |
+| [证据与声明契约](docs/evidence-contracts.md) | 辅助交付消费、原始 DWARF 核验、版本冻结与当前限制 |
 | [已确认范围](docs/confirmed-scope.md) | 用户确认的目标、静态约束、多 Agent、32 路与插件方向 |
 | [0.2 初稿快照](docs/snapshots/android-arm64-so-cpp-recovery-0.2-DRAFT-2026-10-13.md) | 本轮优化前的 66 节工作稿，原文保存 |
 | [0.1 初始快照](docs/snapshots/android-arm64-so-cpp-recovery-INITIAL-2026-10-12.md) | 初始版本，用于追溯 |
