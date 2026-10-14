@@ -37,6 +37,8 @@ jobs:
           node-version: '24'
           cache: npm
           cache-dependency-path: integrations/dsh/package-lock.json
+      - name: Merged branch cleanup safeguards
+        run: node --test .github/scripts/cleanup-merged-branch.test.cjs
       - run: npm ci
         working-directory: integrations/dsh
       - run: npm test

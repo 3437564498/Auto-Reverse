@@ -34,7 +34,19 @@ Agent 的提案只登记为 `RECORDED`。领域服务保存真实回执后，由
 .venv/bin/arm64-recover --state-dir work/domain get-validation <job-id> <activity-id>
 ```
 
-worker 必须使用与排队时一致的参数和所选工具文件。配置或同路径工具内容改变，不会复用旧成功。普通 MCP 只公开 `list_validations`、`get_validation` 和有界 `read_validation_report`；当前有效产物仍可经 `list_artifacts` / `read_artifact` 读取。读操作不会启动编译器，也不允许模型排队或确认清理。所有读取核对 Job 归属。
+worker 必须使用与排队时一致的参数和所选工具文件。配置或同路径工具内容改变，不会复用旧成功。普通 MCP 的验证接口为 `list_validations`、`get_validation` 和有界 `read_validation_report`；当前有效产物仍可经 `list_artifacts` / `read_artifact` 读取。读操作不会启动编译器，也不允许模型排队或确认清理。所有读取核对 Job 归属。
+
+独立活动完成后，由可信宿主执行后处理：
+
+```bash
+.venv/bin/arm64-recover --state-dir work/domain postprocess-candidates <job-id>
+.venv/bin/arm64-recover --state-dir work/domain get-selection <job-id>
+.venv/bin/arm64-recover --state-dir work/domain list-feedback <job-id>
+```
+
+后处理从实际报告产生 repair/evidence 决策，并冻结 READY 反馈批次；每批最多 64 个 Task，其余保留在持久队列，真实租约取得前不分配 Attempt。重复后处理不创建重复工包或批次。`batch_ref` 可供后续受控 Runtime 使用，后处理本身不调用模型。
+
+MCP 新增只读 `get_candidate_selection`、`list_candidates`、`list_feedback`、`get_feedback`。证据通过成功的 `evidence_read` 分页登记实际字节范围；只自报引用、只读最后一页或循环引用新生成的诊断，不算新增证据进展。
 
 ## 持久状态与资源
 
@@ -54,13 +66,23 @@ SQLite 事务让两个宿主争抢一个 READY 活动时只有一个取得 claim
 
 独立验证比较实际编译后的机器码，记录局部 `local_semantic`，整体 `semantic` 保持 UNKNOWN。源码 UB 的完整证明、原型/调用 ABI 与入口/全局闭包尚未完成，不能把局部机器等价当成 C++ 或整库验收。未实际编译最高 A0；实际源和 ELF 绑定通过后最高 A1，出现 DIFFERENT 的源码候选仍可保存为 A1 实际构建产物，但不成为已验收等价实现。Proposal 保持 RECORDED，Job quality 不自动提升。
 
+选择服务只设置 `BEST_AVAILABLE`，不设置 `RELEASE_SELECTED`。局部精确结果优先于较弱结果，同等级保持原选择，晚到的 DIFFERENT 候选不能覆盖较好候选。输入/契约/epoch、工具、原/候选/ABI/证明或选择快照变化时，公开读取立即撤销当前最佳标记；历史报告仍保存。
+
+多个局部候选各自编译成功，不代表已经组成一个完整库。因此 Job `artifact_level=A0`，整体 build/abi/semantic/completeness UNKNOWN；`collection_artifact_level=A1` 和 `selected_candidates_build=PASS` 仅描述已选局部编译集合。公开 `get_job` 会把失效质量降为当前 UNKNOWN，并保留历史质量供审计。
+
+修复反馈按真实 root 候选累计预算，重复机器码/诊断且没有已交付新证据时停止；能力缺口、预算耗尽或同范围已有更好有效局部精确候选时，也停止无益方向。原 Task 完成只表示交付已分类，不表示候选等价或被接受。补证据工包目前可冻结和提交通用证据/gap 提案，独立消费与契约冻结仍待实现，不能当作完整自动补证据闭环。
+
 ## 无模型的实际闭环样本
 
 ```bash
 .venv/bin/python scripts/run_candidate_validation_sample.py \
   --ndk-root work/tools/android-ndk-r27c --output work/validation-sample-new
+.venv/bin/python scripts/run_repair_loop_sample.py \
+  --ndk-root work/tools/android-ndk-r27c --output work/repair-sample-new
 ```
 
 脚本编译固定 Android 微库，从原机器字节生成候选，再通过真实 lease/binding/stage/receipt 路径提交等价和错误常量两种源码。随后独立 NDK 编译、ABI 结构对照及 SMT 分类，验证幂等和重启读取。Provider 明确为 deterministic-static-fixture，模型调用数为零；不把设施集成当成真实 DSH Fresh 工作者验收。
 
-后续仍需实现：有界修复/补证据反馈工包、最佳候选与当前质量聚合、完整入口/全库清单、工具恢复的宿主资源审计及真实模型验收。
+第二个脚本实际验证 DIFFERENT → 冻结 repair Task → 真实 lease/证据读取/新提案 → NDK/SMT EXACT → 晚到较差候选不覆盖最佳；确认重启后重放不重复派发。模型调用仍为零。
+
+后续仍需实现：补证据提案独立消费与类型/ABI 契约冻结、完整入口/全库工程集成、工具恢复的宿主资源审计，以及真实模型生成/修复与吞吐验收。

@@ -90,6 +90,12 @@ class BackendRPC:
                 CREATE TABLE IF NOT EXISTS rpc_fenced_workers (
                     worker_id TEXT PRIMARY KEY, created_at REAL NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS rpc_evidence_reads (
+                    attempt_id TEXT NOT NULL REFERENCES attempts(attempt_id),
+                    artifact_ref TEXT NOT NULL, sha256 TEXT NOT NULL, size INTEGER NOT NULL,
+                    offset INTEGER NOT NULL, end_offset INTEGER NOT NULL, created_at REAL NOT NULL,
+                    PRIMARY KEY(attempt_id,artifact_ref,sha256,offset,end_offset)
+                );
             """
             for statement in schema.split(";"):
                 if statement.strip():
@@ -372,11 +378,17 @@ class BackendRPC:
 
     def _evidence_read(self, params: dict) -> dict:
         with self.domain._transaction() as connection:
-            _, _, _, work = self._bound(connection, params, "evidence_read")
+            attempt, _, _, work = self._bound(connection, params, "evidence_read")
             ref = _string(params.get("ref"), "ref")
             if ref not in self._manifest(work):
                 raise DomainError("EVIDENCE_DENIED", "Reference is outside this task's frozen manifest")
-            return self.objects.read_artifact(ref, offset=params.get("offset", 0), limit=params.get("limit", 65536))
+            page = self.objects.read_artifact(ref, offset=params.get("offset", 0), limit=params.get("limit", 65536))
+            connection.execute(
+                "INSERT OR IGNORE INTO rpc_evidence_reads VALUES (?,?,?,?,?,?,?)",
+                (attempt["attempt_id"], ref, page["sha256"], page["total"], page["offset"],
+                 page["offset"] + page["returned"], time.time()),
+            )
+            return page
 
     def _contract_read(self, params: dict) -> dict:
         with self.domain._transaction() as connection:
@@ -385,7 +397,10 @@ class BackendRPC:
             return {"work": {**work, "attempt_id": attempt["attempt_id"],
                              "candidate_namespace": self._namespace(work) + "/" + attempt["attempt_id"]},
                     "policy": policy.model_dump(mode="json"),
-                    "source_candidate_contract": CppSourceCandidate.model_json_schema()}
+                    "source_candidate_contract": CppSourceCandidate.model_json_schema(),
+                    "expected_delivery_kind": "cpp_source" if work["role"] in {
+                        "recovery", "repair", "integration", "naming"
+                    } else "scoped_evidence_or_diagnostic"}
 
     def _attempt_failure(self, params: dict) -> dict:
         attempt_id = _string(params.get("attempt_id"), "attempt_id")

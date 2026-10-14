@@ -67,6 +67,15 @@ def main(argv=None):
     validation = commands.add_parser("get-validation", help="Read a persisted validation activity")
     validation.add_argument("job_id")
     validation.add_argument("activity_id")
+    postprocess = commands.add_parser("postprocess-candidates", help="Trusted host: classify results and freeze feedback tasks")
+    postprocess.add_argument("job_id")
+    postprocess.add_argument("--max-activities", type=int, default=64)
+    selection = commands.add_parser("get-selection", help="Read current best available candidates and gaps")
+    selection.add_argument("job_id")
+    feedback = commands.add_parser("list-feedback", help="Read persisted repair/evidence decisions")
+    feedback.add_argument("job_id")
+    feedback.add_argument("--cursor", type=int, default=0)
+    feedback.add_argument("--limit", type=int, default=100)
     status = commands.add_parser("get-job")
     status.add_argument("job_id")
     worker = commands.add_parser("worker", help="Process durable static-intake jobs")
@@ -105,6 +114,9 @@ def main(argv=None):
                                      required_exports=tuple(args.required_export) if args.required_export else None)
             if args.output:
                 Path(args.output).write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+        elif args.command == "postprocess-candidates":
+            from .postprocessing import CandidatePostprocessor
+            result = CandidatePostprocessor(args.state_dir).run(args.job_id, max_activities=args.max_activities)
         elif args.command in {"queue-validation", "validation-worker"}:
             from .build_gate import BuildConfig
             from .candidate_validation import CandidateValidationService
@@ -163,7 +175,11 @@ def main(argv=None):
             elif args.command == "capabilities":
                 result = service.describe_capabilities()
             elif args.command == "get-job":
-                result = service.domain.get_job(args.job_id)
+                result = service.get_job(args.job_id)
+            elif args.command == "get-selection":
+                result = service.get_candidate_selection(args.job_id)
+            elif args.command == "list-feedback":
+                result = service.list_feedback(args.job_id, cursor=args.cursor, limit=args.limit)
             elif args.command == "list-validations":
                 result = service.list_validations(args.job_id, cursor=args.cursor, limit=args.limit)
             elif args.command == "get-validation":

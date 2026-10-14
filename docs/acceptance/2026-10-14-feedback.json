@@ -1,0 +1,758 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-14",
+  "timezone": "Asia/Singapore",
+  "base_candidate_validation_commit": "4725297",
+  "tests": {
+    "python": {
+      "passed": 998,
+      "skipped": 0,
+      "warnings": 1,
+      "real_ndk_ghidra_enabled": true
+    },
+    "dsh": {
+      "passed": 28,
+      "model_calls": 0
+    },
+    "branch_cleanup": {
+      "passed": 13,
+      "real_local_git_concurrent_commit_test": true
+    },
+    "ruff": "PASS",
+    "shared_schemas": "PASS",
+    "wheel": "PASS"
+  },
+  "repair_loop": {
+    "provider": "deterministic-static-fixture",
+    "model_calls": 0,
+    "sample_passed": true,
+    "report_sha256": "1986546e40abd40b42cb24d4e3222e3360dc588aa866b8862f14300a11afd30d",
+    "input_sha256": "b351d717c279f898a2cc20397f0ea1a3c6276e7bcc4b6f7d1297627d62792e3d",
+    "classifications": {
+      "initial_bad": "DIFFERENT",
+      "repaired": "EXACT_EQUIVALENT",
+      "late_worse": "DIFFERENT"
+    },
+    "initial_feedback_actions": [
+      "REPAIR_READY"
+    ],
+    "final_feedback_actions": [
+      "NO_PROGRESS"
+    ],
+    "replay_single_feedback_and_batch": true,
+    "selected_activity_ids": [
+      "vact-7f48f1dfa0db4342bca707d7bfc51516"
+    ],
+    "inventory": {
+      "completeness_status": "UNKNOWN",
+      "discovered_function_count": 6,
+      "discovered_functions": [
+        {
+          "address": "0x00000000000045c8",
+          "extent_status": "symbol_size_file_backed",
+          "file_offset": 1480,
+          "name": "add_seven",
+          "size": 8,
+          "type": "STT_FUNC"
+        },
+        {
+          "address": "0x0000000000004578",
+          "extent_status": "symbol_size_file_backed",
+          "file_offset": 1400,
+          "name": "__on_dlclose",
+          "size": 16,
+          "type": "STT_FUNC"
+        },
+        {
+          "address": "0x0000000000004590",
+          "extent_status": "symbol_size_file_backed",
+          "file_offset": 1424,
+          "name": "__on_dlclose_late",
+          "size": 8,
+          "type": "STT_FUNC"
+        },
+        {
+          "address": "0x0000000000004588",
+          "extent_status": "symbol_size_file_backed",
+          "file_offset": 1416,
+          "name": "__emutls_unregister_key",
+          "size": 8,
+          "type": "STT_FUNC"
+        },
+        {
+          "address": "0x0000000000004598",
+          "extent_status": "symbol_size_file_backed",
+          "file_offset": 1432,
+          "name": "__atexit_handler_wrapper",
+          "size": 20,
+          "type": "STT_FUNC"
+        },
+        {
+          "address": "0x00000000000045ac",
+          "extent_status": "symbol_size_file_backed",
+          "file_offset": 1452,
+          "name": "atexit",
+          "size": 28,
+          "type": "STT_FUNC"
+        }
+      ],
+      "executable_byte_denominator": 152,
+      "executable_regions": [
+        {
+          "address": "0x0000000000004578",
+          "end_address": "0x0000000000004610",
+          "file_offset": 1400,
+          "segment_index": 2,
+          "size": 152,
+          "status": "function_boundaries_unconfirmed"
+        }
+      ],
+      "function_inventory_complete": false,
+      "imported_function_symbols": [
+        {
+          "address": "0x0000000000000000",
+          "binding": "STB_GLOBAL",
+          "defined": false,
+          "end_address": null,
+          "extent_status": "undefined",
+          "file_offset": null,
+          "index": 1,
+          "name": "__cxa_finalize",
+          "section_index": 0,
+          "size": 0,
+          "source": "dynsym",
+          "type": "STT_FUNC",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x0000000000000000",
+          "binding": "STB_GLOBAL",
+          "defined": false,
+          "end_address": null,
+          "extent_status": "undefined",
+          "file_offset": null,
+          "index": 2,
+          "name": "__cxa_atexit",
+          "section_index": 0,
+          "size": 0,
+          "source": "dynsym",
+          "type": "STT_FUNC",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x0000000000000000",
+          "binding": "STB_GLOBAL",
+          "defined": false,
+          "end_address": null,
+          "extent_status": "undefined",
+          "file_offset": null,
+          "index": 28,
+          "name": "__cxa_finalize",
+          "section_index": 0,
+          "size": 0,
+          "source": "symtab",
+          "type": "STT_FUNC",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x0000000000000000",
+          "binding": "STB_GLOBAL",
+          "defined": false,
+          "end_address": null,
+          "extent_status": "undefined",
+          "file_offset": null,
+          "index": 29,
+          "name": "__cxa_atexit",
+          "section_index": 0,
+          "size": 0,
+          "source": "symtab",
+          "type": "STT_FUNC",
+          "visibility": "STV_DEFAULT"
+        }
+      ],
+      "input_ref": "input:sha256:b351d717c279f898a2cc20397f0ea1a3c6276e7bcc4b6f7d1297627d62792e3d",
+      "input_sha256": "b351d717c279f898a2cc20397f0ea1a3c6276e7bcc4b6f7d1297627d62792e3d",
+      "intake_gaps": [
+        {
+          "code": "android_loadability_unverified",
+          "detail": "architecture and ELF structure do not establish Android origin or successful loading"
+        },
+        {
+          "code": "function_inventory_partial",
+          "detail": "symbol-derived functions only; executable bytes, stripped/internal functions and entry closures remain unconfirmed"
+        },
+        {
+          "code": "relocations_not_applied",
+          "detail": "logical PT_LOAD image only; no relocation resolvers or library entry points are executed"
+        }
+      ],
+      "symbol_inventory": [
+        {
+          "address": "0x0000000000000000",
+          "binding": "STB_GLOBAL",
+          "defined": false,
+          "end_address": null,
+          "extent_status": "undefined",
+          "file_offset": null,
+          "index": 1,
+          "name": "__cxa_finalize",
+          "section_index": 0,
+          "size": 0,
+          "source": "dynsym",
+          "type": "STT_FUNC",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x0000000000000000",
+          "binding": "STB_GLOBAL",
+          "defined": false,
+          "end_address": null,
+          "extent_status": "undefined",
+          "file_offset": null,
+          "index": 2,
+          "name": "__cxa_atexit",
+          "section_index": 0,
+          "size": 0,
+          "source": "dynsym",
+          "type": "STT_FUNC",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x00000000000045c8",
+          "binding": "STB_GLOBAL",
+          "defined": true,
+          "end_address": "0x00000000000045d0",
+          "extent_status": "symbol_size_file_backed",
+          "file_offset": 1480,
+          "index": 3,
+          "name": "add_seven",
+          "section_index": 13,
+          "size": 8,
+          "source": "dynsym",
+          "type": "STT_FUNC",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x0000000000000000",
+          "binding": "STB_LOCAL",
+          "defined": true,
+          "end_address": null,
+          "extent_status": "not_function",
+          "file_offset": null,
+          "index": 1,
+          "name": "crtbegin_so.c",
+          "section_index": 65521,
+          "size": 0,
+          "source": "symtab",
+          "type": "STT_4",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x0000000000004578",
+          "binding": "STB_LOCAL",
+          "defined": true,
+          "end_address": "0x0000000000004588",
+          "extent_status": "symbol_size_file_backed",
+          "file_offset": 1400,
+          "index": 2,
+          "name": "__on_dlclose",
+          "section_index": 13,
+          "size": 16,
+          "source": "symtab",
+          "type": "STT_FUNC",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x0000000000004578",
+          "binding": "STB_LOCAL",
+          "defined": true,
+          "end_address": null,
+          "extent_status": "not_function",
+          "file_offset": null,
+          "index": 3,
+          "name": "$x.1",
+          "section_index": 13,
+          "size": 0,
+          "source": "symtab",
+          "type": "STT_NOTYPE",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x0000000000004590",
+          "binding": "STB_LOCAL",
+          "defined": true,
+          "end_address": "0x0000000000004598",
+          "extent_status": "symbol_size_file_backed",
+          "file_offset": 1424,
+          "index": 4,
+          "name": "__on_dlclose_late",
+          "section_index": 13,
+          "size": 8,
+          "source": "symtab",
+          "type": "STT_FUNC",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x0000000000008610",
+          "binding": "STB_LOCAL",
+          "defined": true,
+          "end_address": null,
+          "extent_status": "not_function",
+          "file_offset": null,
+          "index": 5,
+          "name": "$d.2",
+          "section_index": 15,
+          "size": 0,
+          "source": "symtab",
+          "type": "STT_NOTYPE",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x0000000000008618",
+          "binding": "STB_LOCAL",
+          "defined": true,
+          "end_address": null,
+          "extent_status": "not_function",
+          "file_offset": null,
+          "index": 6,
+          "name": "$d.3",
+          "section_index": 16,
+          "size": 0,
+          "source": "symtab",
+          "type": "STT_NOTYPE",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x0000000000008620",
+          "binding": "STB_LOCAL",
+          "defined": true,
+          "end_address": null,
+          "extent_status": "not_function",
+          "file_offset": null,
+          "index": 7,
+          "name": "$d.4",
+          "section_index": 16,
+          "size": 0,
+          "source": "symtab",
+          "type": "STT_NOTYPE",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x0000000000000000",
+          "binding": "STB_LOCAL",
+          "defined": true,
+          "end_address": null,
+          "extent_status": "not_function",
+          "file_offset": null,
+          "index": 8,
+          "name": "$d.5",
+          "section_index": 20,
+          "size": 0,
+          "source": "symtab",
+          "type": "STT_NOTYPE",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x00000000000004e8",
+          "binding": "STB_LOCAL",
+          "defined": true,
+          "end_address": null,
+          "extent_status": "not_function",
+          "file_offset": null,
+          "index": 9,
+          "name": "$d.6",
+          "section_index": 12,
+          "size": 0,
+          "source": "symtab",
+          "type": "STT_NOTYPE",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x0000000000000238",
+          "binding": "STB_LOCAL",
+          "defined": true,
+          "end_address": null,
+          "extent_status": "not_function",
+          "file_offset": null,
+          "index": 10,
+          "name": "note_android_ident",
+          "section_index": 1,
+          "size": 152,
+          "source": "symtab",
+          "type": "STT_OBJECT",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x0000000000000238",
+          "binding": "STB_LOCAL",
+          "defined": true,
+          "end_address": null,
+          "extent_status": "not_function",
+          "file_offset": null,
+          "index": 11,
+          "name": "$d.0",
+          "section_index": 1,
+          "size": 0,
+          "source": "symtab",
+          "type": "STT_NOTYPE",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x000000000000024c",
+          "binding": "STB_LOCAL",
+          "defined": true,
+          "end_address": null,
+          "extent_status": "not_function",
+          "file_offset": null,
+          "index": 12,
+          "name": "note_data",
+          "section_index": 1,
+          "size": 0,
+          "source": "symtab",
+          "type": "STT_NOTYPE",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x0000000000000244",
+          "binding": "STB_LOCAL",
+          "defined": true,
+          "end_address": null,
+          "extent_status": "not_function",
+          "file_offset": null,
+          "index": 13,
+          "name": "note_name",
+          "section_index": 1,
+          "size": 0,
+          "source": "symtab",
+          "type": "STT_NOTYPE",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x00000000000002d0",
+          "binding": "STB_LOCAL",
+          "defined": true,
+          "end_address": null,
+          "extent_status": "not_function",
+          "file_offset": null,
+          "index": 14,
+          "name": "note_end",
+          "section_index": 1,
+          "size": 0,
+          "source": "symtab",
+          "type": "STT_NOTYPE",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x0000000000000250",
+          "binding": "STB_LOCAL",
+          "defined": true,
+          "end_address": null,
+          "extent_status": "not_function",
+          "file_offset": null,
+          "index": 15,
+          "name": "ndk_version",
+          "section_index": 1,
+          "size": 0,
+          "source": "symtab",
+          "type": "STT_NOTYPE",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x0000000000000290",
+          "binding": "STB_LOCAL",
+          "defined": true,
+          "end_address": null,
+          "extent_status": "not_function",
+          "file_offset": null,
+          "index": 16,
+          "name": "ndk_build_number",
+          "section_index": 1,
+          "size": 0,
+          "source": "symtab",
+          "type": "STT_NOTYPE",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x0000000000008610",
+          "binding": "STB_LOCAL",
+          "defined": true,
+          "end_address": null,
+          "extent_status": "not_function",
+          "file_offset": null,
+          "index": 17,
+          "name": "__dso_handle",
+          "section_index": 15,
+          "size": 8,
+          "source": "symtab",
+          "type": "STT_OBJECT",
+          "visibility": "STV_HIDDEN"
+        },
+        {
+          "address": "0x0000000000004588",
+          "binding": "STB_LOCAL",
+          "defined": true,
+          "end_address": "0x0000000000004590",
+          "extent_status": "symbol_size_file_backed",
+          "file_offset": 1416,
+          "index": 18,
+          "name": "__emutls_unregister_key",
+          "section_index": 13,
+          "size": 8,
+          "source": "symtab",
+          "type": "STT_FUNC",
+          "visibility": "STV_HIDDEN"
+        },
+        {
+          "address": "0x0000000000004598",
+          "binding": "STB_LOCAL",
+          "defined": true,
+          "end_address": "0x00000000000045ac",
+          "extent_status": "symbol_size_file_backed",
+          "file_offset": 1432,
+          "index": 19,
+          "name": "__atexit_handler_wrapper",
+          "section_index": 13,
+          "size": 20,
+          "source": "symtab",
+          "type": "STT_FUNC",
+          "visibility": "STV_HIDDEN"
+        },
+        {
+          "address": "0x00000000000045ac",
+          "binding": "STB_LOCAL",
+          "defined": true,
+          "end_address": "0x00000000000045c8",
+          "extent_status": "symbol_size_file_backed",
+          "file_offset": 1452,
+          "index": 20,
+          "name": "atexit",
+          "section_index": 13,
+          "size": 28,
+          "source": "symtab",
+          "type": "STT_FUNC",
+          "visibility": "STV_HIDDEN"
+        },
+        {
+          "address": "0x0000000000000000",
+          "binding": "STB_LOCAL",
+          "defined": true,
+          "end_address": null,
+          "extent_status": "not_function",
+          "file_offset": null,
+          "index": 21,
+          "name": "candidate.cpp",
+          "section_index": 65521,
+          "size": 0,
+          "source": "symtab",
+          "type": "STT_4",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x00000000000045c8",
+          "binding": "STB_LOCAL",
+          "defined": true,
+          "end_address": null,
+          "extent_status": "not_function",
+          "file_offset": null,
+          "index": 22,
+          "name": "$x.0",
+          "section_index": 13,
+          "size": 0,
+          "source": "symtab",
+          "type": "STT_NOTYPE",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x0000000000000000",
+          "binding": "STB_LOCAL",
+          "defined": true,
+          "end_address": null,
+          "extent_status": "not_function",
+          "file_offset": null,
+          "index": 23,
+          "name": "$d.1",
+          "section_index": 20,
+          "size": 0,
+          "source": "symtab",
+          "type": "STT_NOTYPE",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x00000000000004e8",
+          "binding": "STB_LOCAL",
+          "defined": true,
+          "end_address": null,
+          "extent_status": "not_function",
+          "file_offset": null,
+          "index": 24,
+          "name": "$d.2",
+          "section_index": 12,
+          "size": 0,
+          "source": "symtab",
+          "type": "STT_NOTYPE",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x00000000000004e8",
+          "binding": "STB_LOCAL",
+          "defined": true,
+          "end_address": null,
+          "extent_status": "not_function",
+          "file_offset": null,
+          "index": 25,
+          "name": "__FRAME_END__",
+          "section_index": 12,
+          "size": 4,
+          "source": "symtab",
+          "type": "STT_OBJECT",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x00000000000004e8",
+          "binding": "STB_LOCAL",
+          "defined": true,
+          "end_address": null,
+          "extent_status": "not_function",
+          "file_offset": null,
+          "index": 26,
+          "name": "$d.1",
+          "section_index": 12,
+          "size": 0,
+          "source": "symtab",
+          "type": "STT_NOTYPE",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x0000000000008628",
+          "binding": "STB_LOCAL",
+          "defined": true,
+          "end_address": null,
+          "extent_status": "not_function",
+          "file_offset": null,
+          "index": 27,
+          "name": "_DYNAMIC",
+          "section_index": 17,
+          "size": 0,
+          "source": "symtab",
+          "type": "STT_NOTYPE",
+          "visibility": "STV_HIDDEN"
+        },
+        {
+          "address": "0x0000000000000000",
+          "binding": "STB_GLOBAL",
+          "defined": false,
+          "end_address": null,
+          "extent_status": "undefined",
+          "file_offset": null,
+          "index": 28,
+          "name": "__cxa_finalize",
+          "section_index": 0,
+          "size": 0,
+          "source": "symtab",
+          "type": "STT_FUNC",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x0000000000000000",
+          "binding": "STB_GLOBAL",
+          "defined": false,
+          "end_address": null,
+          "extent_status": "undefined",
+          "file_offset": null,
+          "index": 29,
+          "name": "__cxa_atexit",
+          "section_index": 0,
+          "size": 0,
+          "source": "symtab",
+          "type": "STT_FUNC",
+          "visibility": "STV_DEFAULT"
+        },
+        {
+          "address": "0x00000000000045c8",
+          "binding": "STB_GLOBAL",
+          "defined": true,
+          "end_address": "0x00000000000045d0",
+          "extent_status": "symbol_size_file_backed",
+          "file_offset": 1480,
+          "index": 30,
+          "name": "add_seven",
+          "section_index": 13,
+          "size": 8,
+          "source": "symtab",
+          "type": "STT_FUNC",
+          "visibility": "STV_DEFAULT"
+        }
+      ],
+      "symbol_record_count": 33,
+      "total_function_count": null,
+      "valid": true
+    },
+    "job_quality": {
+      "abi": {
+        "original_calling_abi": "UNKNOWN",
+        "source_ub": "UNKNOWN",
+        "status": "UNKNOWN"
+      },
+      "artifact_level": "A0",
+      "build": {
+        "reason_code": "WHOLE_LIBRARY_NOT_INTEGRATED",
+        "status": "UNKNOWN"
+      },
+      "collection_artifact_level": "A1",
+      "collection_scope": "selected_local_candidates_only",
+      "completeness": {
+        "discovered_function_denominator": 6,
+        "executable_byte_denominator": 152,
+        "selected_function_count": 1,
+        "selected_original_executable_bytes": 8,
+        "status": "UNKNOWN",
+        "total_function_denominator": null,
+        "unselected_original_executable_bytes": 144,
+        "whole_library_closure": "UNKNOWN"
+      },
+      "gaps": [
+        "whole_library_build_not_integrated",
+        "function_inventory_partial",
+        "original_types_and_calling_abi_unknown",
+        "source_ub_unproved",
+        "entry_and_internal_closures_unproved"
+      ],
+      "release_selected": false,
+      "selected_candidates_build": {
+        "activity_ids": [
+          "vact-7f48f1dfa0db4342bca707d7bfc51516"
+        ],
+        "status": "PASS"
+      },
+      "selected_candidates_only": true,
+      "semantic": {
+        "status": "UNKNOWN",
+        "whole_program_equivalence": false
+      },
+      "source_ub": {
+        "status": "UNKNOWN"
+      },
+      "whole_program_build_pass": false
+    },
+    "remaining_ready_followup_task_ids": []
+  },
+  "github": {
+    "branch_policy": "main plus one current development branch",
+    "merged_development_refs_removed": [
+      "codex/m0-static-foundation",
+      "codex/m0-connected-static-pipeline",
+      "codex/m1-candidate-validation"
+    ],
+    "cleanup_uses_reviewed_sha_lease": true,
+    "automatic_workflow_active_before_merge": false
+  },
+  "completion": {
+    "v1": false,
+    "m0_s": false,
+    "m0_r": false,
+    "m1": false,
+    "evidence_proposal_consumption": false,
+    "whole_program_equivalence": false,
+    "target_or_candidate_executed": false
+  }
+}
