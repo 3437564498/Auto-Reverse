@@ -19,7 +19,7 @@ from .intake import ELFIntakeError, extract_function, function_info, inspect_elf
 from .semantics import verify_machine_code
 
 
-RECOVERY_VERSION = "integer-register-leaf-1"
+RECOVERY_VERSION = "integer-register-leaf-2"
 _MAX_LEAF_BYTES = 1024
 _C_IDENTIFIER = re.compile(r"[A-Za-z][A-Za-z0-9_]*\Z", re.ASCII)
 _KEYWORDS = frozenset("""
@@ -57,71 +57,117 @@ def _safe_symbol(symbol: str) -> bool:
     )
 
 
-def _register(index: int, width: int) -> str:
-    value = "ar_x0" if index == 0 else f"ar_a{index}"
+def _register(index: int, width: int, written: set[int]) -> str:
+    value = f"ar_x{index}" if index in written else f"ar_a{index}"
     return f"static_cast<unsigned int>({value})" if width == 32 else value
 
 
-def _instruction(word: int) -> dict[str, Any] | None:
+def _instruction(word: int, written: set[int]) -> dict[str, Any] | None:
     """Check actual ISA encodings independently of decompiler text/Raw P-code.
 
-    Destinations are only X0/W0, sources only X0..X7/W0..W7. There are no
-    register shifts/extensions, NZCV updates, memory, SP/zero-register operands,
-    calls, or control flow other than the final architectural RET X30.
+    Destinations are X0..X17/W0..W17. Only declared inputs or already written
+    temporaries can be read (checked separately after decoding). Logical shifts
+    have constant amounts strictly below their operand width. There are no
+    extensions, NZCV updates, memory, SP operands, calls, or control flow other
+    than the final architectural RET X30. ZR is allowed only in the MOV alias.
     """
     width = 64 if word >> 31 else 32
     if word == 0xD503201F:
         return {"opcode": "NOP", "statement": "// Architectural NOP; no observable effect."}
     if word == 0xD65F03C0:
         return {"opcode": "RET", "statement": "return ar_x0;", "return_register": "x30"}
-    if word & 31:
+    destination = word & 31
+    if destination > 17:
         return None
-    # ADD/SUB (immediate), S=0, destination register 0; optional LSL #12.
+    sources: list[int]
+    # ADD/SUB (immediate), S=0; optional LSL #12.
     if word & 0x7F800000 in (0x11000000, 0x51000000):
         source = (word >> 5) & 31
-        if source > 7:
+        if source > 17:
             return None
+        sources = [source]
         immediate = ((word >> 10) & 0xFFF) << (12 if word & (1 << 22) else 0)
         subtract = bool(word & (1 << 30))
-        expression = f"{_register(source, width)} {'-' if subtract else '+'} {immediate}{'ULL' if width == 64 else 'U'}"
+        expression = f"{_register(source, width, written)} {'-' if subtract else '+'} {immediate}{'ULL' if width == 64 else 'U'}"
         result = {"opcode": "SUB" if subtract else "ADD", "width": width,
-                  "sources": [f"{'x' if width == 64 else 'w'}{source}"],
                   "immediate": str(immediate)}
-    # ADD/SUB (shifted register), S=0, LSL #0 only.
-    elif word & 0x7FE0FC00 in (0x0B000000, 0x4B000000):
+    # ADD/SUB or AND/ORR/EOR (shifted register), no S/N bit. The bit21
+    # check rejects extended arithmetic and complemented logical encodings.
+    elif word & 0x7F200000 in (0x0B000000, 0x4B000000,
+                               0x0A000000, 0x2A000000, 0x4A000000):
         left, right = (word >> 5) & 31, (word >> 16) & 31
-        if max(left, right) > 7:
+        kind, amount = (word >> 22) & 3, (word >> 10) & 63
+        encoding = word & 0x7F200000
+        # MOV is the exact ORR Rd, ZR, Rm, LSL #0 alias; other ZR uses
+        # remain outside the source subset rather than broadening the contract.
+        move = encoding == 0x2A000000 and left == 31 and kind == amount == 0
+        if right > 17 or (left > 17 and not move) or kind > 1 or amount >= width:
             return None
-        subtract = bool(word & (1 << 30))
-        expression = f"{_register(left, width)} {'-' if subtract else '+'} {_register(right, width)}"
-        result = {"opcode": "SUB" if subtract else "ADD", "width": width,
-                  "sources": [f"{'x' if width == 64 else 'w'}{i}" for i in (left, right)]}
-    # MOV register is the exact ORR Rd, ZR, Rm, LSL #0 alias encoding.
-    elif word & 0x7FE0FFFF == 0x2A0003E0:
-        source = (word >> 16) & 31
-        if source > 7:
-            return None
-        expression = _register(source, width)
-        result = {"opcode": "MOV", "encoding": "orr-zero-register-alias", "width": width,
-                  "sources": [f"{'x' if width == 64 else 'w'}{source}"]}
-    # MOVZ/MOVN immediate; MOVK and logical-immediate MOV aliases are excluded.
-    elif word & 0x7F80001F in (0x52800000, 0x12800000):
+        sources = [right] if move else [left, right]
+        right_expression = _register(right, width, written)
+        if amount:
+            right_expression = f"({right_expression} {'<<' if kind == 0 else '>>'} {amount}U)"
+        if move:
+            expression = right_expression
+            result = {"opcode": "MOV", "encoding": "orr-zero-register-alias", "width": width}
+        else:
+            opcode, operator = {
+                0x0B000000: ("ADD", "+"), 0x4B000000: ("SUB", "-"),
+                0x0A000000: ("AND", "&"), 0x2A000000: ("ORR", "|"),
+                0x4A000000: ("EOR", "^"),
+            }[encoding]
+            expression = f"{_register(left, width, written)} {operator} {right_expression}"
+            result = {"opcode": opcode, "width": width,
+                      "shift": {"kind": "LSL" if kind == 0 else "LSR", "amount": amount}}
+    # MOVZ/MOVN/MOVK immediate; reserved 32-bit upper halfwords excluded.
+    elif word & 0x7F800000 in (0x52800000, 0x12800000, 0x72800000):
         shift = ((word >> 21) & 3) * 16
         if shift >= width:
             return None
         immediate = ((word >> 5) & 0xFFFF) << shift
-        complement = word & 0x7F80001F == 0x12800000
-        if complement:
-            immediate = (~immediate) & ((1 << width) - 1)
-        expression = f"{immediate}{'ULL' if width == 64 else 'U'}"
-        result = {"opcode": "MOV", "encoding": "movn" if complement else "movz",
-                  "width": width, "sources": [], "immediate": str(immediate)}
+        encoding = word & 0x7F800000
+        suffix = 'ULL' if width == 64 else 'U'
+        sources = []
+        if encoding == 0x72800000:
+            sources = [destination]
+            mask = ((1 << width) - 1) ^ (0xFFFF << shift)
+            expression = f"({_register(destination, width, written)} & {mask}{suffix}) | {immediate}{suffix}"
+            result = {"opcode": "MOVK", "encoding": "movk", "width": width,
+                      "preserved_bits_mask": str(mask), "halfword_shift": shift}
+        else:
+            complement = encoding == 0x12800000
+            if complement:
+                immediate = (~immediate) & ((1 << width) - 1)
+            expression = f"{immediate}{suffix}"
+            result = {"opcode": "MOV", "encoding": "movn" if complement else "movz",
+                      "width": width}
+        result["immediate"] = str(immediate)
+    # UBFM only when its exact bitfields encode architectural LSL/LSR
+    # aliases. General extracts/inserts and signed bitfields are excluded.
+    elif word & 0x7FC00000 == (0x53400000 if width == 64 else 0x53000000):
+        source = (word >> 5) & 31
+        rotation, mask_end = (word >> 16) & 63, (word >> 10) & 63
+        if source > 17 or max(rotation, mask_end) >= width:
+            return None
+        if mask_end == width - 1:
+            opcode, operator, amount = "LSR", ">>", rotation
+        elif rotation and mask_end + 1 == rotation:
+            opcode, operator, amount = "LSL", "<<", width - rotation
+        else:
+            return None
+        sources = [source]
+        expression = f"{_register(source, width, written)} {operator} {amount}U"
+        result = {"opcode": opcode, "encoding": "ubfm-shift-alias", "width": width,
+                  "shift": {"kind": opcode, "amount": amount}}
     else:
         return None
     if width == 32:
         expression = f"static_cast<unsigned long long>(static_cast<unsigned int>({expression}))"
-    return {**result, "destination": "x0" if width == 64 else "w0",
-            "statement": f"ar_x0 = {expression};"}
+    prefix = "x" if width == 64 else "w"
+    return {**result, "destination": f"{prefix}{destination}",
+            "destination_index": destination, "source_indices": sources,
+            "sources": [f"{prefix}{i}" for i in sources],
+            "statement": f"ar_x{destination} = {expression};"}
 
 
 def register_call_model() -> dict[str, Any]:
@@ -133,7 +179,9 @@ def register_call_model() -> dict[str, Any]:
                     "domain": "all-64-bit-patterns"} for i in range(8)],
         "return": {"register": "x0", "width": 64, "cpp_type": "unsigned long long"},
         "w_register_reads": "low-32-bits-of-corresponding-x-register",
-        "w_register_writes": "truncate-modulo-2^32-and-zero-extend-to-x0",
+        "w_register_writes": "truncate-modulo-2^32-and-zero-extend-corresponding-x-register",
+        "caller_saved_temporaries": {"registers": [f"x{i}" for i in range(8, 18)],
+                                     "initial_values": "not inputs; reads require prior full register write"},
         "parameter_count": "chosen-eight-register-model; original parameter count unknown",
         "original_prototype_recovered": False,
         "original_types_recovered": False,
@@ -156,14 +204,21 @@ def recovery_capabilities() -> dict[str, Any]:
             {"opcode": opcode, "recovery_supported": True, "widths": [32, 64],
              "restrictions": restriction}
             for opcode, restriction in (
-                ("ADD", "dest x0/w0; inputs x0..7/w0..7; imm12 optional LSL12 or unshifted register; no NZCV"),
-                ("SUB", "dest x0/w0; inputs x0..7/w0..7; imm12 optional LSL12 or unshifted register; no NZCV"),
-                ("MOV", "dest x0/w0; unshifted ORR ZR register alias, MOVZ or MOVN immediate; no MOVK"),
+                ("ADD", "dest x0..17/w0..17; imm12 optional LSL12 or register LSL/LSR below width; no NZCV"),
+                ("SUB", "dest x0..17/w0..17; imm12 optional LSL12 or register LSL/LSR below width; no NZCV"),
+                ("MOV", "dest x0..17/w0..17; exact unshifted ORR ZR register alias, MOVZ or MOVN immediate"),
+                ("MOVK", "dest x0..17/w0..17; preserve other bits in previously initialized register"),
+                ("AND", "dest/source x0..17/w0..17; second register LSL/LSR below width; no NZCV or complement"),
+                ("ORR", "dest/source x0..17/w0..17; second register LSL/LSR below width; no complement"),
+                ("EOR", "dest/source x0..17/w0..17; second register LSL/LSR below width; no complement"),
+                ("LSL", "exact UBFM immediate alias; amount strictly below width"),
+                ("LSR", "exact UBFM immediate alias; amount strictly below width"),
                 ("NOP", "exact architectural encoding D503201F"),
                 ("RET", "exact D65F03C0 RET X30 as final word; no trailing words"),
             )
         ],
         "scope": "complete known symbol extent of exported safe C-identifier leaf",
+        "source_registers": "declared x0..7 inputs; x8..17 require prior full write; W writes zero-extend",
         "not_recovered": ["original prototypes", "C++ types or classes", "JNI", "calls",
                           "memory", "global data", "original calling ABI", "entry closures"],
         "lifting_establishes_equivalence": False,
@@ -191,15 +246,25 @@ def lift_integer_leaf(code: bytes, *, symbol: str, address: int = 0x1000) -> dic
         result["reason"] = "empty_unaligned_or_budget_exceeding_leaf_extent"
         return result
     digest = _hash(code)
+    written = {0}
+    initialized = set(range(8))
     for offset in range(0, len(code), 4):
         raw = code[offset:offset + 4]
-        decoded = _instruction(int.from_bytes(raw, "little"))
+        decoded = _instruction(int.from_bytes(raw, "little"), written)
         record = {"address": _hex(address + offset), "function_offset": offset,
                   "machine_bytes": raw.hex(), "instruction_sha256": _hash(raw),
                   "original_ref": f"sha256:{digest}/function-bytes/{offset}",
                   "recovery_supported": decoded is not None}
         if decoded is not None:
             record.update(decoded)
+            missing = set(decoded.get("source_indices", ())) - initialized
+            if missing:
+                record.update(recovery_supported=False,
+                              undefined_register_inputs=[f"x{i}" for i in sorted(missing)])
+                result["reason"] = "caller_saved_register_read_before_write"
+            elif "destination_index" in decoded:
+                initialized.add(decoded["destination_index"])
+                written.add(decoded["destination_index"])
         result["instructions"].append(record)
         if decoded is None:
             result["reason"] = "instruction_outside_integer_leaf_recovery_subset"
@@ -215,6 +280,9 @@ def lift_integer_leaf(code: bytes, *, symbol: str, address: int = 0x1000) -> dic
     lines = ['extern "C" __attribute__((visibility("default"), noinline))',
              f"unsigned long long {symbol}({parameters}) {{",
              "    unsigned long long ar_x0 = ar_a0;"]
+    for index in sorted(written - {0}):
+        initial_value = f" = ar_a{index}" if index < 8 else ""
+        lines.append(f"    unsigned long long ar_x{index}{initial_value};")
     for record in result["instructions"]:
         lines.append("    " + record["statement"])
         result["source_map"].append({

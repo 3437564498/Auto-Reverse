@@ -26,6 +26,8 @@ python -m auto_reverse.cli --state-dir <state> domain-rpc
 
 工作者 `candidate_stage(name, content)` 只接收有界 JSON object 文本及简单文件名，经 `artifact.stage` 写入真实 CAS、创建不可变 candidate alias，返回 artifact_ref/hash/size。提案必须使用实际返回的 refs；服务拒绝不存在、越权或 hash 不符的对象。完整共用 Schema、版本/身份、lease/epoch、Activation 和幂等事务仍由服务核对；提案只能是 `PROPOSED`，无法设置 semantic quality。`finalResponse` 不作为提案证据。
 
+提交给独立构建活动的 C++ 候选使用四字段 envelope：`{schema_version:1,kind:"cpp_source",symbol,source}`，完整 Schema 由 `contract_read.source_candidate_contract` 提供。后端核对实际回执、冻结函数范围和配置后独立 NDK 编译、ABI 结构检查和机器比较；额外 flags/quality/路径不会成为编译参数。该活动不会阻塞工作子会话，也不自动提升 Job quality。后续宿主及 MCP 读取接口见 [持久候选验收](../../docs/candidate-validation.md)。
+
 工具若早于 `startActivation` 返回便开始执行，会等待 `attempt.bind` 真实 RPC 成功后再发送领域请求。该等待有超时和 AbortSignal，绑定失败不会绕过权限。真实 RPC 回归覆盖此时序，没有通过人工 scheduler tick 避开它。
 
 ## Cordis 及宿主控制

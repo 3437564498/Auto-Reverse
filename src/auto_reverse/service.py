@@ -29,7 +29,8 @@ class RecoveryService:
             "implemented": ["elf_intake", "content_addressed_evidence", "durable_job_ledger",
                             "mcp_stdio", "mcp_streamable_http", "restricted_machine_semantics",
                             "private_python_dsh_bridge", "ghidra_raw_pcode_export",
-                            "controlled_ndk_build", "integer_leaf_cpp_recovery"],
+                            "controlled_ndk_build", "integer_leaf_cpp_recovery",
+                            "elf_abi_structure_comparison", "durable_candidate_validation"],
             "recovery_system_complete": False,
             "dsh_model_integration_verified": False,
             "ndk_build_integration_verified": False,
@@ -40,6 +41,7 @@ class RecoveryService:
                 "ghidra": "Pinned 11.3.2; configured by trusted host path; export is evidence",
                 "ndk": "Pinned r27c; configured by trusted host path; compile/link only",
                 "recovery": "Restricted integer leaves; partial A1 maximum; original ABI unknown",
+                "candidate_validation": "Trusted host queue; independent build and function proof; job quality unchanged",
             },
             "worker_global_max": 32,
             "verification_scope": "Explicit function scope; no whole-library equivalence claim",
@@ -159,3 +161,20 @@ class RecoveryService:
             if not page["items"] or next_cursor is None or next_cursor <= cursor:
                 raise ValueError("artifact does not belong to this job")
             cursor = next_cursor
+
+    def list_validations(self, job_id: str, cursor=0, limit=100) -> dict:
+        from .candidate_validation import CandidateValidationService
+        return CandidateValidationService(self.state_dir).list(job_id, cursor=cursor, limit=limit)
+
+    def get_validation(self, job_id: str, activity_id: str) -> dict:
+        from .candidate_validation import CandidateValidationService
+        return CandidateValidationService(self.state_dir).get_view(job_id, activity_id)
+
+    def read_validation_report(self, job_id: str, activity_id: str, offset=0, limit=65536) -> dict:
+        activity = self.get_validation(job_id, activity_id)
+        if not activity["report_ref"]:
+            raise DomainError("REPORT_NOT_READY", "The activity has not produced a diagnostic report")
+        # A canceled/stale diagnostic is historical evidence owned by this Activity,
+        # even when it was excluded from the Job's current candidate namespace.
+        return {**self.objects.read_artifact(activity["report_ref"], offset=offset, limit=limit),
+                "activity_id": activity_id, "artifact_ref": activity["report_ref"]}

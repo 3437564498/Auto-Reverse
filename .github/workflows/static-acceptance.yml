@@ -1,0 +1,38 @@
+name: Pinned static acceptance matrix
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-matrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Python tooling
+        run: |
+          python -m pip install -r requirements.lock
+          python -m pip install --no-deps -e .
+      - name: Download and verify fixed compiler and static-analysis archives
+        run: python scripts/install_static_toolchains.py --output work/tools --tools ndk ghidra jdk
+      - name: Compile and statically classify the complete frozen micro-matrix
+        env:
+          JAVA_HOME: ${{ github.workspace }}/work/tools/jdk-21.0.8+9
+        run: >-
+          python scripts/run_static_acceptance.py
+          --ndk-root work/tools/android-ndk-r27c
+          --ghidra-home work/tools/ghidra_11.3.2_PUBLIC
+          --output work/static-acceptance
+      - name: Upload static evidence even on classification failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pinned-static-acceptance-${{ github.sha }}
+          path: work/static-acceptance/
+          if-no-files-found: warn

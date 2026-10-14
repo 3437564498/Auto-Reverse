@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import math
 import signal
 import sys
 import threading
@@ -39,6 +40,33 @@ def main(argv=None):
     recover.add_argument("--ndk-root", required=True)
     recover.add_argument("--api-level", type=int, default=21)
     recover.add_argument("--ghidra-home")
+    abi = commands.add_parser("compare-abi", help="Compare original and candidate ELF ABI structure")
+    abi.add_argument("--original", required=True)
+    abi.add_argument("--candidate", required=True)
+    abi.add_argument("--required-export", action="append")
+    abi.add_argument("--output")
+    queue = commands.add_parser("queue-validation", help="Trusted host: persist independent candidate validation")
+    queue.add_argument("--execution-key", required=True)
+    queue.add_argument("--candidate-ref", required=True)
+    queue.add_argument("--function", required=True)
+    queue.add_argument("--idempotency-key", required=True)
+    validator = commands.add_parser("validation-worker", help="Compile and statically verify persisted candidates")
+    validator.add_argument("--once", action="store_true")
+    validator.add_argument("--poll-seconds", type=float, default=1)
+    for host_command in (queue, validator):
+        host_command.add_argument("--ndk-root", required=True)
+        host_command.add_argument("--api-level", type=int, default=21)
+        host_command.add_argument("--runtime", choices=["c++_shared", "c++_static"], default="c++_shared")
+        host_command.add_argument("--optimization", choices=["O0", "O2"], default="O2")
+        host_command.add_argument("--soname", default="librecovered.so")
+        host_command.add_argument("--timeout-seconds", type=float, default=30)
+    validations = commands.add_parser("list-validations", help="Read independent candidate activities")
+    validations.add_argument("job_id")
+    validations.add_argument("--cursor", type=int, default=0)
+    validations.add_argument("--limit", type=int, default=100)
+    validation = commands.add_parser("get-validation", help="Read a persisted validation activity")
+    validation.add_argument("job_id")
+    validation.add_argument("activity_id")
     status = commands.add_parser("get-job")
     status.add_argument("job_id")
     worker = commands.add_parser("worker", help="Process durable static-intake jobs")
@@ -71,6 +99,37 @@ def main(argv=None):
             from .recovery import recover_subset
             result = recover_subset(args.binary, args.output, args.ndk_root,
                                     api_level=args.api_level, ghidra_home=args.ghidra_home)
+        elif args.command == "compare-abi":
+            from .abi import compare_elf_abi
+            result = compare_elf_abi(args.original, args.candidate,
+                                     required_exports=tuple(args.required_export) if args.required_export else None)
+            if args.output:
+                Path(args.output).write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+        elif args.command in {"queue-validation", "validation-worker"}:
+            from .build_gate import BuildConfig
+            from .candidate_validation import CandidateValidationService
+            config = BuildConfig(ndk_root=Path(args.ndk_root), api_level=args.api_level,
+                                 runtime=args.runtime, optimization=args.optimization,
+                                 soname=args.soname, timeout_seconds=args.timeout_seconds)
+            validation_service = CandidateValidationService(args.state_dir, config)
+            if args.command == "queue-validation":
+                result = validation_service.enqueue(args.execution_key, args.candidate_ref,
+                                                     symbol=args.function, idempotency_key=args.idempotency_key)
+            elif args.once:
+                result = validation_service.run_next()
+            else:
+                if not math.isfinite(args.poll_seconds) or args.poll_seconds <= 0:
+                    raise ValueError("poll interval must be finite and positive")
+                stop = threading.Event()
+                signal.signal(signal.SIGTERM, lambda *_: stop.set())
+                signal.signal(signal.SIGINT, lambda *_: stop.set())
+                while not stop.is_set():
+                    activity = validation_service.run_next()
+                    if activity is not None:
+                        print(json.dumps(activity, ensure_ascii=False), flush=True)
+                    else:
+                        stop.wait(args.poll_seconds)
+                return 0
         elif args.command == "mcp":
             from .mcp_server import create_server
             create_server(args.state_dir, port=args.port).run(transport=args.transport)
@@ -105,6 +164,10 @@ def main(argv=None):
                 result = service.describe_capabilities()
             elif args.command == "get-job":
                 result = service.domain.get_job(args.job_id)
+            elif args.command == "list-validations":
+                result = service.list_validations(args.job_id, cursor=args.cursor, limit=args.limit)
+            elif args.command == "get-validation":
+                result = service.get_validation(args.job_id, args.activity_id)
             elif args.command == "worker":
                 if args.poll_seconds <= 0:
                     raise ValueError("poll interval must be positive")

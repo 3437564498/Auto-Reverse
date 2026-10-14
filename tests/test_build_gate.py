@@ -195,6 +195,7 @@ def test_timeout_kills_compiler_and_inherited_child_group(tmp_path):
     assert command["timed_out"]
     assert command["cleanup"]["compiler_reaped"]
     assert command["cleanup"]["process_group_sigkill_sent"]
+    assert command["cleanup"]["process_group_stopped_confirmed"]
     child_pid = int((tmp_path / "out/child.pid").read_text())
     stat = Path(f"/proc/{child_pid}/stat")
     # A killed orphan may remain a zombie until container PID 1 reaps it. It has

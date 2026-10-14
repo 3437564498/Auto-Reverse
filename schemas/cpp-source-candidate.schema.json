@@ -1,0 +1,37 @@
+{
+  "additionalProperties": false,
+  "description": "Source submitted as data; verification and build settings belong to the host.",
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "kind": {
+      "const": "cpp_source",
+      "title": "Kind",
+      "type": "string"
+    },
+    "symbol": {
+      "maxLength": 256,
+      "minLength": 1,
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+      "title": "Symbol",
+      "type": "string"
+    },
+    "source": {
+      "maxLength": 1048576,
+      "minLength": 1,
+      "title": "Source",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "symbol",
+    "source"
+  ],
+  "title": "CppSourceCandidate",
+  "type": "object"
+}

@@ -1,0 +1,366 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-14",
+  "timezone": "Asia/Singapore",
+  "design_baseline": "30c31f9",
+  "merged_pipeline_baseline": "0b40909",
+  "tests": {
+    "python": {
+      "passed": 887,
+      "skipped": 0,
+      "warnings": 1,
+      "real_ndk_ghidra_enabled": true
+    },
+    "dsh": {
+      "passed": 28,
+      "model_calls": 0
+    },
+    "ruff": "PASS",
+    "shared_schema_fingerprints": "PASS",
+    "python_wheel": "PASS"
+  },
+  "static_matrix": {
+    "status": "PASS",
+    "subset_matrix_passed": true,
+    "full_m0_s_exit_satisfied": false,
+    "report_sha256": "fbabedd404cf6a4a26b8ab6c61c631634d9fa322f8ff812b6faccd9b464f1665",
+    "manifest_sha256": "7751e7d4764fb4b22ddd093650711895f0a009382bb53d3258d2cb7f4fdba341",
+    "classifications": {
+      "EXACT_EQUIVALENT": 6,
+      "DIFFERENT": 8,
+      "UNKNOWN": 11,
+      "INVALID_PRECONDITION": 2
+    },
+    "cases": [
+      {
+        "id": "integer64_equal",
+        "category": "integer64",
+        "expected_status": "EXACT_EQUIVALENT",
+        "actual_status": "EXACT_EQUIVALENT",
+        "actual_reason": "all_declared_paths_and_observations_closed",
+        "expectation_matched": true
+      },
+      {
+        "id": "integer64_changed",
+        "category": "integer64",
+        "expected_status": "DIFFERENT",
+        "actual_status": "DIFFERENT",
+        "actual_reason": "exact_bitvector_model_counterexample",
+        "expectation_matched": true
+      },
+      {
+        "id": "integer32_equal",
+        "category": "integer32",
+        "expected_status": "EXACT_EQUIVALENT",
+        "actual_status": "EXACT_EQUIVALENT",
+        "actual_reason": "all_declared_paths_and_observations_closed",
+        "expectation_matched": true
+      },
+      {
+        "id": "integer32_changed",
+        "category": "integer32",
+        "expected_status": "DIFFERENT",
+        "actual_status": "DIFFERENT",
+        "actual_reason": "exact_bitvector_model_counterexample",
+        "expectation_matched": true
+      },
+      {
+        "id": "branch_equal",
+        "category": "branch",
+        "expected_status": "EXACT_EQUIVALENT",
+        "actual_status": "EXACT_EQUIVALENT",
+        "actual_reason": "all_declared_paths_and_observations_closed",
+        "expectation_matched": true
+      },
+      {
+        "id": "branch_changed",
+        "category": "branch",
+        "expected_status": "DIFFERENT",
+        "actual_status": "DIFFERENT",
+        "actual_reason": "exact_bitvector_model_counterexample",
+        "expectation_matched": true
+      },
+      {
+        "id": "memory64_equal",
+        "category": "memory64",
+        "expected_status": "EXACT_EQUIVALENT",
+        "actual_status": "EXACT_EQUIVALENT",
+        "actual_reason": "all_declared_paths_and_observations_closed",
+        "expectation_matched": true
+      },
+      {
+        "id": "memory64_changed",
+        "category": "memory64",
+        "expected_status": "DIFFERENT",
+        "actual_status": "DIFFERENT",
+        "actual_reason": "exact_bitvector_model_counterexample",
+        "expectation_matched": true
+      },
+      {
+        "id": "memory32_equal",
+        "category": "memory32",
+        "expected_status": "EXACT_EQUIVALENT",
+        "actual_status": "EXACT_EQUIVALENT",
+        "actual_reason": "all_declared_paths_and_observations_closed",
+        "expectation_matched": true
+      },
+      {
+        "id": "memory32_changed",
+        "category": "memory32",
+        "expected_status": "DIFFERENT",
+        "actual_status": "DIFFERENT",
+        "actual_reason": "exact_bitvector_model_counterexample",
+        "expectation_matched": true
+      },
+      {
+        "id": "signed_load_equal",
+        "category": "signed-memory",
+        "expected_status": "EXACT_EQUIVALENT",
+        "actual_status": "EXACT_EQUIVALENT",
+        "actual_reason": "all_declared_paths_and_observations_closed",
+        "expectation_matched": true
+      },
+      {
+        "id": "signed_load_changed",
+        "category": "signed-memory",
+        "expected_status": "DIFFERENT",
+        "actual_status": "DIFFERENT",
+        "actual_reason": "exact_bitvector_model_counterexample",
+        "expectation_matched": true
+      },
+      {
+        "id": "memory_oob",
+        "category": "invalid-memory",
+        "expected_status": "UNKNOWN",
+        "actual_status": "UNKNOWN",
+        "actual_reason": "memory_access_not_proved_in_declared_valid_region",
+        "expectation_matched": true
+      },
+      {
+        "id": "memory_missing_region",
+        "category": "invalid-memory",
+        "expected_status": "UNKNOWN",
+        "actual_status": "UNKNOWN",
+        "actual_reason": "memory_access_not_proved_in_declared_valid_region",
+        "expectation_matched": true
+      },
+      {
+        "id": "memory_readonly_write",
+        "category": "invalid-memory",
+        "expected_status": "UNKNOWN",
+        "actual_status": "UNKNOWN",
+        "actual_reason": "memory_access_not_proved_in_declared_valid_region",
+        "expectation_matched": true
+      },
+      {
+        "id": "empty_domain",
+        "category": "empty-domain",
+        "expected_status": "INVALID_PRECONDITION",
+        "actual_status": "INVALID_PRECONDITION",
+        "actual_reason": "input_precondition_has_empty_domain",
+        "expectation_matched": true
+      },
+      {
+        "id": "contradictory_domain",
+        "category": "empty-domain",
+        "expected_status": "INVALID_PRECONDITION",
+        "actual_status": "INVALID_PRECONDITION",
+        "actual_reason": "input_precondition_has_empty_domain",
+        "expectation_matched": true
+      },
+      {
+        "id": "callee_saved_changed",
+        "category": "abi-observation",
+        "expected_status": "DIFFERENT",
+        "actual_status": "DIFFERENT",
+        "actual_reason": "exact_bitvector_model_counterexample",
+        "expectation_matched": true
+      },
+      {
+        "id": "stack_changed",
+        "category": "abi-observation",
+        "expected_status": "DIFFERENT",
+        "actual_status": "DIFFERENT",
+        "actual_reason": "exact_bitvector_model_counterexample",
+        "expectation_matched": true
+      },
+      {
+        "id": "exclusive_original",
+        "category": "unsupported",
+        "expected_status": "UNKNOWN",
+        "actual_status": "UNKNOWN",
+        "actual_reason": "original_or_candidate_has_unsupported_opcode",
+        "expectation_matched": true
+      },
+      {
+        "id": "exclusive_candidate",
+        "category": "unsupported",
+        "expected_status": "UNKNOWN",
+        "actual_status": "UNKNOWN",
+        "actual_reason": "original_or_candidate_has_unsupported_opcode",
+        "expectation_matched": true
+      },
+      {
+        "id": "pac",
+        "category": "unsupported",
+        "expected_status": "UNKNOWN",
+        "actual_status": "UNKNOWN",
+        "actual_reason": "original_or_candidate_has_unsupported_opcode",
+        "expectation_matched": true
+      },
+      {
+        "id": "dmb",
+        "category": "unsupported",
+        "expected_status": "UNKNOWN",
+        "actual_status": "UNKNOWN",
+        "actual_reason": "original_or_candidate_has_unsupported_opcode",
+        "expectation_matched": true
+      },
+      {
+        "id": "unknown_opcode",
+        "category": "unsupported",
+        "expected_status": "UNKNOWN",
+        "actual_status": "UNKNOWN",
+        "actual_reason": "original_or_candidate_has_unsupported_opcode",
+        "expectation_matched": true
+      },
+      {
+        "id": "unclosed_loop",
+        "category": "unclosed-path",
+        "expected_status": "UNKNOWN",
+        "actual_status": "UNKNOWN",
+        "actual_reason": "instruction_budget_exhausted_unclosed_path",
+        "expectation_matched": true
+      },
+      {
+        "id": "external_branch",
+        "category": "unclosed-path",
+        "expected_status": "UNKNOWN",
+        "actual_status": "UNKNOWN",
+        "actual_reason": "control_flow_leaves_declared_code_scope",
+        "expectation_matched": true
+      },
+      {
+        "id": "indirect_branch",
+        "category": "unsupported",
+        "expected_status": "UNKNOWN",
+        "actual_status": "UNKNOWN",
+        "actual_reason": "original_or_candidate_has_unsupported_opcode",
+        "expectation_matched": true
+      }
+    ]
+  },
+  "candidate_validation": {
+    "provider": "deterministic-static-fixture",
+    "model_calls": 0,
+    "sample_passed": true,
+    "report_sha256": "a96601ac0a558bb6ba3a4d82b3f68a24e6bfe5625c664979c21d1814493360a9",
+    "original_input_sha256": "b351d717c279f898a2cc20397f0ea1a3c6276e7bcc4b6f7d1297627d62792e3d",
+    "job_quality": {
+      "abi": {
+        "status": "NOT_CHECKED"
+      },
+      "artifact_level": null,
+      "build": {
+        "status": "NOT_CHECKED"
+      },
+      "completeness": {
+        "status": "NOT_CHECKED"
+      },
+      "semantic": {
+        "status": "NOT_CHECKED"
+      }
+    },
+    "variants": {
+      "equivalent": {
+        "state": "COMPLETED",
+        "artifact_grade": "A1",
+        "cleanup_status": "CONFIRMED",
+        "capacity_occupied": false,
+        "local_semantic": "EXACT_EQUIVALENT",
+        "overall_semantic": "UNKNOWN",
+        "abi_structural_status": "PASS",
+        "publication_current": true,
+        "job_quality_promoted": false,
+        "restart_read_verified": true,
+        "exact_replay_single_activity": true,
+        "hash_binding": {
+          "activity_id": "vact-4fe5a0579d054a14aebfd3a1441ab552",
+          "build_binding_sha256": "b958d1baa63d46c3b2166b31b675d9d6068f1b63079eeade75d0c617dc823ed7",
+          "call_model_ref": "contract://scalar-integer-registers-x0-x7-to-x0-v1",
+          "candidate_binary_sha256": "b351d717c279f898a2cc20397f0ea1a3c6276e7bcc4b6f7d1297627d62792e3d",
+          "candidate_code_sha256": "60ede73ab4d9f6ef2940992f1a7ca71411d835b0f55c63a1d21785741332dc2a",
+          "compiled_source_sha256": "102445f37033991866b14761bd5ce51e4110f11f5152dd72e2a087575c3db2ff",
+          "contract_revision": 1,
+          "execution_key": "execution-15dd385060684152ac01e0444039f9bf",
+          "input_snapshot_id": "snapshot-bebb07d5448d4c7abf6f9393bea4eb87",
+          "original_binary_sha256": "b351d717c279f898a2cc20397f0ea1a3c6276e7bcc4b6f7d1297627d62792e3d",
+          "original_code_sha256": "60ede73ab4d9f6ef2940992f1a7ca71411d835b0f55c63a1d21785741332dc2a",
+          "proposal_id": "proposal-fe9552b10a644714b0b7cad83ef1dc77",
+          "staged_envelope_sha256": "a3f493b5ce758841ad4856cbe4898b05a1625a6cd4a9c9dbab5c6966f494b399",
+          "symbol": "add_seven"
+        }
+      },
+      "mutated": {
+        "state": "COMPLETED",
+        "artifact_grade": "A1",
+        "cleanup_status": "CONFIRMED",
+        "capacity_occupied": false,
+        "local_semantic": "DIFFERENT",
+        "overall_semantic": "UNKNOWN",
+        "abi_structural_status": "PASS",
+        "publication_current": true,
+        "job_quality_promoted": false,
+        "restart_read_verified": true,
+        "exact_replay_single_activity": true,
+        "hash_binding": {
+          "activity_id": "vact-bd07eff587744d1b80c6793083c7b051",
+          "build_binding_sha256": "3a12edb1e12e4d07cdc8773705ba998366c06ed7a328e1c66c6cb9595e4f7109",
+          "call_model_ref": "contract://scalar-integer-registers-x0-x7-to-x0-v1",
+          "candidate_binary_sha256": "7cc8619c4660d58a34b8b861df9a7a847cff9523575a9a8108699dd9ed6826dc",
+          "candidate_code_sha256": "16e21e8466298640b30a77c6d532a726afc0cf074bb54d17bfaed901b400f570",
+          "compiled_source_sha256": "313e731861b938d41532945cceb1ccd286199e79c4681936552e747eb39ad8f1",
+          "contract_revision": 1,
+          "execution_key": "execution-60a5fb73a13942199fc2c7c434a85f02",
+          "input_snapshot_id": "snapshot-bebb07d5448d4c7abf6f9393bea4eb87",
+          "original_binary_sha256": "b351d717c279f898a2cc20397f0ea1a3c6276e7bcc4b6f7d1297627d62792e3d",
+          "original_code_sha256": "60ede73ab4d9f6ef2940992f1a7ca71411d835b0f55c63a1d21785741332dc2a",
+          "proposal_id": "proposal-51effa5ebfe34b328852e386ce32d0f8",
+          "staged_envelope_sha256": "613863ea0277ffc2c735101bc8892a25a42e1a8ed5280cbcabf2577ca628f778",
+          "symbol": "add_seven"
+        }
+      }
+    }
+  },
+  "integer_leaf_v2": {
+    "status": "PARTIAL_SOURCE",
+    "artifact_grade": "A1",
+    "coverage": {
+      "discovered_function_denominator": 8,
+      "entry_closure_status": "UNKNOWN",
+      "executable_byte_denominator": 184,
+      "function_discovery_complete": false,
+      "global_closure_status": "UNKNOWN",
+      "machine_verified_functions": 1,
+      "scope_fingerprint": "7c032b51ba9450e3453718e2f9b30ea60e79a7f4a2cccd2351ca77c6df8583b6",
+      "source_generated_byte_fraction": 0.15217391304347827,
+      "source_generated_bytes": 28,
+      "source_generated_function_fraction": 0.125,
+      "source_generated_functions": 1,
+      "unknown_or_unrecovered_executable_bytes": 156,
+      "unsupported_functions": 7,
+      "whole_library_complete": false
+    },
+    "overall_abi": "UNKNOWN",
+    "overall_semantic": "UNKNOWN"
+  },
+  "completion": {
+    "v1": false,
+    "m0_s": false,
+    "m0_r": false,
+    "m1": false,
+    "whole_program_equivalence": false,
+    "target_or_candidate_executed": false,
+    "new_manual_github_workflow_executed": false
+  }
+}

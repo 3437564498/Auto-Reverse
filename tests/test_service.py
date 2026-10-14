@@ -83,6 +83,8 @@ def test_real_stdio_mcp_handshake_and_short_idempotent_submit(tmp_path):
                 assert {tool.name for tool in tools.tools} == {
                     "describe_capabilities", "submit_job", "get_job", "get_events",
                     "list_workers", "list_artifacts", "read_artifact", "cancel_job",
+                    "list_validations", "get_validation",
+                    "read_validation_report",
                 }
                 assert service.domain.list_jobs()["items"] == []
                 arguments = {"input_ref": registered["input_ref"],
