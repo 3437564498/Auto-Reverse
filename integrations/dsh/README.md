@@ -10,7 +10,7 @@ npm test
 npm run preflight
 ```
 
-Node >=22.19。`npm test` 严格编译并运行 28 项测试，包括 6 项真实 Python RPC/SQLite/CAS 集成和 2 项 SDK/有效 Profile 检查；基础生命周期/工具作用域测试保留。CI 可设置 `AUTO_REVERSE_PYTHON` 为 Python 可执行文件路径。SDK 离线测试只执行 `start` / `initialize` / `close`，不创建模型请求。
+Node >=22.19。`npm test` 严格编译并运行 30 项测试，包括真实 Python RPC/SQLite/CAS、辅助 JSON 交付与官方工具 registry 隔离，以及 SDK/有效 Profile 检查；基础生命周期/工具作用域测试保留。CI 可设置 `AUTO_REVERSE_PYTHON` 为 Python 可执行文件路径。SDK 离线测试只执行 `start` / `initialize` / `close`，不创建模型请求。
 
 ## 冻结任务、真实 Attempt 与提案
 
@@ -27,6 +27,8 @@ python -m auto_reverse.cli --state-dir <state> domain-rpc
 工作者 `candidate_stage(name, content)` 只接收有界 JSON object 文本及简单文件名，经 `artifact.stage` 写入真实 CAS、创建不可变 candidate alias，返回 artifact_ref/hash/size。提案必须使用实际返回的 refs；服务拒绝不存在、越权或 hash 不符的对象。完整共用 Schema、版本/身份、lease/epoch、Activation 和幂等事务仍由服务核对；提案只能是 `PROPOSED`，无法设置 semantic quality。`finalResponse` 不作为提案证据。
 
 提交给独立构建活动的 C++ 候选使用四字段 envelope：`{schema_version:1,kind:"cpp_source",symbol,source}`，完整 Schema 由 `contract_read.source_candidate_contract` 提供。后端核对实际回执、冻结函数范围和配置后独立 NDK 编译、ABI 结构检查和机器比较；额外 flags/quality/路径不会成为编译参数。该活动不会阻塞工作子会话，也不自动提升 Job quality。后续宿主及 MCP 读取接口见 [持久候选验收](../../docs/candidate-validation.md)。
+
+`type_abi` / `evidence` 工作者同样使用已有 `candidate_stage` / Proposal 接口，但交付分别为 `scalar_abi_constraints` 和 `scoped_evidence` / `evidence_gap`；Schema 与当前声明约束通过 `contract_read` 提供。可信宿主独立消费和冻结，工作者没有对应权限。实际两个角色的桥接及权限回归已覆盖，真实模型仍未调用；边界见 [证据与声明契约](../../docs/evidence-contracts.md)。
 
 工具若早于 `startActivation` 返回便开始执行，会等待 `attempt.bind` 真实 RPC 成功后再发送领域请求。该等待有超时和 AbortSignal，绑定失败不会绕过权限。真实 RPC 回归覆盖此时序，没有通过人工 scheduler tick 避开它。
 

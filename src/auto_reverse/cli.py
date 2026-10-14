@@ -45,6 +45,26 @@ def main(argv=None):
     abi.add_argument("--candidate", required=True)
     abi.add_argument("--required-export", action="append")
     abi.add_argument("--output")
+    scalar = commands.add_parser("inspect-scalar-abi", help="Read bounded original DWARF unsigned declarations")
+    scalar.add_argument("--binary", required=True)
+    scalar.add_argument("--function", required=True)
+    consume = commands.add_parser("consume-evidence", help="Trusted host: classify an actual evidence Proposal")
+    consume.add_argument("--execution-key", required=True)
+    consume.add_argument("--artifact-ref", required=True)
+    freeze = commands.add_parser("freeze-scalar-abi", help="Trusted host: validate and freeze original scalar constraints")
+    freeze.add_argument("--execution-key", required=True)
+    freeze.add_argument("--artifact-ref", required=True)
+    freeze.add_argument("--expected-revision", type=int, required=True)
+    current_contracts = commands.add_parser("get-abi-contracts", help="Read current original declaration constraints")
+    current_contracts.add_argument("job_id")
+    for command_name, command_help in (
+        ("list-abi-contracts", "Read frozen declaration constraint history"),
+        ("list-evidence-deliveries", "Read auxiliary evidence/gap delivery history"),
+    ):
+        reader = commands.add_parser(command_name, help=command_help)
+        reader.add_argument("job_id")
+        reader.add_argument("--cursor", type=int, default=0)
+        reader.add_argument("--limit", type=int, default=100)
     queue = commands.add_parser("queue-validation", help="Trusted host: persist independent candidate validation")
     queue.add_argument("--execution-key", required=True)
     queue.add_argument("--candidate-ref", required=True)
@@ -114,6 +134,16 @@ def main(argv=None):
                                      required_exports=tuple(args.required_export) if args.required_export else None)
             if args.output:
                 Path(args.output).write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+        elif args.command == "inspect-scalar-abi":
+            from .scalar_abi import extract_scalar_abi
+            result = extract_scalar_abi(Path(args.binary).read_bytes(), symbol=args.function)
+        elif args.command == "consume-evidence":
+            from .evidence_delivery import EvidenceDeliveryService
+            result = EvidenceDeliveryService(args.state_dir).consume(args.execution_key, args.artifact_ref)
+        elif args.command == "freeze-scalar-abi":
+            from .abi_contracts import AbiContractService
+            result = AbiContractService(args.state_dir).freeze_from_proposal(
+                args.execution_key, args.artifact_ref, expected_revision=args.expected_revision)
         elif args.command == "postprocess-candidates":
             from .postprocessing import CandidatePostprocessor
             result = CandidatePostprocessor(args.state_dir).run(args.job_id, max_activities=args.max_activities)
@@ -180,6 +210,12 @@ def main(argv=None):
                 result = service.get_candidate_selection(args.job_id)
             elif args.command == "list-feedback":
                 result = service.list_feedback(args.job_id, cursor=args.cursor, limit=args.limit)
+            elif args.command == "get-abi-contracts":
+                result = service.get_abi_contracts(args.job_id)
+            elif args.command == "list-abi-contracts":
+                result = service.list_abi_contracts(args.job_id, cursor=args.cursor, limit=args.limit)
+            elif args.command == "list-evidence-deliveries":
+                result = service.list_evidence_deliveries(args.job_id, cursor=args.cursor, limit=args.limit)
             elif args.command == "list-validations":
                 result = service.list_validations(args.job_id, cursor=args.cursor, limit=args.limit)
             elif args.command == "get-validation":

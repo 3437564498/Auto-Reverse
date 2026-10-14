@@ -29,10 +29,17 @@ jobs:
           --ndk-root work/tools/android-ndk-r27c
           --ghidra-home work/tools/ghidra_11.3.2_PUBLIC
           --output work/static-acceptance
+      - name: Consume actual evidence delivery and freeze original debug declarations
+        run: >-
+          python scripts/run_evidence_contract_sample.py
+          --ndk-root work/tools/android-ndk-r27c
+          --output work/evidence-contract-acceptance
       - name: Upload static evidence even on classification failure
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: pinned-static-acceptance-${{ github.sha }}
-          path: work/static-acceptance/
+          path: |
+            work/static-acceptance/
+            work/evidence-contract-acceptance/evidence-contract-sample.json
           if-no-files-found: warn

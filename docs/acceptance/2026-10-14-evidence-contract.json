@@ -1,0 +1,240 @@
+{
+  "schema_version": 1,
+  "accepted_on": "2026-10-14",
+  "timezone": "Asia/Singapore",
+  "provider": "deterministic-static-fixture",
+  "python": {
+    "passed": 1153,
+    "skipped": 0,
+    "failed": 0,
+    "seconds": 166.19,
+    "warnings": 1,
+    "ndk_and_ghidra_enabled": true
+  },
+  "dsh": {
+    "passed": 30,
+    "skipped": 0,
+    "model_calls": 0
+  },
+  "branch_cleanup": {
+    "passed": 13,
+    "skipped": 0
+  },
+  "ruff": "PASS",
+  "schema_regeneration": "MATCH",
+  "shared_work_package_and_proposal_schema": "UNCHANGED",
+  "wheel_modules_and_resources": "PASS",
+  "original_input_sha256": "7a4351715bab92060885280fdb48b3bf1514f3b09411e5ec40ac731c700efe1f",
+  "original_scalar_declaration": {
+    "schema_version": 1,
+    "status": "DECLARED_DEBUG_SHAPE",
+    "symbol": "add_seven",
+    "input_sha256": "7a4351715bab92060885280fdb48b3bf1514f3b09411e5ec40ac731c700efe1f",
+    "parameter_widths": [
+      64
+    ],
+    "return_width": 64,
+    "reason": "original embedded DWARF declares the bounded unsigned scalar shape",
+    "original_calling_abi_verified": false,
+    "evidence": {
+      "source": "original_embedded_dwarf",
+      "debug_sections": [
+        {
+          "name": ".debug_abbrev",
+          "size": 421,
+          "sha256": "f96899707fce6696277b3ef2fdd39e5d9db69ce9449b033d83183ef4a9c2e9ea"
+        },
+        {
+          "name": ".debug_info",
+          "size": 9464,
+          "sha256": "47a9ff731f8f0d15242c7bc693929598d8506ec6bcb11ec3aa51d273aff60b74"
+        },
+        {
+          "name": ".debug_line",
+          "size": 3703,
+          "sha256": "e4ad9a6b2082cc4dcd048e01e9a474ebcda39d33cb9a5668762ac49e7492d16a"
+        },
+        {
+          "name": ".debug_loc",
+          "size": 114,
+          "sha256": "5d3eb8143c7f5e36c2c9efec2b766e5d058dd20490541ab1b568560d4a0fe667"
+        },
+        {
+          "name": ".debug_str",
+          "size": 4061,
+          "sha256": "327c3583f5b65bce6e9784b0669458f948a444be58d88ab0194931842c72a1ba"
+        },
+        {
+          "name": ".eh_frame",
+          "size": 168,
+          "sha256": "8df569f9e61d0b379d7a085ed932312ef2fdf575872284bb8edb8e50f295cf48"
+        }
+      ],
+      "symbol_address": "0x0000000000004618",
+      "symbol_size": 8,
+      "symbol_file_offset": 1560,
+      "die_offset": 81,
+      "cu_offset": 0,
+      "dwarf_version": 4,
+      "language": 33,
+      "parameter_type_dies": [
+        {
+          "base_die_offset": 74,
+          "encoding": "DW_ATE_unsigned",
+          "byte_size": 8,
+          "type_chain": [
+            {
+              "die_offset": 52,
+              "tag": "DW_TAG_typedef"
+            },
+            {
+              "die_offset": 63,
+              "tag": "DW_TAG_typedef"
+            },
+            {
+              "die_offset": 74,
+              "tag": "DW_TAG_base_type"
+            }
+          ]
+        }
+      ],
+      "return_type_die": {
+        "base_die_offset": 74,
+        "encoding": "DW_ATE_unsigned",
+        "byte_size": 8,
+        "type_chain": [
+          {
+            "die_offset": 52,
+            "tag": "DW_TAG_typedef"
+          },
+          {
+            "die_offset": 63,
+            "tag": "DW_TAG_typedef"
+          },
+          {
+            "die_offset": 74,
+            "tag": "DW_TAG_base_type"
+          }
+        ]
+      },
+      "calling_convention": "DW_CC_normal",
+      "range_start": "0x0000000000004618",
+      "range_end": "0x0000000000004620"
+    },
+    "execution_policy": {
+      "mode": "pure_static",
+      "target_or_candidate_executed": false,
+      "external_debug_files_accessed": false
+    }
+  },
+  "memory_semantics": {
+    "status": "UNKNOWN",
+    "whole_program_equivalence": false
+  },
+  "evidence_delivery": {
+    "action": "GAP_RECORDED",
+    "actual_read_evidence": [
+      {
+        "artifact_ref": "sha256:2ca37826b357fa500eecbe450f7773173d8c8142fdd9fae79f8bc3fa242c7940",
+        "sha256": "2ca37826b357fa500eecbe450f7773173d8c8142fdd9fae79f8bc3fa242c7940",
+        "size": 12418
+      }
+    ],
+    "classification_completed": true,
+    "trusted_facts_changed": false,
+    "preconditions_changed": false,
+    "abi_contract_changed": false,
+    "job_quality_promoted": false,
+    "automatic_followup_created": false,
+    "findings_authority": "UNTRUSTED_AUXILIARY"
+  },
+  "contract": {
+    "status": "DECLARED_DEBUG_SHAPE",
+    "previous_revision": 1,
+    "contract_revision": 2,
+    "constraints": {
+      "schema_version": 1,
+      "kind": "scalar_abi_constraints",
+      "symbol": "add_seven",
+      "parameter_widths": [
+        64
+      ],
+      "return_width": 64
+    },
+    "extractor_sha256": "9e34fa06c5ca3c32d0c99422a575400ab63466da469792bf46589a64b7be6807",
+    "evidence_sha256": "ac424fe0643dd22bb03662cd5e64c6eb351f8f0be6ff5012878fd27080534b40",
+    "original_calling_abi_verified": false,
+    "job_quality_promoted": false,
+    "classification_completed": true
+  },
+  "replay_single_delivery": true,
+  "freeze_replay_no_new_revision_or_events": true,
+  "old_delivery_current": false,
+  "old_source_cannot_queue_new_activity": true,
+  "job_quality": {
+    "artifact_level": "A0",
+    "collection_artifact_level": "A0",
+    "collection_scope": "selected_local_candidates_only",
+    "selected_candidates_only": true,
+    "build": {
+      "status": "UNKNOWN",
+      "reason_code": "WHOLE_LIBRARY_NOT_INTEGRATED"
+    },
+    "selected_candidates_build": {
+      "status": "NOT_CHECKED",
+      "activity_ids": []
+    },
+    "abi": {
+      "status": "UNKNOWN",
+      "source_ub": "UNKNOWN",
+      "original_calling_abi": "UNKNOWN"
+    },
+    "source_ub": {
+      "status": "UNKNOWN"
+    },
+    "semantic": {
+      "status": "UNKNOWN",
+      "whole_program_equivalence": false
+    },
+    "completeness": {
+      "status": "UNKNOWN",
+      "whole_library_closure": "UNKNOWN",
+      "discovered_function_denominator": 7,
+      "total_function_denominator": null,
+      "selected_function_count": 0,
+      "executable_byte_denominator": 168,
+      "selected_original_executable_bytes": 0,
+      "unselected_original_executable_bytes": 168
+    },
+    "whole_program_build_pass": false,
+    "release_selected": false,
+    "gaps": [
+      "whole_library_build_not_integrated",
+      "function_inventory_partial",
+      "original_types_and_calling_abi_unknown",
+      "source_ub_unproved",
+      "entry_and_internal_closures_unproved"
+    ]
+  },
+  "sample_passed": true,
+  "model_calls": 0,
+  "target_or_candidate_executed": false,
+  "v1_complete": false,
+  "remaining": [
+    "trusted new evidence facts and resumed recovery",
+    "full type/ABI constraint solver",
+    "candidate source signature matching frozen declarations",
+    "whole-library closure and integrated project",
+    "real DSH model acceptance"
+  ],
+  "fingerprints": {
+    "src/auto_reverse/evidence_delivery.py": "a6340c2b76e8ab60d4e8ea0f2144b802b1eaa4d43dba9514e029646bc0ec271c",
+    "src/auto_reverse/scalar_abi.py": "9e34fa06c5ca3c32d0c99422a575400ab63466da469792bf46589a64b7be6807",
+    "src/auto_reverse/abi_contracts.py": "d95e0c94c1cbd44ce1caf7a0854e964095317bf70f14b1d05efcaf2da2bdaf65",
+    "src/auto_reverse/candidate_validation.py": "fb4ab4f0c132cb4fab8d5b31463863221062a88dc75f5fc16cd4d9ff22883dca",
+    "src/auto_reverse/backend_rpc.py": "18ca2833c5ea42d6eff8269e5b7128fc2d1bf240454a33f2faf540af052dde52",
+    "scripts/run_evidence_contract_sample.py": "e2c61907699ab4e21340d3c29da6c7984be9272cb1c66237e2e1bdbdd66af818",
+    "schemas/evidence-delivery.schema.json": "8ceb156a45c94ef678d74590a6d84c1a2bb11575c6eec3def21b403a3cb19400",
+    "schemas/scalar-abi-constraints.schema.json": "cc8ee569a4dbacbb42052c116d2963cbc7881771f3272048f5af878872a8c8d1"
+  }
+}

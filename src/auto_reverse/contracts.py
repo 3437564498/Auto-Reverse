@@ -181,11 +181,16 @@ def write_schemas(directory):
     import json
     from pathlib import Path
 
+    from .abi_contracts import ScalarAbiConstraintsEnvelope
+    from .evidence_delivery import EvidenceDeliveryEnvelope
+
     root = Path(directory)
     root.mkdir(parents=True, exist_ok=True)
     for name, model in [("work-package", WorkPackage), ("work-package-spec", WorkPackageSpec),
                         ("proposal", Proposal), ("policy", RecoveryPolicy),
-                        ("cpp-source-candidate", CppSourceCandidate)]:
+                        ("cpp-source-candidate", CppSourceCandidate),
+                        ("evidence-delivery", EvidenceDeliveryEnvelope),
+                        ("scalar-abi-constraints", ScalarAbiConstraintsEnvelope)]:
         (root / f"{name}.schema.json").write_text(
             json.dumps(model.model_json_schema(), ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
