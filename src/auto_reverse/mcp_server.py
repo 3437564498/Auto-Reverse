@@ -102,6 +102,36 @@ def create_server(state_dir, *, host="127.0.0.1", port=8765):
         return service.list_abi_contracts(job_id, cursor, limit)
 
     @server.tool()
+    def list_integrations(job_id: str, cursor: int = 0, limit: int = 100) -> dict[str, Any]:
+        """Read persisted project builds; creates no activity, compiler or optional host tables."""
+        return service.list_integrations(job_id, cursor, limit)
+
+    @server.tool()
+    def get_integration(job_id: str, activity_id: str) -> dict[str, Any]:
+        """Read a Job-owned source-subset integration; whole-library recovery remains unverified."""
+        return service.get_integration(job_id, activity_id)
+
+    @server.tool()
+    def read_integration_report(job_id: str, activity_id: str, offset: int = 0, limit: int = 65536) -> dict[str, Any]:
+        """Read a bounded Activity-owned integration report, including historical diagnostics."""
+        return service.read_integration_report(job_id, activity_id, offset, limit)
+
+    @server.tool()
+    def get_final_delivery(job_id: str) -> dict[str, Any]:
+        """Read the current static delivery and explicit gaps; does not publish or promote quality."""
+        return service.get_final_delivery(job_id)
+
+    @server.tool()
+    def list_final_deliveries(job_id: str, cursor: int = 0, limit: int = 100) -> dict[str, Any]:
+        """Read historical final delivery references; current validity is checked separately."""
+        return service.list_final_deliveries(job_id, cursor, limit)
+
+    @server.tool()
+    def read_final_report(job_id: str, delivery_id: str, offset: int = 0, limit: int = 65536) -> dict[str, Any]:
+        """Read a bounded historical delivery report restricted to its owning Job."""
+        return service.read_final_report(job_id, delivery_id, offset, limit)
+
+    @server.tool()
     def cancel_job(job_id: str) -> dict[str, Any]:
         """Request cancellation; consult cleanup state for resource confirmation."""
         return service.domain.request_cancel(job_id)

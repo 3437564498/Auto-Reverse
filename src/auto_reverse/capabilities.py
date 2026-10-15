@@ -12,7 +12,7 @@ from importlib.metadata import version
 import capstone
 from capstone import arm64
 
-CAPABILITY_VERSION = "arm64-m0-integer-memory-1"
+CAPABILITY_VERSION = "arm64-m0-integer-memory-2"
 CAPABILITY_MATRIX_REF = f"capability://{CAPABILITY_VERSION}"
 PINNED_CAPSTONE_VERSION = "5.0.9"
 CAPSTONE_PACKAGE_VERSION = version("capstone")
@@ -21,12 +21,81 @@ INTEGER_OPS = frozenset({
     "mov", "movz", "movn", "movk", "add", "sub", "neg", "and", "orr",
     "eor", "bic", "orn", "eon", "mvn", "lsl", "lsr", "asr", "ror",
     "uxtb", "uxth", "uxtw", "sxtb", "sxth", "sxtw", "mul", "udiv", "sdiv",
+    "ubfm", "ubfx", "ubfiz",
 })
 BRANCH_OPS = frozenset({"b", "cbz", "cbnz", "tbz", "tbnz", "ret"})
 MEMORY_OPS = frozenset({
     "ldr", "str", "ldrb", "ldrh", "strb", "strh", "ldrsb", "ldrsh", "ldrsw",
 })
 SUPPORTED_OPS = INTEGER_OPS | BRANCH_OPS | MEMORY_OPS | {"nop"}
+_UNSIGNED_BITFIELD_OPS = frozenset({"ubfm", "ubfx", "ubfiz", "lsl", "lsr", "uxtb", "uxth", "uxtw"})
+
+
+def unsigned_bitfield_encoding(word: int) -> dict | None:
+    """Decode actual UBFM fields, including all reserved sf/N/immediate checks.
+
+    For imms >= immr this is a low-result extract. Otherwise the low imms+1
+    source bits are inserted at width-immr; overflow is truncated to width.
+    Signed SBFM and destination-preserving BFM are separate, excluded encodings.
+    """
+    if type(word) is not int or not 0 <= word < 1 << 32 or word & 0x7F800000 != 0x53000000:
+        return None
+    width = 64 if word & (1 << 31) else 32
+    rotation, end = (word >> 16) & 63, (word >> 10) & 63
+    if bool(word & (1 << 22)) != (width == 64) or max(rotation, end) >= width:
+        return None
+    extract = end >= rotation
+    bit_width = end - rotation + 1 if extract else end + 1
+    return {"raw_opcode": "UBFM", "width": width, "destination_index": word & 31,
+            "source_index": (word >> 5) & 31, "immr": rotation, "imms": end,
+            "kind": "extract" if extract else "insert", "bit_width": bit_width,
+            "right_shift": rotation if extract else 0,
+            "left_shift": 0 if extract else width - rotation,
+            "mask": (1 << bit_width) - 1}
+
+
+def _bitfield_register_index(name: str, width: int) -> int | None:
+    if width == 64 and name in {"fp", "lr"}:
+        return {"fp": 29, "lr": 30}[name]
+    prefix = "x" if width == 64 else "w"
+    if name == prefix + "zr":
+        return 31
+    match = re.fullmatch(prefix + r"([0-9]|[12][0-9]|30)", name)
+    return int(match[1]) if match is not None else None
+
+
+def _bitfield_decode_matches(instruction, encoding: dict) -> bool:
+    """Check Capstone's alias/operands independently against the raw ISA word."""
+    operands, mnemonic, width = instruction.operands, instruction.mnemonic.lower(), encoding["width"]
+    if mnemonic not in _UNSIGNED_BITFIELD_OPS or len(operands) < 2:
+        return False
+    if any(op.shift.type != arm64.ARM64_SFT_INVALID or op.ext != arm64.ARM64_EXT_INVALID
+           for op in operands):
+        return False
+    if any(op.type != arm64.ARM64_OP_REG for op in operands[:2]):
+        return False
+    if _bitfield_register_index(instruction.reg_name(operands[0].reg), width) != encoding["destination_index"]:
+        return False
+    source_width = 32 if mnemonic == "uxtw" else width
+    if _bitfield_register_index(instruction.reg_name(operands[1].reg), source_width) != encoding["source_index"]:
+        return False
+    rotation, end = encoding["immr"], encoding["imms"]
+    if mnemonic in {"uxtb", "uxth", "uxtw"}:
+        expected_end = {"uxtb": 7, "uxth": 15, "uxtw": 31}[mnemonic]
+        expected_width = 64 if mnemonic == "uxtw" else 32
+        return len(operands) == 2 and width == expected_width and rotation == 0 and end == expected_end
+    if any(op.type != arm64.ARM64_OP_IMM for op in operands[2:]):
+        return False
+    immediate = [op.imm for op in operands[2:]]
+    if mnemonic == "ubfm":
+        return immediate == [rotation, end]
+    if mnemonic == "ubfx":
+        return encoding["kind"] == "extract" and immediate == [rotation, end - rotation + 1]
+    if mnemonic == "ubfiz":
+        return encoding["kind"] == "insert" and immediate == [width - rotation, end + 1]
+    if mnemonic == "lsl":
+        return encoding["kind"] == "insert" and end + 1 == rotation and immediate == [width - rotation]
+    return end == width - 1 and immediate == [rotation]  # LSR alias.
 
 
 def register_width(name: str) -> int | None:
@@ -45,6 +114,7 @@ def instruction_capability(instruction) -> dict:
     """
     mnemonic = instruction.mnemonic.lower()
     reason = None
+    bitfield = None
     if mnemonic not in SUPPORTED_OPS:
         reason = "opcode_not_in_exact_subset"
     elif instruction.update_flags or instruction.cc not in (arm64.ARM64_CC_INVALID, arm64.ARM64_CC_AL):
@@ -53,6 +123,18 @@ def instruction_capability(instruction) -> dict:
         reason = "memory_writeback_not_modeled"
     elif mnemonic == "nop" and instruction.bytes != bytes.fromhex("1f2003d5"):
         reason = "only_architectural_nop_encoding_supported"
+    raw = bytes(instruction.bytes)
+    word = int.from_bytes(raw, "little") if len(raw) == 4 else -1
+    if word >= 0 and word & 0x7F800000 == 0x53000000:
+        bitfield = unsigned_bitfield_encoding(word)
+        if bitfield is None:
+            reason = reason or "unsigned_bitfield_reserved_encoding"
+        elif not _bitfield_decode_matches(instruction, bitfield):
+            reason = reason or "unsigned_bitfield_raw_and_decoded_operands_mismatch"
+    elif (mnemonic in {"ubfm", "ubfx", "ubfiz", "uxtb", "uxth", "uxtw"}
+          or (mnemonic in {"lsl", "lsr"}
+              and any(op.type == arm64.ARM64_OP_IMM for op in instruction.operands[2:]))):
+        reason = reason or "unsigned_bitfield_raw_opcode_mismatch"
     for operand in instruction.operands:
         if operand.type == arm64.ARM64_OP_REG:
             if register_width(instruction.reg_name(operand.reg)) is None:
@@ -86,6 +168,7 @@ def instruction_capability(instruction) -> dict:
         "exact_semantics_supported": supported,
         "semantic_capability_id": f"{CAPABILITY_VERSION}/{mnemonic if supported else 'unsupported/' + mnemonic}",
         "reason": reason,
+        "unsigned_bitfield": bitfield,
     }
 
 
@@ -108,6 +191,8 @@ def describe_capabilities() -> dict:
                 "normal byte memory in declared fixed valid regions; base+displacement; no writeback"
                 if opcode in MEMORY_OPS else
                 "local direct branch; NZCV conditions unsupported" if opcode in BRANCH_OPS else
+                "unsigned UBFM raw sf/N/immr/imms checked against decoded operands; bounded extract/insert"
+                if opcode in {"ubfm", "ubfx", "ubfiz"} else
                 "32/64-bit integer operands; no NZCV updates"
             ),
         } for opcode in sorted(SUPPORTED_OPS)],

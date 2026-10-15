@@ -100,7 +100,7 @@ class AbiContractService:
                     contract_id TEXT NOT NULL UNIQUE,
                     job_id TEXT NOT NULL REFERENCES jobs(job_id),
                     symbol TEXT NOT NULL,
-                    execution_key TEXT NOT NULL UNIQUE REFERENCES receipts(execution_key),
+                    execution_key TEXT NOT NULL REFERENCES receipts(execution_key),
                     artifact_ref TEXT NOT NULL,
                     payload TEXT NOT NULL, created_at REAL NOT NULL
                 )
@@ -112,9 +112,75 @@ class AbiContractService:
                     PRIMARY KEY(job_id,symbol)
                 )
             """)
+            self._migrate_execution_keys(connection)
+
+    @staticmethod
+    def _migrate_execution_keys(connection: sqlite3.Connection) -> None:
+        """A bundle shares one real receipt across several scalar constraints.
+
+        Older databases required one constraint per execution key. Replace only
+        that uniqueness constraint, preserving sequence/history, receipt FKs and
+        the single current-symbol map in the same transaction.
+        """
+        obsolete = False
+        for index in connection.execute("PRAGMA index_list(scalar_abi_contracts)"):
+            if index["unique"]:
+                quoted_name = '"' + index["name"].replace('"', '""') + '"'
+                columns = [row["name"] for row in connection.execute(
+                    f"PRAGMA index_info({quoted_name})")]
+                obsolete |= columns == ["execution_key"]
+        if not obsolete:
+            return
+        sequence = connection.execute("SELECT seq FROM sqlite_sequence WHERE name='scalar_abi_contracts'").fetchone()
+        connection.execute("""
+            CREATE TABLE scalar_abi_contracts_bundle_migration (
+                seq INTEGER PRIMARY KEY AUTOINCREMENT, contract_id TEXT NOT NULL UNIQUE,
+                job_id TEXT NOT NULL REFERENCES jobs(job_id), symbol TEXT NOT NULL,
+                execution_key TEXT NOT NULL REFERENCES receipts(execution_key),
+                artifact_ref TEXT NOT NULL, payload TEXT NOT NULL, created_at REAL NOT NULL
+            )
+        """)
+        connection.execute("INSERT INTO scalar_abi_contracts_bundle_migration SELECT * FROM scalar_abi_contracts")
+        connection.execute("""
+            CREATE TABLE scalar_abi_contract_current_bundle_migration (
+                job_id TEXT NOT NULL REFERENCES jobs(job_id), symbol TEXT NOT NULL,
+                contract_id TEXT NOT NULL REFERENCES scalar_abi_contracts_bundle_migration(contract_id),
+                PRIMARY KEY(job_id,symbol)
+            )
+        """)
+        connection.execute("INSERT INTO scalar_abi_contract_current_bundle_migration SELECT * FROM scalar_abi_contract_current")
+        connection.execute("DROP TABLE scalar_abi_contract_current")
+        connection.execute("DROP TABLE scalar_abi_contracts")
+        connection.execute("ALTER TABLE scalar_abi_contracts_bundle_migration RENAME TO scalar_abi_contracts")
+        connection.execute("ALTER TABLE scalar_abi_contract_current_bundle_migration RENAME TO scalar_abi_contract_current")
+        if sequence:
+            connection.execute("UPDATE sqlite_sequence SET seq=MAX(seq,?) WHERE name='scalar_abi_contracts'", (sequence["seq"],))
+
+    def _decode_delivery(self, connection: sqlite3.Connection, execution_key: str,
+                         artifact_ref: str, envelope: type[Contract]) -> dict[str, Any]:
+        receipt = self.domain._row(connection, "receipts", "execution_key", execution_key)
+        attempt = self.domain._row(connection, "attempts", "attempt_id", receipt["attempt_id"])
+        task = self.domain._row(connection, "tasks", "task_id", attempt["task_id"])
+        if json.loads(task["data"])["role"] != "type_abi":
+            raise DomainError("ROLE_SCOPE", "Only a type_abi delivery can propose an ABI contract")
+        alias = connection.execute("SELECT * FROM rpc_candidate_aliases WHERE alias=?", (artifact_ref,)).fetchone()
+        if alias is None or alias["attempt_id"] != attempt["attempt_id"]:
+            raise DomainError("ARTIFACT_SCOPE", "ABI constraints must be staged by this Attempt")
+        if self.objects.get_metadata(alias["artifact_id"])["size"] > 65536:
+            raise DomainError("INVALID_ABI_CONSTRAINTS", "ABI constraints exceed the bounded payload size")
+        try:
+            return envelope.model_validate(_verified_json(self.objects, alias["artifact_id"])).model_dump(mode="json")
+        except (ValueError, UnicodeError, ValidationError, RecursionError) as exc:
+            raise DomainError("INVALID_ABI_CONSTRAINTS", "Expected strict scalar ABI constraint JSON") from exc
 
     def _proposal(self, connection: sqlite3.Connection, execution_key: str,
                   artifact_ref: str) -> tuple[dict[str, Any], dict[str, Any], sqlite3.Row]:
+        candidate = self._decode_delivery(connection, execution_key, artifact_ref, ScalarAbiConstraintsEnvelope)
+        frozen, job, _ = self._delivery_authority(connection, execution_key, artifact_ref, candidate["symbol"])
+        return candidate, frozen, job
+
+    def _delivery_authority(self, connection: sqlite3.Connection, execution_key: str,
+                            artifact_ref: str, symbol: str) -> tuple[dict[str, Any], sqlite3.Row, dict[str, Any]]:
         receipt_row = self.domain._row(connection, "receipts", "execution_key", execution_key)
         receipt = json.loads(receipt_row["receipt"])
         proposal = self.domain._row(connection, "proposals", "proposal_id", receipt["proposal_id"])
@@ -131,12 +197,7 @@ class AbiContractService:
         metadata = self.objects.get_metadata(alias["artifact_id"])
         if metadata["size"] > 65536:
             raise DomainError("INVALID_ABI_CONSTRAINTS", "ABI constraints exceed the bounded payload size")
-        try:
-            candidate = ScalarAbiConstraintsEnvelope.model_validate(
-                _verified_json(self.objects, alias["artifact_id"])).model_dump(mode="json")
-        except (ValueError, UnicodeError, ValidationError, RecursionError) as exc:
-            raise DomainError("INVALID_ABI_CONSTRAINTS", "Expected strict scalar ABI constraint JSON") from exc
-        frozen = self.validation._identity(connection, execution_key, artifact_ref, candidate["symbol"])
+        frozen = self.validation._identity(connection, execution_key, artifact_ref, symbol)
         if (metadata["sha256"], metadata["size"]) != (frozen["candidate_sha256"], frozen["candidate_size"]):
             raise DomainError("ARTIFACT_HASH_MISMATCH", "Actual staged bytes differ from the receipt")
         if (task["state"] not in {"RESULT_PROPOSED", "CHECKING"}
@@ -158,7 +219,46 @@ class AbiContractService:
             raise DomainError("INVALID_RECEIPT", "ABI delivery lacks the original authoritative publication")
         self.backend._manifest(work)
         job = self.domain._row(connection, "jobs", "job_id", frozen["job_id"])
-        return candidate, frozen, job
+        return frozen, job, work
+
+    def _active_tool_checks(self, connection: sqlite3.Connection, job_id: str) -> list[tuple[str, sqlite3.Row]]:
+        return [(table, row) for table in self.domain._tool_activity_tables(connection)
+                for row in connection.execute(
+                    f"SELECT * FROM {table} WHERE job_id=? AND state IN ('READY','RUNNING','QUARANTINED') ORDER BY seq",
+                    (job_id,)).fetchall()]
+
+    def _advance_revision(self, connection: sqlite3.Connection, job: sqlite3.Row,
+                          frozen: dict[str, Any], expected_revision: int, contract_id: str,
+                          tasks: list[sqlite3.Row], invalidated_tasks: list[str],
+                          active_checks: list[tuple[str, sqlite3.Row]]) -> None:
+        if self.domain._row(connection, "tasks", "task_id", frozen["task_id"])["state"] == "RESULT_PROPOSED":
+            self.domain._change_task(connection, frozen["task_id"], "CHECKING", "trusted original-DWARF declaration check")
+        self.domain._change_task(connection, frozen["task_id"], "COMPLETED", "scalar declaration constraints frozen")
+        for task in tasks:
+            connection.execute("UPDATE tasks SET epoch=epoch+1,updated_at=? WHERE task_id=?",
+                               (time.time(), task["task_id"]))
+            if task["task_id"] in invalidated_tasks:
+                self.domain._change_task(connection, task["task_id"], "SUPERSEDED", "ABI contract revision changed")
+        connection.execute("UPDATE attempts SET state='SUPERSEDED',updated_at=? WHERE job_id=? AND occupied=1",
+                           (time.time(), job["job_id"]))
+        for table, check in active_checks:
+            connection.execute(f"UPDATE {table} SET state=?,cancel_requested=1,updated_at=? WHERE activity_id=?",
+                               ("CANCELED" if check["state"] == "READY" else check["state"], time.time(), check["activity_id"]))
+            kind = table.removesuffix("_activities")
+            self.domain._emit(connection, job["job_id"], f"{kind}.cancel_requested", {
+                "activity_id": check["activity_id"], "reason": "contract_revision_changed",
+                "cleanup_confirmed": not bool(check["occupied"])})
+        changed = connection.execute(
+            "UPDATE jobs SET contract_revision=?,quality=?,updated_at=? WHERE job_id=? AND contract_revision=?",
+            (expected_revision + 1, _json(_unknown_quality()), time.time(), job["job_id"], expected_revision))
+        if changed.rowcount != 1:
+            raise DomainError("CONTRACT_REVISION_CONFLICT", "Expected revision changed during the freeze transaction")
+        self.domain._emit(connection, job["job_id"], "job.contract_revision_changed", {
+            "previous_revision": expected_revision, "contract_revision": expected_revision + 1,
+            "input_snapshot_id": job["snapshot"], "contract_id": contract_id,
+            "epoch_fenced_task_ids": [row["task_id"] for row in tasks],
+            "invalidated_task_ids": invalidated_tasks, "quality": _unknown_quality(),
+            "resource_capacity_released": False})
 
     def freeze_from_proposal(self, execution_key: str, artifact_ref: str, *,
                              expected_revision: int) -> dict[str, Any]:
@@ -172,7 +272,8 @@ class AbiContractService:
                                           (execution_key,)).fetchone()
             if previous:
                 result = json.loads(previous["payload"])
-                if artifact_ref != previous["artifact_ref"] or expected_revision != result["previous_revision"]:
+                if (result.get("bundle_id") is not None or artifact_ref != previous["artifact_ref"]
+                        or expected_revision != result["previous_revision"]):
                     raise DomainError("IDEMPOTENCY_CONFLICT", "This delivery already froze another request")
                 return result
             receipt = self.domain._row(connection, "receipts", "execution_key", execution_key)
@@ -208,11 +309,7 @@ class AbiContractService:
             tasks = connection.execute("SELECT * FROM tasks WHERE job_id=? ORDER BY task_id", (job["job_id"],)).fetchall()
             invalidated_tasks = [row["task_id"] for row in tasks if row["task_id"] != frozen["task_id"]
                                  and row["state"] not in TERMINAL_TASKS]
-            active_checks = []
-            if self.domain._has_validation_activities(connection):
-                active_checks = connection.execute(
-                    "SELECT * FROM validation_activities WHERE job_id=? AND state IN ('READY','RUNNING','QUARANTINED') ORDER BY seq",
-                    (job["job_id"],)).fetchall()
+            active_checks = self._active_tool_checks(connection, job["job_id"])
             body = {"schema_version": 1, "contract_id": contract_id, "job_id": job["job_id"],
                     "symbol": candidate["symbol"], "input_snapshot_id": job["snapshot"],
                     "input_ref": frozen["input_ref"], "input_sha256": facts["input_sha256"],
@@ -225,38 +322,14 @@ class AbiContractService:
                     "status": "DECLARED_DEBUG_SHAPE", "original_calling_abi_verified": False,
                     "job_quality_promoted": False, "classification_completed": True,
                     "invalidated_task_ids": invalidated_tasks,
-                    "cancel_requested_activity_ids": [row["activity_id"] for row in active_checks],
+                    "cancel_requested_activity_ids": [row["activity_id"] for _, row in active_checks],
                     "execution_policy": {"target_or_candidate_executed": False}}
             artifact = self.objects.put_json(body, kind="scalar_abi_contract")
             result = {**body, "contract_ref": artifact["artifact_id"]}
             for published in (evidence, artifact):
                 self.domain._register_artifact(connection, published["artifact_id"], published, job["job_id"])
-            if self.domain._row(connection, "tasks", "task_id", frozen["task_id"])["state"] == "RESULT_PROPOSED":
-                self.domain._change_task(connection, frozen["task_id"], "CHECKING", "trusted original-DWARF declaration check")
-            self.domain._change_task(connection, frozen["task_id"], "COMPLETED", "scalar declaration constraints frozen")
-            for task in tasks:
-                # Fencing every old epoch also invalidates historical candidate
-                # proofs; existing terminal states and history stay preserved.
-                connection.execute("UPDATE tasks SET epoch=epoch+1,updated_at=? WHERE task_id=?",
-                                   (time.time(), task["task_id"]))
-                if task["task_id"] in invalidated_tasks:
-                    self.domain._change_task(connection, task["task_id"], "SUPERSEDED", "ABI contract revision changed")
-            connection.execute("UPDATE attempts SET state='SUPERSEDED',updated_at=? WHERE job_id=? AND occupied=1",
-                               (time.time(), job["job_id"]))
-            for check in active_checks:
-                connection.execute("UPDATE validation_activities SET state=?,cancel_requested=1,updated_at=? WHERE activity_id=?",
-                                   ("CANCELED" if check["state"] == "READY" else check["state"], time.time(), check["activity_id"]))
-                self.domain._emit(connection, job["job_id"], "validation.cancel_requested", {
-                    "activity_id": check["activity_id"], "reason": "contract_revision_changed",
-                    "cleanup_confirmed": not bool(check["occupied"])})
-            connection.execute("UPDATE jobs SET contract_revision=?,quality=?,updated_at=? WHERE job_id=? AND contract_revision=?",
-                               (expected_revision + 1, _json(_unknown_quality()), time.time(), job["job_id"], expected_revision))
-            self.domain._emit(connection, job["job_id"], "job.contract_revision_changed", {
-                "previous_revision": expected_revision, "contract_revision": expected_revision + 1,
-                "input_snapshot_id": job["snapshot"], "contract_id": contract_id,
-                "epoch_fenced_task_ids": [row["task_id"] for row in tasks],
-                "invalidated_task_ids": invalidated_tasks, "quality": _unknown_quality(),
-                "resource_capacity_released": False})
+            self._advance_revision(connection, job, frozen, expected_revision, contract_id,
+                                   tasks, invalidated_tasks, active_checks)
             connection.execute("INSERT INTO scalar_abi_contracts(contract_id,job_id,symbol,execution_key,artifact_ref,payload,created_at) VALUES (?,?,?,?,?,?,?)",
                                (contract_id, job["job_id"], candidate["symbol"], execution_key, artifact_ref, _json(result), time.time()))
             connection.execute("INSERT INTO scalar_abi_contract_current(job_id,symbol,contract_id) VALUES (?,?,?) ON CONFLICT(job_id,symbol) DO UPDATE SET contract_id=excluded.contract_id",

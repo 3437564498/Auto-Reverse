@@ -28,6 +28,7 @@ from .domain import DomainError, _json, _string
 from .intake import extract_function, function_info
 from .recovery import register_call_model
 from .semantics import verify_machine_code
+from .source_signature import inspect_source_signature, signature_kernel_fingerprint
 
 
 _SYMBOL = re.compile(r"[A-Za-z_][A-Za-z_0-9]{0,255}\Z")
@@ -145,6 +146,19 @@ class CandidateValidationService:
                 "ndk_root": str(self.build_config.ndk_root.resolve()),
                 "toolchain_files": files, "helper_sha256": _hash(helper)}
 
+    def _signature_authority(self, connection: sqlite3.Connection, job_id: str,
+                             symbol: str) -> dict[str, Any]:
+        from .abi_contracts import AbiContractService
+
+        view = AbiContractService.read_current(connection, job_id, self.objects)
+        if view["invalid_contracts"]:
+            raise DomainError("ABI_CONTRACT_UNVERIFIED", "Frozen original scalar constraints are no longer verified")
+        matching = [contract for contract in view["current_contracts"] if contract["symbol"] == symbol]
+        if len(matching) > 1:
+            raise DomainError("ABI_CONTRACT_UNVERIFIED", "Original scalar constraints are ambiguous")
+        return {"kernel_sha256": signature_kernel_fingerprint(),
+                "contract": matching[0] if matching else None}
+
     @staticmethod
     def _record(row: sqlite3.Row) -> dict[str, Any]:
         frozen = json.loads(row["frozen"])
@@ -157,6 +171,7 @@ class CandidateValidationService:
                 "input_snapshot_id": frozen["input_snapshot_id"],
                 "contract_revision": frozen["contract_revision"],
                 "source_ref": frozen["source_ref"],
+                "scalar_contract_ref": (frozen.get("source_signature_authority", {}).get("contract") or {}).get("contract_ref"),
                 "capacity_occupied": bool(row["occupied"]),
                 "cancel_requested": bool(row["cancel_requested"]),
                 "job_quality_promoted": False}
@@ -287,6 +302,8 @@ class CandidateValidationService:
                           input_sha256=input_metadata["sha256"], input_size=input_metadata["size"],
                           build_config=config, config_sha256=_json_hash(config),
                           original_function=original_info, call_model=register_call_model())
+            frozen["source_signature_authority"] = self._signature_authority(connection, frozen["job_id"], symbol)
+            frozen["source_signature_authority_sha256"] = _json_hash(frozen["source_signature_authority"])
             now, activity_id = time.time(), "vact-" + uuid.uuid4().hex
             connection.execute("""
                 INSERT INTO validation_activities(activity_id,execution_key,candidate_ref,symbol,
@@ -310,13 +327,20 @@ class CandidateValidationService:
         actual = self._identity(connection, row["execution_key"], row["candidate_ref"], row["symbol"])
         if any(actual[key] != frozen[key] for key in actual):
             raise DomainError("STALE_VALIDATION", "Activity no longer matches current frozen work")
+        current_signature = self._signature_authority(connection, row["job_id"], row["symbol"])
+        if (current_signature != frozen.get("source_signature_authority")
+                or _json_hash(current_signature) != frozen.get("source_signature_authority_sha256")):
+            raise DomainError("SOURCE_SIGNATURE_AUTHORITY_CHANGED", "Original scalar constraints or signature parser changed")
 
-    def claim_next(self, worker_id: str = "trusted-validation-host") -> dict[str, Any] | None:
+    def claim_next(self, worker_id: str = "trusted-validation-host", *, activity_id: str | None = None) -> dict[str, Any] | None:
         config = self._config()
         _string(worker_id, "worker_id")
+        if activity_id is not None:
+            _string(activity_id, "activity_id")
         with self.domain._transaction() as connection:
             for row in connection.execute(
-                    "SELECT * FROM validation_activities WHERE state='READY' ORDER BY seq").fetchall():
+                    "SELECT * FROM validation_activities WHERE state='READY' AND (? IS NULL OR activity_id=?) ORDER BY seq",
+                    (activity_id, activity_id)).fetchall():
                 try:
                     self._current(connection, row)
                 except DomainError as exc:
@@ -400,6 +424,9 @@ class CandidateValidationService:
             return self._record(self.domain._row(connection, "validation_activities", "activity_id", activity_id))
 
     def _verified_inputs(self, frozen: dict[str, Any], symbol: str) -> tuple[str, Path]:
+        if (frozen.get("source_signature_authority", {}).get("kernel_sha256") != signature_kernel_fingerprint()
+                or _json_hash(frozen.get("source_signature_authority")) != frozen.get("source_signature_authority_sha256")):
+            raise DomainError("SOURCE_SIGNATURE_AUTHORITY_CHANGED", "Frozen signature parser or authority changed")
         for prefix, ref in (("candidate", frozen["candidate_cas_ref"]),
                             ("source", frozen["source_ref"]), ("input", frozen["input_cas_ref"])):
             meta = self.objects.get_metadata(ref)
@@ -422,11 +449,35 @@ class CandidateValidationService:
             raise DomainError("ARTIFACT_HASH_MISMATCH", "Frozen original function extent changed")
         output = self.domain.state_dir / "validation-work" / record["activity_id"] / f"run-{record['run_number']}"
         # Activity IDs/run numbers are host generated. A prior directory is never reused.
+        contract = frozen["source_signature_authority"]["contract"]
+        signature_cleanup = True
+        if contract is not None:
+            report["cleanup_confirmed"] = False
+            signature = inspect_source_signature(source, record["symbol"], self.build_config,
+                                                  output / "signature", contract["constraints"])
+            signature_cleanup = signature["cleanup_confirmed"]
+            report["cleanup_confirmed"] = signature_cleanup
+            signature_record = self.objects.put_json(signature, kind="candidate_source_signature")
+            artifacts.append(signature_record)
+            report.update(source_signature_manifest_ref=signature_record["artifact_id"],
+                          candidate_signature_match=signature["match"], candidate_source_shape=signature["candidate_shape"])
+            if (signature.get("source") != {"sha256": frozen["source_sha256"], "size": frozen["source_size"]}
+                    or signature["parameters"] != frozen["build_config"]["parameters"]):
+                raise DomainError("SOURCE_SIGNATURE_BINDING_MISMATCH", "AST did not inspect the frozen source or host parameters")
+            provenance = signature.get("provenance")
+            if provenance is not None and (
+                    provenance.get("toolchain_files") != frozen["build_config"]["toolchain_files"]
+                    or provenance.get("helper_sha256") != frozen["build_config"]["helper_sha256"]
+                    or provenance.get("kernel_sha256") != frozen["source_signature_authority"]["kernel_sha256"]):
+                raise DomainError("SOURCE_SIGNATURE_BINDING_MISMATCH", "AST compiler or parser differs from frozen authority")
+            if not signature_cleanup:
+                report["status"] = "FAILED"
+                return
         report["cleanup_confirmed"] = False
-        gate = build_candidate(source, output, self.build_config)
+        gate = build_candidate(source, output / "build", self.build_config)
         report["build"] = gate["build"]
         report["candidate_structural_checks"] = gate["abi"]
-        report["cleanup_confirmed"] = all(command.get("cleanup", {}).get("compiler_reaped") is True
+        report["cleanup_confirmed"] = signature_cleanup and all(command.get("cleanup", {}).get("compiler_reaped") is True
                                           and command.get("cleanup", {}).get("process_group_stopped_confirmed") is True
                                           for command in gate["commands"])
         if gate["execution_policy"]["compiler_executed"] and not gate["commands"]:
@@ -469,6 +520,9 @@ class CandidateValidationService:
         abi_record = self.objects.put_json(abi, kind="candidate_abi_comparison")
         artifacts.append(abi_record)
         report.update(abi=abi, abi_report_ref=abi_record["artifact_id"])
+        if contract is not None and report["candidate_signature_match"]["status"] != "PASS":
+            report["local_semantic"] = {"status": "UNKNOWN", "reason_code": "SOURCE_SIGNATURE_NOT_MATCHED"}
+            return
         if gate["abi"]["status"] != "PASS" or abi.get("structural_status", abi.get("structural", {}).get("status")) != "PASS":
             report["local_semantic"] = {"status": "UNKNOWN", "reason_code": "STRUCTURAL_ABI_NOT_PASSED"}
             return
@@ -492,8 +546,8 @@ class CandidateValidationService:
         report.update(local_semantic=verification["semantic"], verification_ref=verification_record["artifact_id"],
                       hash_binding=verification["validation_binding"])
 
-    def run_next(self, worker_id: str = "trusted-validation-host") -> dict[str, Any] | None:
-        record = self.claim_next(worker_id)
+    def run_next(self, worker_id: str = "trusted-validation-host", *, activity_id: str | None = None) -> dict[str, Any] | None:
+        record = self.claim_next(worker_id, activity_id=activity_id)
         if record is None:
             return None
         with closing(self.domain._connect()) as connection:
@@ -511,16 +565,25 @@ class CandidateValidationService:
             "job_quality_promoted": False, "call_model": frozen["call_model"],
             "source_ref": frozen["source_ref"], "candidate_ref": record["candidate_ref"],
             "config_sha256": frozen["config_sha256"], "cleanup_confirmed": True,
+            "source_signature_authority_sha256": frozen["source_signature_authority_sha256"],
+            "scalar_contract_ref": record["scalar_contract_ref"],
+            "candidate_signature_match": {"status": "UNKNOWN", "reason_code": "NO_ORIGINAL_SCALAR_CONTRACT"},
+            "candidate_source_shape": None, "original_calling_abi_verified": False,
             "execution_policy": {"mode": "pure_static", "target_or_candidate_executed": False}}
         artifacts: list[dict[str, Any]] = []
         try:
-            self._evaluate(record, frozen, report, artifacts)
+            from .host_reconcile import HostReconciliationService
+
+            with HostReconciliationService(self.domain.state_dir).observe_compilers("validation", record, frozen, worker_id):
+                self._evaluate(record, frozen, report, artifacts)
             if self._config() != frozen["build_config"]:
                 raise DomainError("HOST_CONFIGURATION_MISMATCH", "Pinned toolchain files changed during validation")
             self._verified_inputs(frozen, record["symbol"])
             for artifact in artifacts:
                 self.objects.get_metadata(artifact["artifact_id"])
         except Exception as exc:
+            if getattr(exc, "code", None) == "PROCESS_REGISTRATION_FAILED":
+                report["cleanup_confirmed"] = False
             report.update(status="FAILED", artifact_grade="A0", candidate_elf_ref=None,
                           local_semantic={"status": "UNKNOWN"},
                           diagnostic={"reason_code": getattr(exc, "code", type(exc).__name__),
@@ -567,11 +630,12 @@ class CandidateValidationService:
                                                    {**artifact, **checked}, record["job_id"])
             connection.execute("""
                 UPDATE validation_activities SET state=?,cleanup_status=?,occupied=?,report_ref=?,
-                    candidate_elf_ref=?,artifact_grade=?,claim_hash=NULL,updated_at=? WHERE activity_id=?
+                    candidate_elf_ref=?,artifact_grade=?,claim_hash=CASE WHEN ? THEN claim_hash ELSE NULL END,
+                    updated_at=? WHERE activity_id=?
             """, (state, "CONFIRMED" if report["cleanup_confirmed"] else "QUARANTINED",
                   int(not report["cleanup_confirmed"]), report_record["artifact_id"],
                   report.get("candidate_elf_ref") if report["publication_current"] else None,
-                  report["artifact_grade"], time.time(), record["activity_id"]))
+                  report["artifact_grade"], int(not report["cleanup_confirmed"]), time.time(), record["activity_id"]))
             self.domain._emit(connection, record["job_id"], "validation.finished", {
                 "activity_id": record["activity_id"], "state": state, "report_ref": report_record["artifact_id"],
                 "artifact_grade": report["artifact_grade"], "publication_current": report["publication_current"],

@@ -1,0 +1,86 @@
+{
+  "$defs": {
+    "ScalarAbiConstraintsEnvelope": {
+      "additionalProperties": false,
+      "description": "Unsigned 32/64-bit scalar widths; no assumptions or verification claims.",
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "kind": {
+          "const": "scalar_abi_constraints",
+          "title": "Kind",
+          "type": "string"
+        },
+        "symbol": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "title": "Symbol",
+          "type": "string"
+        },
+        "parameter_widths": {
+          "items": {
+            "enum": [
+              32,
+              64
+            ],
+            "type": "integer"
+          },
+          "maxItems": 8,
+          "title": "Parameter Widths",
+          "type": "array"
+        },
+        "return_width": {
+          "enum": [
+            32,
+            64
+          ],
+          "title": "Return Width",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "symbol",
+        "parameter_widths",
+        "return_width"
+      ],
+      "title": "ScalarAbiConstraintsEnvelope",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A strict finite conjunction of unique scalar declaration constraints.",
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "kind": {
+      "const": "scalar_abi_bundle",
+      "title": "Kind",
+      "type": "string"
+    },
+    "constraints": {
+      "items": {
+        "$ref": "#/$defs/ScalarAbiConstraintsEnvelope"
+      },
+      "maxItems": 64,
+      "minItems": 1,
+      "title": "Constraints",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "constraints"
+  ],
+  "title": "ScalarAbiBundleEnvelope",
+  "type": "object"
+}

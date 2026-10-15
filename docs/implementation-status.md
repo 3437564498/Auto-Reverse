@@ -1,96 +1,77 @@
-# 静态基础与持久候选验收记录
+# 实施状态与验收边界
 
-更新：2026-10-14（Asia/Singapore）。设计基线：V1 `30c31f9`；首批原型：`2e2a23f`；真实工具链：`0b40909`；独立候选验证：`4725297`；修复/选择：`54ee058`（PR #5 已合并）。历史草稿保持原文，实施事实在本页更新。
+更新：2026-10-15（Asia/Singapore）。设计基线为 [V1 主方案](android-arm64-so-cpp-recovery-V1.md)。`main` 已合并 PR #6（`1c2ef76`）；当前批次在 `codex/m1-integrated-project` 开发和验证。本页描述当前代码能力，推送、PR 与 Checks 状态以 [GitHub](https://github.com/3437564498/Auto-Reverse/pulls) 为准。
 
-此前有界修复、最佳候选与单机后处理设施已落地；本轮新增实际补证据提案消费、原 ELF 自带 DWARF 的有限 unsigned 标量声明提取、可信宿主核验与版本冻结。实际静态样例已验证 gap 完成任务、无可信升级，revision 变更使旧来源失效并保留历史。GitHub 已清理旧开发分支，PR #5 合并后的条件清理实际生效；新工作只保留一个开发分支。**V1、M0-S、M0-R 和 M1 的完整退出条件均尚未全部验收**。用户明确暂时无法提供 DSH 模型环境，没有运行真实模型或宣称模型恢复吞吐。
+**完整 V1、M0-S、M0-R 和 M1 的完整退出条件尚未全部验收。** 本批将原有单候选验证扩展为可恢复的自动静态工程流水线，最高交付真实编译的局部 A1。用户暂时无法提供真实 DSH 模型环境，该项保留未验收；确定性静态生成、注入 Provider 和 SDK 离线预检均不计作真实模型验收。
 
-## 实际验收结果
+## 当前新增能力
 
-| 检查 | 结果 | 范围 |
+| 范围 | 已实现行为 | 保留边界 |
 |---|---|---|
-| Python 完整套件 | **1153 passed** | 最终冻结代码；启用真实 NDK/Ghidra 集成，无 skip；包括 300 个实际 SMT 非等价变异与独立审查 |
-| TypeScript/Cordis | **30 passed** | 真实 Python RPC/SQLite/CAS、辅助 JSON 交付、两独立进程共享配额、鉴权控制、官方工具 registry、实际 SDK 启停与有效 Profile |
-| NDK r27c | PASS | ARM64/API21；shared/static libc++；C++17 helpers 和实际样本只编译链接 |
-| Ghidra 11.3.2 | exported | 真实 ELF 静态导入、Raw P-code、原始地址/字节交叉核验、Java home 与进程组清理 |
-| 受限恢复闭环 | 部分 A1 | NDK 原始微库 → Ghidra → C++ → NDK → 实际机器字节 SMT |
-| 固定静态矩阵 | **27/27 匹配** | 6 EXACT、8 DIFFERENT、11 UNKNOWN、2 INVALID_PRECONDITION；两库真实 Ghidra 字节关联 |
-| ELF ABI 结构 | **59 项测试通过** | 含真实 NDK 数据尺寸与动态版本样本；结构 PASS 不提升原调用 ABI |
-| 持久候选活动 | 实际正反闭环通过 | 真实回执/CAS → NDK → ABI → SMT；幂等、重启读取、取消、隔离、当前版本校验 |
-| 修复反馈与选择 | 实际三阶段样例通过 | DIFFERENT → 局部 EXACT → 晚 DIFFERENT；冻结反馈 batch 幂等，无提前 Attempt，保留较好候选 |
-| 补证据消费 | **37 项测试通过** | 实际 receipt/CAS/全页送达/祖先校验、单事务分类、纯读历史；辅助发现无可信升级 |
-| 原始标量声明 | **55 项测试通过** | 真实 NDK DWARF4/5、范围/PCS/类型/预算；扩展 `_BitInt(33)` 不误作标准64位 |
-| 契约版本冻结 | **49 项测试通过** | 原始声明独立核验、revision CAS、epoch 失效、资源容量保留、纯读合同历史；另有12项独立审查 |
-| 分支清理 | **13 项通过** | 含真实本地 Git 删除审核提交、并发新提交触发 lease 拒绝；PR #5 合并后旧分支已自动删除 |
-| SDK 离线预检 | PASS，模型调用数 **0** | 真实 `start/initialize/close`，native/spawn/32/maxTokensAsSuccess=false 有效值已观察 |
+| 自动入口 | `recover-project` 串接清单、声明、源码提案、验证、选择、集成和最终报告；同输入与配置可按账本接续 | 确定性静态生成器，模型调用数 0；最多处理 64 个安全命名的普通导出函数 |
+| 原库清单 | 保留原动态导出、导入、已发现定义函数和可执行区间字节；观察直接调用、SCC、全局量、TLS 和生命周期根 | 间接调用、未知范围、缺失函数和未闭合入口继续形成缺口；完整函数总数未知 |
+| 标量契约 | 原 ELF 的 unsigned32/64 DWARF 声明核验；有界 bundle 原子冻结同一契约版本 | 仅有限声明形状，不等于完整类型推断、对象布局或原调用 ABI 证明 |
+| 候选签名 | 由固定 Clang 实际 AST 与类型探针提取候选参数和返回类型，对比当前可信标量约束 | 歧义、扩展类型、未知属性与不支持声明不给匹配通过；候选自报类型无权威 |
+| 受限源码生成 | 有类型整数叶函数生成，参数/返回宽度检查，UBFM/UBFX/UBFIZ 支持；固定生成源码另做安全审计 | 只覆盖受支持的 unsigned 叶函数语法；安全审计不证明任意 C++ 或全库无 UB |
+| 工程物化 | 当前所选源码分成独立翻译单元，生成受控公共声明，固定 NDK 真实编译与联合链接 | 不复制原机器码、不补空实现；缺少内部实现或声明冲突时保留失败/未知 |
+| 最终产物验证 | 对最终联合 ELF 的实际字节逐个重新做局部 SMT，独立比较原库完整导出与依赖结构 | 不复用单候选证明替代最终证明；局部 EXACT 不提升为整库通过 |
+| 源码工程归档 | 确定性 ZIP 包含实际源码、受控头文件、CMake 和公开报告；可用固定 NDK 重新编译 | ZIP 不包含原库、目标 `.so`、对象文件、私有账本或运行凭据；重建后须重新验证 |
+| Android 静态 Profile | 有界解析 REL/RELA、标准与 Android 私有 RELR、APS2、TLS/生命周期及 JNI 线索；保留 API 下界 | 观察到标签不等于完整加载器兼容；JNI/DEX、TLS、重定位与初始化语义仍未闭合 |
+| 工具持久化 | 候选验证、工程集成、Ghidra 分析独立活动；冻结输入、配置、工具与实现指纹 | 失联活动不自动重放；未确认的进程清理不归还占用 |
+| 最终报告 | 将全输入分母、当前选择、实际工程、质量、资源清理与缺口冻结为版本化报告 | FINAL/COMPLETED 仅表示本次任务已收尾，允许合法 A0/局部 A1 与 UNKNOWN |
 
-Python 有一条第三方 MCP settings forward-reference 警告，协议测试通过。注入 Activation Provider 的两个工作者只证明真实账本/CAS 集成；没有被当成真实模型子会话。
+自动阶段顺序为 PLAN → TYPES → ANALYSIS（可选）→ RECOVER → INTEGRATE → FINAL。先冻结有限类型契约，再排队 Ghidra 分析，使分析活动与后续候选使用相同的当前 revision。
 
-Ruff、全部 Schema 与 DSH 锁指纹、wheel 构建及打包资源检查通过。普通 GitHub CI 未配置 NDK/Ghidra 时明确 skip；固定工具矩阵另有手动 workflow 下载、校验 archive 并上传证据，本轮尚未宣称该新 workflow 已在远端触发。
+## 已有基础保持可用
 
-## 已实现的工作包
+SQLite/CAS 持有 Job、DAG、租约、Attempt、回执、Outbox、32 个共享 Agent 名额和取消账本。DSH 插件通过私有 Python RPC 使用实际账本；SDK 启停与有效 Profile 可离线核查。业务合同、构建参数、可信验证与发布选择由宿主持有，模型只能提交提案。
 
-| 模块 | 当前能力 |
+独立候选活动实际编译源码、比较 ELF 结构并验证函数机器字节。反例可形成有界修复工包，较差的后续候选不会覆盖已有较好候选；补证据提案单独消费，辅助发现不自动提升可信度。原始声明变化通过 revision/epoch 使旧来源失效，历史仍可追溯。
+
+公共 CLI/MCP 可查询 Job、候选、集成和最终交付，支持有界分页与 Job 所有权校验。公共读接口不启动工具、不派发工作、不靠读取安装可选活动表；可信宿主排队、执行、冻结和对账另走管理入口。
+
+## 怎样解释交付
+
+| 字段或状态 | 含义 |
 |---|---|
-| `domain.py` / `backend_rpc.py` | SQLite Job/DAG/Attempt、租约/epoch、不可变回执/Outbox、真实共享 32 名额、取消/隔离、私有宿主 JSON-lines RPC |
-| `artifacts.py` / `intake.py` | 输入登记、CAS 原子发布/hash 校验/分页、ELF64 LE AArch64 ET_DYN 有界体检、真实函数字节 |
-| `integrations/dsh/` | 冻结 Task → 原子真实 Attempt、Python 子进程客户端、候选 staging/授权证据、单调 guard、BindingReady、鉴权 Unix socket、完整专用 Profile |
-| `ghidra.py` / Java exporter | 固定 Headless 导入、结构化 `Instruction.getPcode()`、varnode 地址空间/位宽、控制流、原 opcode 能力校验和来源 hash |
-| `build_gate.py` | 固定 NDK/Clang/参数、源码 include 与预处理限制、超时进程组清理、实际源码/helpers 编译与 ELF/export 结构检查 |
-| `abi.py` | 对照原/候选动态导出、SONAME/依赖、OBJECT/TLS 尺寸、st_other/variant PCS、版本与有界元数据；保留全原库分母 |
-| `candidate_validation.py` | 冻结回执/源/输入/配置/所选工具 hash，SQLite 独立 claim、构建/ABI/局部语义、CAS 报告、事件/Outbox、隔离和清理后重排 |
-| `repair_feedback.py` | 实际报告/proof/工具/epoch 校验，原子分类和冻结单函数 repair/evidence 计划；真实读取证据进展、预算/重复失败/更好候选停止 |
-| `candidate_selection.py` | 当前 `BEST_AVAILABLE`、不可变快照/CAS/Outbox；变化立即撤销当前标记，保留原库符号与执行字节分母；无发布选择 |
-| `postprocessing.py` | 可信宿主处理新报告版本、分类/选择/反馈、每批≤64 frozen Tasks与持久余量；不调用模型 |
-| `evidence_delivery.py` | 实际反馈证据 Proposal 消费、完整送达/祖先/资源核验、CAS/事件/Outbox、辅助交付与有界 gap、纯读历史 |
-| `scalar_abi.py` / `abi_contracts.py` | 原始嵌入 DWARF 的 unsigned32/64 声明、独立核验/原子冻结/旧版本失效；最多64 symbol，不证明调用ABI |
-| `recovery.py` v2 | unsigned 整数叶函数 C++ 生成、已初始化 x8..17 临时、逻辑/移位/MOVK、源映射与真实重编译/SMT；原类型/调用 ABI 仍 UNKNOWN |
-| CLI/MCP/CI | 静态分析、工具链/受限恢复命令、输入/策略登记、私有 RPC、公开产物视图、Python/TS CI |
+| `A0` | 只有分析/源码/缺口，或没有当前有效的实际编译产物 |
+| `A1` | 当前有效的实际源码编译集合或局部工程；须同时查看 `artifact_scope` |
+| `build.status=PASS` | 对应局部构建范围实际通过；`whole_library_build_status` 仍为 UNKNOWN |
+| 局部 `EXACT_EQUIVALENT` | 最终产物中明确函数范围在声明机器模型和前提内等价 |
+| 整体 ABI/语义/完整性 UNKNOWN | 原调用 ABI、入口与依赖闭包、未知代码或全库义务仍未解决 |
+| `FINAL` / Job `COMPLETED` | DAG、活动和资源满足本次收尾条件；不是 V1 完成或可发布选择 |
+| `INTERIM` | 还有未完成工作或未确认清理，不能结束 Job |
+| `current_valid=false` | 当前输入、契约、工具、源码或证明绑定失效；历史报告仍可读取 |
 
-批次不再预生成 Attempt；只冻结任务，取得真实租约后才创建 Attempt。32 个实际账本名额由两个独立 Python 进程核验，第 33 个任务保持 READY，确认清理后才发放；这是设施容量实验，没有测量模型吞吐。
+始终保持 `whole_program_equivalence=false`、`original_calling_abi_verified=false`；不发布 A2/A3。源码安全审计的完整性只针对固定生成器产生的已核验叶函数，不推广为全库 C++ UB 证明。仅 ELF ABI 结构 PASS 也不能替代调用语义证明。
 
-MCP 与私有 RPC 共用账本和候选别名解析。通过 RPC 提交的候选可由 MCP 列出/分页读取，质量保持 NOT_CHECKED。仅执行 intake 的轮询 worker 不会结束持有 DAG 工作包的 Job。
+没有有效最终报告时，原始 Job 质量可能仍为 A0；最终报告能明确记录实际局部源码集合或局部工程 A1。报告视图在读取时重新核验输入、版本、工具、CAS、源码、构建与证明绑定；失效后当前质量降为 UNKNOWN，原质量另保留为历史。Job 已 COMPLETED 也不能绕过这些检查。
 
-独立验证使用 `cpp_source` 四字段 envelope，当前实际回执/函数范围及 host 配置都由服务核对。两个独立宿主只能取得一个活动；已完成报告重启可读。运行中取消、旧 snapshot/epoch、同路径工具变化、旧 owner 或未确认清理均阻断当前成功发布。Job 取消/清理同时聚合 Agent 和验证工具资源，未完成验证阻止提前 COMPLETED。完整接口及当前边界见 [候选提交与持久独立验收](candidate-validation.md)。
+## 中断、取消与宿主对账
 
-反馈会累计真实 root 候选的 repair 预算，evidence 最多一次；只自报引用、局部页读取或循环读取自身诊断不算新增进展。成功页在真实 lease/Activation/manifest 授权事务内登记范围，完整覆盖才计交付。重复机器码/诊断、能力缺口、预算耗尽或同范围已有更好有效局部精确候选，均终止方向。补证据交付已可独立消费，仍只记录辅助信息，不自动改变访存前提或派新修复。声明冻结仅覆盖有界原始 unsigned 标量 DWARF；完整类型约束求解和候选签名核验仍待完成，详见 [证据与声明契约](evidence-contracts.md)。
+自动控制器持有每 Job 的排他锁，按持久阶段和游标推进。同输入、同工具和同配置重复执行，使用幂等键读取已提交结果；配置或实现指纹变化时拒绝静默续跑，需使用正确环境或新输出目录。
 
-只选 `BEST_AVAILABLE`。局部 A1 编译集合不等于完整集成库，Job 保持 A0、整体 build/abi/semantic/completeness UNKNOWN；所选集合的 A1/PASS 另列范围。公开读取立即核验失效，不通过读接口修改 Job 或派发任务。实际选择清单保留 6 个已发现定义函数、另列 2 个导入函数及全部 152 可执行字节，当前只选 1 个定义函数/8 字节。恢复清单将定义/导入合计为8；两者都保留原始符号清单，完整函数总数与发现完整性仍未知。
+实际编译/Ghidra 子进程启动前保存启动意图，启动后绑定 owner、run、配置、PID、进程组、Linux boot ID 与进程起始时间。若宿主失联，`reconcile-host` 只隔离旧 owner；`confirm-host-cleanup` 独立观察已登记的整个进程组。租约过期、父进程退出、构造服务或重读报告都不等于确认清理。缺失进程登记、待定启动、身份不符和观察不完整时继续保留占用，不自动重放、不发布成功。
 
-## 静态链路的实际边界
+取消与完成守卫聚合 Agent、候选验证、工程集成和 Ghidra 活动。详细命令与输出目录规则见 [自动静态工程流水线](static-project-pipeline.md)。
 
-NDK 固定 **27.2.12479018/r27c**；Ghidra 固定 **11.3.2**；Temurin JDK 固定 **21.0.8+9**。公开下载 URL/SHA256 在 `toolchains/static.lock.json`，安装到 `work/tools/`。helper/Java exporter/pin 包含于 Python wheel，避免依赖开发 checkout 的资源路径。
+## 验证与复现
 
-`x+7` 对 `7+x` 的实际 ARM64 机器码在声明模型内为 EXACT_EQUIVALENT，`x+8` 为 DIFFERENT。真实 NDK 微库的恢复范围有 **8 个已发现函数、152 个可执行字节**，生成并验证 **1 个函数、8 字节**；**7 个函数和 144 字节**仍保留缺口。局部通过没有缩小全输入分母，也没有给出整库等级。
+固定工具为 NDK **r27c / 27.2.12479018**、Ghidra **11.3.2**、Temurin **21.0.8+9**，来源与 SHA256 见 `toolchains/static.lock.json`。所有样例只执行宿主基础设施；原库、候选库、模拟器和设备程序均不执行。
 
-另一个 v2 逻辑/临时/MOVK 微库实际完成 Ghidra → C++ → NDK → SMT：**1/8 函数、28/184 字节**恢复且局部 EXACT；**7 函数/156 字节**仍为缺口。真实编译器可能把合法 LSR 变成尚未支持的 UBFX，此时候选侧维持 UNKNOWN、solver 不运行。
-
-独立活动的真实正反样本同样分别为局部 EXACT_EQUIVALENT / DIFFERENT；两份源码实际构建后可作为 A1 产物保存，但整体语义/调用 ABI 仍 UNKNOWN。候选提案/独立活动不自动升级质量；可信选择后仍仅局部集合 A1，Job 全库质量 UNKNOWN。完整 C++ UB、入口/全局闭包和实际集成工程仍待实现。
-
-没有真实编译产物或 source/build/artifact 指纹不一致时，源码保留为未构建候选、等级 A0。实际编译后最高 A1；完整类型、原调用 ABI、初始化/全局量及入口闭包仍未知。
-
-语义记录限制输入域、观察寄存器、内存与外部 RET 边界。初始 X30 明确排除两侧内部代码范围；实际 RET 可能回到代码内部则 UNKNOWN。代码/data alias、未知指令或未闭合路径不进入精确通过。始终 `whole_program_equivalence=false`。
-
-真实 Ghidra 负面样本证实：LDXR 可被提升为普通 LOAD，DMB 产生 CALLOTHER，PACIASP 在固定语言下可产生空 Raw P-code；原始 opcode 能力检查仍令三者不获精确语义支持。Raw P-code 导出完整不代表函数发现或处理器模型完整。
-
-## 可复现
+本批增加实际 Clang 签名、类型约束 bundle、受控源码安全、多翻译单元链接、最终字节重证、原库清单、Android Profile、源码 ZIP/CMake 重建、持久宿主恢复及最终报告的正反样例与独立审查。自动样例含 unsigned32/64 函数及浮点、访存、全局量、初始化缺口，要求全输入分母与 UNKNOWN 不丢失。测试总数与最终验收快照在本批代码冻结后统一记录，不与旧批数字混用。
 
 ```bash
 .venv/bin/python scripts/install_static_toolchains.py
 export JAVA_HOME="$PWD/work/tools/jdk-21.0.8+9"
-.venv/bin/python scripts/build_ndk_samples.py --output work/ndk-samples
-.venv/bin/arm64-recover recover-leaf \
-  --binary work/ndk-samples/original/libmicro.so --output work/recovered-leaf \
-  --ndk-root work/tools/android-ndk-r27c --ghidra-home work/tools/ghidra_11.3.2_PUBLIC
-GHIDRA_HOME="$PWD/work/tools/ghidra_11.3.2_PUBLIC" .venv/bin/pytest -q
+export GHIDRA_HOME="$PWD/work/tools/ghidra_11.3.2_PUBLIC"
+export AUTO_REVERSE_TEST_NDK_ROOT="$PWD/work/tools/android-ndk-r27c"
+.venv/bin/pytest -q
+.venv/bin/python scripts/run_project_pipeline_sample.py \
+  --ndk-root work/tools/android-ndk-r27c --output work/project-pipeline-new
 .venv/bin/python scripts/run_static_acceptance.py \
   --ndk-root work/tools/android-ndk-r27c --ghidra-home work/tools/ghidra_11.3.2_PUBLIC \
   --output work/static-matrix-new
-.venv/bin/python scripts/run_candidate_validation_sample.py \
-  --ndk-root work/tools/android-ndk-r27c --output work/validation-sample-new
-.venv/bin/python scripts/run_repair_loop_sample.py \
-  --ndk-root work/tools/android-ndk-r27c --output work/repair-sample-new
-.venv/bin/python scripts/run_evidence_contract_sample.py \
-  --ndk-root work/tools/android-ndk-r27c --output work/evidence-contract-new
 node --test .github/scripts/cleanup-merged-branch.test.cjs
 cd integrations/dsh
 npm ci
@@ -98,32 +79,19 @@ npm test
 npm run preflight
 ```
 
-工具未安装时，对应真实集成测试明确 skip，skip 不算该项验收通过。恢复输出目录要求新建或为空，防止旧成功产物混入本次验证。
+`run_project_pipeline_sample.py` 会生成真实 NDK 原库，调用自动流水线，解包源码 ZIP，用 CMake 再构建并对新产物重新做静态证明。重新构建不继承旧报告的当前权威。工具未配置时对应测试明确 skip；普通 GitHub CI 的工具缺失 skip 不能代替真实 NDK/Ghidra 验收。SDK 预检的模型调用数仍为 0。
 
-本批最终证据保存在 `work/static-matrix-final-acceptance/`、`work/candidate-validation-final-acceptance/`、`work/leaf-v2-ghidra-mixed64/` 和 `work/validation-final-pytest.log`；可审阅摘要见 [本地验收记录](acceptance/2026-10-14-validation.json)。上一批证据仍在原 work 目录。SDK private runtime 含控制凭据，不纳入 Git；公开锁及文档只保存能力/版本事实。
+本批将 [固定工具静态验收 workflow](../.github/workflows/static-acceptance.yml) 接入 PR 自动检查：当 `src/`、`tests/`、`scripts/`、`toolchains/`、`schemas/` 或该 workflow 变化时自动触发，用户无需手动 dispatch。该 job 下载并校验固定 NDK/Ghidra/JDK，安装 CMake 3.31.6，执行静态矩阵、证据契约样例、自动工程 ZIP 重建与新字节证明样例，再使用真实工具环境运行完整 Python 测试，并上传静态证据。workflow 配置已加入本批；远端是否实际成功须以 PR Checks 为准，不预先记作通过。
 
-此前修复证据为 `work/repair-loop-final-acceptance/repair-loop-sample.json` 与 `work/feedback-final-pytest.log`，公开摘要见 [修复与分支验收](acceptance/2026-10-14-feedback.json)。本轮最终证据为 `work/evidence-contract-final-acceptance/evidence-contract-sample.json` 与 `work/evidence-abi-final-pytest.log`，摘要见 [证据与声明验收](acceptance/2026-10-14-evidence-contract.json)。GitHub 日常查看 [使用说明](github-usage.md) 和唯一活动 PR；V1 未完退出条件集中在 [总清单 #4](https://github.com/3437564498/Auto-Reverse/issues/4)。PR #5 已进入 main 且旧分支自动清理完成，新批只增加一个开发分支。
+历史结果保持原文件：[候选验收](acceptance/2026-10-14-validation.json)、[修复与分支验收](acceptance/2026-10-14-feedback.json)、[证据与声明验收](acceptance/2026-10-14-evidence-contract.json)。这些结果对应各自冻结代码，不能直接作为本批新增模块已验收的结论。
 
-## 独立审查修复
+## V1 尚未通过的范围
 
-- CR/line-splice 可绕过 include 约束读取宿主头文件：已用实际 NDK 复现并修复。
-- 共用 worker ID 阻断并发、工具早于真实 bind、root/尾审计错配、取消后的 failure 分类：已修复并回归。
-- 同提案并发重放产生重复提交窗口：真实两个 RPC 进程只得到同回执、一次提交事件。
-- 候选 alias 的 MCP 解析与旧 metadata 缺少 ref：服务共享 resolver，读取以数据库真实 ref 为准。
-- 初版代码页符号内存误接受、RET 内跳截断、取消中新挂产物、分页循环：回归保留。
-- Job 取消漏统计独立验证工具、内部取消/完成守卫不完整：统一资源聚合和当前活动检查，独立审查回归覆盖。
-- 发布事务前 config 变化、只回收 compiler parent 就释放工具资源：事务内重核验，观察进程组退出，未知清理保留隔离。
-- 旧 compiler/helper/proof 指纹仍触发反馈：重核当前工具和证明，旧报告不得派新任务。
-- READY反馈超过64使批次失败、同Activity重排新报告被旧决策压掉：分批保留余量，按(activity_id,report_ref)处理新版本。
-- 已取消且未启动的兄弟验证活动阻挡证据消费：严格确认 CANCELED/NOT_REQUIRED/无占位后允许消费，已运行或隔离仍阻断。
-- Clang `_BitInt(33)` 的 debug 存储宽度被误当标准64位：标准基础声明/unsigned编码/宽度共同限制，真实编译独立回归保持UNKNOWN。
-- 新验证 idempotency key 沿用旧来源绕过当前版本核验：新key重核当前authority，旧exactkey只保留历史回放。
+1. **M0-S 静态可信性完整退出条件**：现有整数/分支/受控内存与负向变异只覆盖明确模型；通用循环、复杂内存/别名、浮点、原子/屏障、PAC 等未闭合能力继续 UNKNOWN。
+2. **完整类型与调用 ABI**：当前仅有限 unsigned 标量声明与签名核验；完整约束求解、聚合/向量返回、对象与字段布局、继承/虚表、this 调整、异常及完整原调用 ABI 尚未验收。
+3. **整库工程和依赖闭包**：局部工程已能真实构建并打包；隐藏/内部函数、递归与互调、间接调用、外部效果、全局/TLS、初始化/析构及入口闭包尚未覆盖完整范围。不能靠缩小导出集合或复制原机器码宣称整库通过。
+4. **完整 Android/JNI Profile**：重定位格式和 API 下界观察已实现；加载器语义、页大小/权限、运行库行为、JNI 普通/Fast/CriticalNative、动态注册与 DEX/Java 上下文仍需专项契约和负向样例。
+5. **M0-R 与真实多 Agent 质量闭环**：缺少真实 DSH 模型环境，真实子会话恢复、截断、客户端重连、取消/清理与实际模型修复闭环未验收。账本 32 名额和注入 Provider 实验不是模型吞吐实验。
+6. **M3 与发布门槛**：同输入/模型/质量规则下的真实 8/16/32 并发比较、Token/成本/延迟和完整质量门槛尚未测量；A2/A3 与发布选择未开放。M1 的零人工修改与可恢复部分链路已有实现，完整端到端退出条件仍未全部通过。
 
-## 后续仍需完成
-
-1. 有真实模型环境后，执行至少两个真实 Fresh DSH 工作者的成功、截断、工具限制、取消/重连及资源对账验收。脚本见 `integrations/dsh/README.md`；不得把注入 Provider 或离线启动当作模型通过。
-2. M0-S 已有固定 27 项矩阵，仍需扩大指令/ABI/完整性/UB 义务及独立 ISA 校验；该子集通过不代表整个 M0-S 完成。
-3. M1 辅助证据转独立核验事实并继续恢复、完整类型/ABI约束求解、候选签名匹配、入口/全局闭包及完整工程集成、可信宿主工具恢复对账；当前确定性修复与声明样例不代表真实模型无人值守全库恢复。
-4. 后续类型/JNI/TLS/重定位、C++ 对象、异常/并发能力增量，以及实际 8/16/32 模型实验、生产 Temporal 和发布验收。
-
-已完成设施与静态链路继续保留；V1 完成判断仍以各里程碑全部退出条件和固定样本验收为准。
+开发继续沿当前唯一活动分支推进；一批 PR 或 Checks 通过不表示完整 V1 收尾。未完工作集中跟踪 [总清单 #4](https://github.com/3437564498/Auto-Reverse/issues/4)，GitHub 操作见 [使用说明](github-usage.md)。

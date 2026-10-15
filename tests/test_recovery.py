@@ -164,7 +164,6 @@ def test_reserved_saved_stack_and_link_registers_stay_outside_mutable_subset(reg
     0xAA0103E0 | (1 << 10),  # shifted ORR-ZR is not the exact MOV alias
     0xD300FC00,  # UBFM with mismatched sf/N
     0x53607C00,  # UBFM W0 with reserved sf/N and immr
-    0xD3407C00,  # general UBFX X0, X0, #0, #32 is not a shift alias
     0x9341FC00,  # ASR X0, X0, #1 signed alias is excluded
 ])
 def test_shift_logic_and_bitfield_mask_neighbors_fail_closed(word):
@@ -174,11 +173,11 @@ def test_shift_logic_and_bitfield_mask_neighbors_fail_closed(word):
 
 
 def test_recovery_capability_version_and_inputs_do_not_claim_original_abi():
-    assert RECOVERY_VERSION == "integer-register-leaf-2"
+    assert RECOVERY_VERSION == "integer-register-leaf-3"
     matrix = recovery_capabilities()
-    assert matrix["matrix_ref"] == "capability://integer-register-leaf-2"
+    assert matrix["matrix_ref"] == "capability://integer-register-leaf-3"
     assert {item["opcode"] for item in matrix["operations"]} == {
-        "ADD", "SUB", "MOV", "MOVK", "AND", "ORR", "EOR", "LSL", "LSR", "NOP", "RET",
+        "ADD", "SUB", "MOV", "MOVK", "AND", "ORR", "EOR", "LSL", "LSR", "UBFX", "UBFIZ", "NOP", "RET",
     }
     model = lift_integer_leaf(words(RET), symbol="identity")["call_model"]
     assert len(model["inputs"]) == 8
@@ -365,10 +364,11 @@ def test_real_ndk_generated_extended_subset_matches_independent_isa_words(tmp_pa
                     if item["kind"] == "machine_model")["target_execution"]
 
 
-def test_actual_compiler_new_bitfield_opcode_does_not_inherit_source_lifting_support(tmp_path):
+def test_actual_compiler_unsigned_bitfield_opcode_is_independently_supported(tmp_path):
     ndk = real_ndk()
     # All original words fit the source subset; the real optimizer changes
-    # the W-register extraction to UBFX X8,X1,#31,#1, outside the verifier.
+    # the W-register extraction to UBFX X8,X1,#31,#1. Its actual encoding
+    # and decoded operands must independently satisfy the newer bitfield model.
     original = words(0x531F7C28, 0x53010000, 0x2A080000, RET)
     lifted = lift_integer_leaf(original, symbol="bitfield_candidate")
     assert lifted["status"] == "SOURCE_GENERATED"
@@ -377,10 +377,11 @@ def test_actual_compiler_new_bitfield_opcode_does_not_inherit_source_lifting_sup
     assert build["status"] == "PASS"
     actual = extract_function(tmp_path / "candidate/libcandidate.so", "bitfield_candidate")
     proof = verify_machine_code(original, actual)
-    assert proof["semantic"]["status"] == "UNKNOWN"
-    assert any(item["side"] == "candidate" and item["opcode"] == "ubfx"
-               for item in proof["semantic"]["unsupported_operations"])
-    assert proof["semantic"]["solver_result"] == "not_run"
+    assert proof["semantic"]["status"] == "EXACT_EQUIVALENT", proof
+    assert not proof["semantic"]["unsupported_operations"]
+    assert any(item["opcode"] == "UBFX" and item["capability"]["unsigned_bitfield"] is not None
+               for item in proof["ir"]["candidate"])
+    assert proof["semantic"]["solver_result"] == "unsat"
 
 
 @pytest.mark.parametrize("name,body,opcodes", [

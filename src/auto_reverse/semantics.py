@@ -21,7 +21,7 @@ from capstone import arm64
 
 from .capabilities import (
     CAPABILITY_MATRIX_REF, CAPABILITY_VERSION, CAPSTONE_PACKAGE_VERSION, INTEGER_OPS, MEMORY_OPS,
-    PINNED_CAPSTONE_VERSION, instruction_capability, register_width,
+    PINNED_CAPSTONE_VERSION, instruction_capability, register_width, unsigned_bitfield_encoding,
 )
 
 PINNED_Z3_VERSION = "4.15.4"
@@ -304,6 +304,21 @@ def _integer(instruction, registers):
     mnemonic, operands = instruction.mnemonic, instruction.operands
     destination = instruction.reg_name(operands[0].reg)
     width = register_width(destination)
+    word = int.from_bytes(instruction.bytes, "little")
+    if word & 0x7F800000 == 0x53000000:
+        encoding = unsigned_bitfield_encoding(word)
+        if encoding is None or not instruction_capability(instruction)["exact_semantics_supported"]:
+            raise _Incomplete("unsigned_bitfield_raw_encoding_or_decoding_invalid")
+        prefix = "x" if encoding["width"] == 64 else "w"
+        source_index = encoding["source_index"]
+        source = prefix + ("zr" if source_index == 31 else str(source_index))
+        raw_value = _read(registers, source)
+        mask = z3.BitVecVal(encoding["mask"], encoding["width"])
+        value = ((z3.LShR(raw_value, encoding["right_shift"]) & mask)
+                 if encoding["kind"] == "extract"
+                 else ((raw_value & mask) << encoding["left_shift"]))
+        _write(registers, destination, value)
+        return
     args = [_operand(instruction, op, registers, width) for op in operands[1:]]
     if mnemonic in {"mov", "movz"}:
         value = args[0]

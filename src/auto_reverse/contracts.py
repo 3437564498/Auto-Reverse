@@ -183,6 +183,7 @@ def write_schemas(directory):
 
     from .abi_contracts import ScalarAbiConstraintsEnvelope
     from .evidence_delivery import EvidenceDeliveryEnvelope
+    from .type_solver import ScalarAbiBundleEnvelope
 
     root = Path(directory)
     root.mkdir(parents=True, exist_ok=True)
@@ -190,7 +191,8 @@ def write_schemas(directory):
                         ("proposal", Proposal), ("policy", RecoveryPolicy),
                         ("cpp-source-candidate", CppSourceCandidate),
                         ("evidence-delivery", EvidenceDeliveryEnvelope),
-                        ("scalar-abi-constraints", ScalarAbiConstraintsEnvelope)]:
+                        ("scalar-abi-constraints", ScalarAbiConstraintsEnvelope),
+                        ("scalar-abi-bundle", ScalarAbiBundleEnvelope)]:
         (root / f"{name}.schema.json").write_text(
             json.dumps(model.model_json_schema(), ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",

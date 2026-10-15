@@ -46,7 +46,8 @@ def _digest(value: Any) -> str:
 def _implementation_fingerprint() -> str:
     root = Path(__file__).parent
     names = ("candidate_selection.py", "candidate_validation.py", "build_gate.py", "abi.py",
-             "intake.py", "semantics.py", "capabilities.py", "recovery.py", "domain.py")
+             "intake.py", "semantics.py", "capabilities.py", "recovery.py", "domain.py",
+             "source_signature.py", "scalar_abi.py", "abi_contracts.py")
     return _digest({name: _sha((root / name).read_bytes()) for name in names})
 
 
@@ -248,6 +249,10 @@ class CandidateSelectionService:
                 raise DomainError("CALL_MODEL_CHANGED", "Recorded scalar call model differs from current version")
             if self._config(frozen, cache) != frozen["build_config"]:
                 raise DomainError("TOOLCHAIN_CHANGED", "Compiler/helper/profile fingerprint changed")
+            authority = self.validation._signature_authority(connection, row["job_id"], row["symbol"])
+            if (authority != frozen.get("source_signature_authority")
+                    or _digest(authority) != frozen.get("source_signature_authority_sha256")):
+                raise DomainError("SOURCE_SIGNATURE_AUTHORITY_CHANGED", "Current declaration authority changed")
             report = self._load(row["report_ref"], cache)
             identities = {"activity_id": row["activity_id"], "job_id": row["job_id"],
                           "execution_key": row["execution_key"], "proposal_id": frozen["proposal_id"],
@@ -262,6 +267,36 @@ class CandidateSelectionService:
                 raise DomainError("INVALID_VALIDATION_REPORT", "Trusted report identity or publication is invalid")
             if report.get("build", {}).get("status") != "PASS":
                 raise DomainError("BUILD_NOT_PASSED", "Candidate has no actual passing build")
+            contract = authority["contract"]
+            if (report.get("source_signature_authority_sha256") != frozen["source_signature_authority_sha256"]
+                    or report.get("scalar_contract_ref") != (contract or {}).get("contract_ref")):
+                raise DomainError("SOURCE_SIGNATURE_BINDING_MISMATCH", "Candidate report has another declaration authority")
+            if contract is not None:
+                ref = report.get("source_signature_manifest_ref")
+                if not isinstance(ref, str) or not connection.execute(
+                    "SELECT 1 FROM job_artifacts WHERE job_id=? AND artifact_ref=?", (row["job_id"], ref)
+                ).fetchone():
+                    raise DomainError("ARTIFACT_SCOPE", "Source signature was not published to this Job")
+                signature = self._load(ref, cache)
+                expected_shape = {key: contract["constraints"][key] for key in ("parameter_widths", "return_width")}
+                provenance = signature.get("provenance", {})
+                if (signature.get("symbol") != row["symbol"] or signature.get("status") != "PASS"
+                        or signature.get("cleanup_confirmed") is not True
+                        or signature.get("source") != {"sha256": frozen["source_sha256"], "size": frozen["source_size"]}
+                        or signature.get("expected_shape") != expected_shape
+                        or signature.get("parameters") != frozen["build_config"]["parameters"]
+                        or signature.get("match") != report.get("candidate_signature_match")
+                        or signature.get("candidate_shape") != report.get("candidate_source_shape")
+                        or provenance.get("toolchain_files") != frozen["build_config"]["toolchain_files"]
+                        or provenance.get("helper_sha256") != frozen["build_config"]["helper_sha256"]
+                        or provenance.get("kernel_sha256") != authority["kernel_sha256"]
+                        or signature.get("original_calling_abi_verified") is not False
+                        or not signature.get("commands")
+                        or any(command.get("cleanup", {}).get("compiler_reaped") is not True
+                               or command.get("cleanup", {}).get("process_group_stopped_confirmed") is not True
+                               or command.get("returncode") != 0 or command.get("timed_out")
+                               or command.get("output_limit_exceeded") for command in signature["commands"])):
+                    raise DomainError("SOURCE_SIGNATURE_BINDING_MISMATCH", "Actual signature/CAS/tool/cleanup binding changed")
             abi = self._load(report["abi_report_ref"], cache)
             candidate_metadata = self.objects.get_metadata(row["candidate_elf_ref"])
             if (abi != report["abi"] or abi.get("structural_status") != "PASS"
