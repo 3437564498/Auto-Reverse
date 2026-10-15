@@ -8,7 +8,7 @@
 
 流水线使用确定性静态生成器，模型调用数为零。DSH 账本、插件和 SDK 离线接线已实现；用户暂时无法提供真实 DSH 模型环境，该项保持未验收。当前进度与 V1 剩余范围见 [实施记录](docs/implementation-status.md)。
 
-本批更新集中在 [PR #7](https://github.com/3437564498/Auto-Reverse/pull/7)。工程流水线基线的真实固定 NDK/Ghidra 本地完整回归为 **1964 passed、0 skipped**，随后继续增加原始结构布局 A0 证据；各增量的来源和限制见 [实施记录](docs/implementation-status.md)。当前分支的远端 Checks 与可审核状态以 PR 为准。
+本批更新集中在 [PR #7](https://github.com/3437564498/Auto-Reverse/pull/7)。原始结构布局增量 `3a2f423` 的 GitHub 真实固定 NDK/Ghidra 完整回归为 **2023 passed、0 skipped**；后续继续增加实际 Clang 候选结构布局核对，等级保持 A0。各增量的来源、验收和限制见 [实施记录](docs/implementation-status.md)，当前远端 Checks 与可审核状态以 PR 为准。
 
 ## 开发与运行
 
@@ -98,4 +98,4 @@ npm run preflight
 
 M0-S 静态语义与 M0-R DSH 受控运行两项原型的完整退出条件尚未全部通过；通过后重新冻结 MVP 子集、工期、成本和验收门槛。性能数字是待校准研发目标，不能解释为 Android `.so` 实测成功率。
 
-更新日期：2026-10-15（Asia/Singapore）。
+更新日期：2026-10-16（Asia/Singapore）。

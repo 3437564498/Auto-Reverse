@@ -1,6 +1,6 @@
 # 实施状态与验收边界
 
-更新：2026-10-15（Asia/Singapore）。设计基线为 [V1 主方案](android-arm64-so-cpp-recovery-V1.md)。`main` 已合并 PR #6（`1c2ef76`）；本批已推送到唯一开发分支 `codex/m1-integrated-project`，见 [PR #7](https://github.com/3437564498/Auto-Reverse/pull/7)。本地冻结验收已完成，远端 Checks 与可审核状态以该 PR 页面为准。
+更新：2026-10-16（Asia/Singapore）。设计基线为 [V1 主方案](android-arm64-so-cpp-recovery-V1.md)。`main` 已合并 PR #6（`1c2ef76`）；开发继续在唯一活动分支 `codex/m1-integrated-project` 和 [PR #7](https://github.com/3437564498/Auto-Reverse/pull/7) 中推进。各验收数字对应下文明确的代码范围，当前 Checks 与可审核状态以该 PR 页面为准。
 
 **完整 V1、M0-S、M0-R 和 M1 的完整退出条件尚未全部验收。** 本批将原有单候选验证扩展为可恢复的自动静态工程流水线，最高交付真实编译的局部 A1。用户暂时无法提供真实 DSH 模型环境，该项保留未验收；确定性静态生成、注入 Provider 和 SDK 离线预检均不计作真实模型验收。
 
@@ -12,6 +12,7 @@
 | 原库清单 | 保留原动态导出、导入、已发现定义函数和可执行区间字节；观察直接调用、SCC、全局量、TLS 和生命周期根 | 间接调用、未知范围、缺失函数和未闭合入口继续形成缺口；完整函数总数未知 |
 | 标量契约 | 原 ELF 的 unsigned32/64 DWARF 声明核验；有界 bundle 原子冻结同一契约版本 | 仅有限声明形状，不等于完整类型推断、对象布局或原调用 ABI 证明 |
 | 原始结构布局证据 | `inspect-dwarf-layouts` 有界读取普通结构的 unsigned32/64 字段、嵌套结构声明范围与原始 DWARF 来源 | 只输出 A0 辅助声明；union、继承、位域、冲突与未知保留 UNKNOWN，尚未接入完整类型约束事务 |
+| 候选结构布局核对 | `inspect-candidate-layouts` 使用实际固定 Clang AST 和宿主编译期断言核对普通/嵌套结构的字段类型、大小和偏移 | 声明匹配仍为 A0；原始缺失的对齐、完整调用 ABI、机器访存语义和聚合类型约束事务继续未知 |
 | 候选签名 | 由固定 Clang 实际 AST 与类型探针提取候选参数和返回类型，对比当前可信标量约束 | 歧义、扩展类型、未知属性与不支持声明不给匹配通过；候选自报类型无权威 |
 | 受限源码生成 | 有类型整数叶函数生成，参数/返回宽度检查，UBFM/UBFX/UBFIZ 支持；固定生成源码另做安全审计 | 只覆盖受支持的 unsigned 叶函数语法；安全审计不证明任意 C++ 或全库无 UB |
 | 工程物化 | 当前所选源码分成独立翻译单元，生成受控公共声明，固定 NDK 真实编译与联合链接 | 不复制原机器码、不补空实现；缺少内部实现或声明冲突时保留失败/未知 |
@@ -62,7 +63,9 @@ SQLite/CAS 持有 Job、DAG、租约、Attempt、回执、Outbox、32 个共享 
 
 工程流水线基线在真实固定 NDK/Ghidra/JDK 下完整回归 **1964 passed、0 skipped、0 failed**（610.86 秒）。独立流水线故障审查 11 项通过；DSH 离线桥接 30 项和分支清理 13 项通过。Ruff、Schema 再生成和安装后 wheel 的模块、资源及流水线指纹检查通过。对应冻结代码及指纹见 [工程验收快照](acceptance/2026-10-15-integrated-project.json)。
 
-随后推进的原始结构布局增量，独立解析测试 56 项、CLI 新增 3 项和既有接口 26 项的组合验收 **85 passed、0 skipped**；真实命令样例检查 10 个原始声明，6 个给出有限声明布局，另 4 个保留 UNKNOWN，全程为 A0。见 [布局证据验收](acceptance/2026-10-15-layout-evidence.json)。该增量未改变工程构建或语义证明内核；当前分支的完整远端检查仍以 PR 为准。
+随后推进的原始结构布局增量，独立解析测试 56 项、CLI 新增 3 项和既有接口 26 项的组合验收 **85 passed、0 skipped**；真实命令样例检查 10 个原始声明，6 个给出有限声明布局，另 4 个保留 UNKNOWN，全程为 A0。见 [布局证据验收](acceptance/2026-10-15-layout-evidence.json)。提交 `3a2f423` 的 [GitHub 固定工具完整验收](https://github.com/3437564498/Auto-Reverse/actions/runs/38725812676) 为 **2023 passed、0 skipped、0 failed**（712.70 秒）；该数字对应原始布局增量，后续候选布局检查另行验收。
+
+候选结构布局增量已完成真实固定 NDK 的 **65 项新增测试**（44 项主测试、17 项独立对抗审查、4 项 CLI），与原始布局、签名和接口组合回归 **204 passed、0 skipped、0 failed**（26.58 秒）。独立审查发现并修复了命名空间被结构体作用域冒充、匿名结构体把额外成员隐藏在原始 padding 中的两处误判；零宽位域和匿名 union 反例也被拒绝。可复现样例实际完成 11 个场景：普通、嵌套、packed 和显式对齐 4 个有限声明匹配，错误类型/偏移/对齐/作用域与缺失原始证据等 7 个保留 FAIL/UNKNOWN。全部为 A0，缺失对齐继续未知。Ruff、Schema 再生成和独立安装的 wheel 模块、资源与 CLI 检查通过，详见 [候选布局验收](acceptance/2026-10-16-candidate-layout.json)。当前增量的完整 GitHub 验收以新提交的 Checks 为准。
 
 真实 CLI 样例保留 5 个原始导出、11 个已发现函数范围和 216 字节可执行分母，恢复并集成 2 个 unsigned32/64 函数；浮点、访存、全局量、初始化继续形成缺口。Ghidra 导出 54 条指令并独立核对原始字节，同目录恢复无新增任务、事件或工具活动，所有资源清理确认。源码 ZIP 解包后 CMake 重建，再对新构建绑定下的 2 个函数重新证明 EXACT，未复用历史证明。详细记录见 [工程流水线样例](acceptance/2026-10-15-project-pipeline.json)。
 
@@ -87,14 +90,14 @@ npm run preflight
 
 `run_project_pipeline_sample.py` 会生成真实 NDK 原库，调用自动流水线，解包源码 ZIP，用 CMake 再构建并对新产物重新做静态证明。重新构建不继承旧报告的当前权威。工具未配置时对应测试明确 skip；普通 GitHub CI 的工具缺失 skip 不能代替真实 NDK/Ghidra 验收。SDK 预检的模型调用数仍为 0。
 
-本批将 [固定工具静态验收 workflow](../.github/workflows/static-acceptance.yml) 接入 PR 自动检查：当 `src/`、`tests/`、`scripts/`、`toolchains/`、`schemas/` 或该 workflow 变化时自动触发，用户无需手动 dispatch。该 job 下载并校验固定 NDK/Ghidra/JDK，安装 CMake 3.31.6，执行静态矩阵、证据契约样例、自动工程 ZIP 重建与新字节证明样例，再使用真实工具环境运行完整 Python 测试，并上传静态证据。workflow 配置已加入本批；远端是否实际成功须以 PR Checks 为准，不预先记作通过。
+本批将 [固定工具静态验收 workflow](../.github/workflows/static-acceptance.yml) 接入 PR 自动检查：当 `src/`、`tests/`、`scripts/`、`toolchains/`、`schemas/` 或该 workflow 变化时自动触发，用户无需手动 dispatch。该 job 下载并校验固定 NDK/Ghidra/JDK，安装 CMake 3.31.6，执行静态矩阵、证据契约样例、自动工程 ZIP 重建与新字节证明样例、11 场景候选结构布局样例，再使用真实工具环境运行完整 Python 测试，并上传静态证据。远端是否实际成功须以当前提交的 PR Checks 为准，不预先记作通过。
 
 历史结果保持原文件：[候选验收](acceptance/2026-10-14-validation.json)、[修复与分支验收](acceptance/2026-10-14-feedback.json)、[证据与声明验收](acceptance/2026-10-14-evidence-contract.json)。这些结果对应各自冻结代码，不能直接作为本批新增模块已验收的结论。
 
 ## V1 尚未通过的范围
 
 1. **M0-S 静态可信性完整退出条件**：现有整数/分支/受控内存与负向变异只覆盖明确模型；通用循环、复杂内存/别名、浮点、原子/屏障、PAC 等未闭合能力继续 UNKNOWN。
-2. **完整类型与调用 ABI**：当前有有限 unsigned 标量契约、候选签名核验和普通结构声明的 A0 布局证据；完整约束求解、聚合/向量返回、对象布局一致性、继承/虚表、this 调整、异常及完整原调用 ABI 尚未验收。
+2. **完整类型与调用 ABI**：当前有有限 unsigned 标量契约、候选签名核验、普通结构声明的 A0 布局证据及有限候选声明核对；完整约束事务、聚合/向量返回、全工程对象布局一致性、继承/虚表、this 调整、异常及完整原调用 ABI 尚未验收。
 3. **整库工程和依赖闭包**：局部工程已能真实构建并打包；隐藏/内部函数、递归与互调、间接调用、外部效果、全局/TLS、初始化/析构及入口闭包尚未覆盖完整范围。不能靠缩小导出集合或复制原机器码宣称整库通过。
 4. **完整 Android/JNI Profile**：重定位格式和 API 下界观察已实现；加载器语义、页大小/权限、运行库行为、JNI 普通/Fast/CriticalNative、动态注册与 DEX/Java 上下文仍需专项契约和负向样例。
 5. **M0-R 与真实多 Agent 质量闭环**：缺少真实 DSH 模型环境，真实子会话恢复、截断、客户端重连、取消/清理与实际模型修复闭环未验收。账本 32 名额和注入 Provider 实验不是模型吞吐实验。

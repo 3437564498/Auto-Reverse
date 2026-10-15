@@ -1,6 +1,6 @@
 # 自动静态工程流水线
 
-更新：2026-10-15（Asia/Singapore）。当前交付最高为真实编译的**局部 A1**，完整 V1 尚未验收。自动入口不调用模型，也不执行原库、候选库、模拟器或设备程序。
+更新：2026-10-16（Asia/Singapore）。当前交付最高为真实编译的**局部 A1**，完整 V1 尚未验收。自动入口不调用模型，也不执行原库、候选库、模拟器或设备程序。
 
 ## 从 `.so` 开始
 
@@ -117,7 +117,30 @@ cmake --build work/project-rebuilt
 
 输入上限为 64 MiB，每次最多检查 128 个聚合声明（包含不支持的声明）。支持的普通结构体列出 unsigned32/64 字段和嵌套结构的声明字节范围，以及原输入、调试区段、CU/DIE 和解析器指纹。无调试信息、类、union、继承、位域、表达式位置、冲突或超出预算时保留 UNKNOWN。
 
-该入口输出原始声明的 A0 辅助证据，供后续类型约束工作使用；调试信息真实性、候选匹配和原调用 ABI 仍未证明。`recover-project` 当前冻结的类型契约仍为有限 unsigned 标量，完整对象布局与类型系统继续列入 V1 缺口。
+该入口输出原始声明的 A0 辅助证据，供后续类型约束工作使用；调试信息真实性和原调用 ABI 仍未证明。`recover-project` 当前冻结的类型契约仍为有限 unsigned 标量，完整对象布局与类型系统继续列入 V1 缺口。
+
+## 核对候选结构体声明
+
+已有受支持的原始布局证据时，可用固定 NDK Clang 核对实际候选源码：
+
+```bash
+.venv/bin/arm64-recover inspect-candidate-layouts \
+  --original ./libtarget.so --source ./candidate.cpp \
+  --type example::Header --type example::Payload \
+  --ndk-root work/tools/android-ndk-r27c --api-level 24 \
+  --output work/candidate-layout-check > work/candidate-layout-report.json
+```
+
+每次指定 1–16 个安全限定类型名，原库上限 64 MiB，候选源码上限 1 MiB，输出目录须为新的或空的目录。原始布局由宿主直接重读；嵌套结构按原始 DWARF 的物理 DIE 引用扩展检查。候选的实际 Clang AST 与宿主生成的编译期断言分别核对普通结构体、唯一字段集合、大小、字段偏移、unsigned32/64 类型和嵌套类型身份；只执行编译器的语法检查，不生成或加载候选库。
+
+`status=PASS` 仅表示有限范围的声明存储约束匹配，报告等级仍为 **A0**。原始 DWARF 没有声明对齐时，这项仍为未知；调试信息真实性、机器访存语义和原调用 ABI 均未证明。缺失或不支持的原始证据不能由候选声明补齐；继承、方法、位域、模板及超出预算的形状保留 FAIL/UNKNOWN。工具内容变化或清理未确认时也不能通过。此命令不会创建 Job、冻结聚合类型契约或提升当前候选质量。
+
+可运行包含真实原库编译、普通/嵌套/packed/显式对齐匹配与错误字段类型、错误偏移和缺失原始证据反例的宿主样例：
+
+```bash
+.venv/bin/python scripts/run_candidate_layout_sample.py \
+  --ndk-root work/tools/android-ndk-r27c --output work/candidate-layout-sample
+```
 
 ## 接续与中断
 

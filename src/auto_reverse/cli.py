@@ -62,6 +62,14 @@ def main(argv=None):
     layouts = commands.add_parser("inspect-dwarf-layouts", help="Read bounded original DWARF structure layout evidence; calling ABI remains unknown")
     layouts.add_argument("--binary", required=True)
     layouts.add_argument("--max-types", type=int, default=128)
+    candidate_layouts = commands.add_parser("inspect-candidate-layouts", help="Compare candidate ordinary structures with original DWARF using fixed Clang; A0 declarations only")
+    candidate_layouts.add_argument("--original", required=True)
+    candidate_layouts.add_argument("--source", required=True)
+    candidate_layouts.add_argument("--type", action="append", required=True, dest="type_names")
+    candidate_layouts.add_argument("--ndk-root", required=True)
+    candidate_layouts.add_argument("--api-level", type=int, default=21)
+    candidate_layouts.add_argument("--timeout-seconds", type=float, default=30)
+    candidate_layouts.add_argument("--output", required=True)
     consume = commands.add_parser("consume-evidence", help="Trusted host: classify an actual evidence Proposal")
     consume.add_argument("--execution-key", required=True)
     consume.add_argument("--artifact-ref", required=True)
@@ -242,6 +250,21 @@ def main(argv=None):
             if len(binary) > 64 * 1024 * 1024:
                 raise ValueError("DWARF layout input exceeds the bounded 64 MiB profile")
             result = inspect_dwarf_layouts(binary, max_types=args.max_types)
+        elif args.command == "inspect-candidate-layouts":
+            from .build_gate import BuildConfig
+            from .candidate_layout import inspect_candidate_layouts
+            with Path(args.original).open("rb") as stream:
+                binary = stream.read(64 * 1024 * 1024 + 1)
+            if len(binary) > 64 * 1024 * 1024:
+                raise ValueError("candidate layout original exceeds the bounded 64 MiB profile")
+            with Path(args.source).open("rb") as stream:
+                source = stream.read(1024 * 1024 + 1)
+            if len(source) > 1024 * 1024:
+                raise ValueError("candidate layout source exceeds the bounded 1 MiB profile")
+            config = BuildConfig(ndk_root=Path(args.ndk_root), api_level=args.api_level,
+                                 timeout_seconds=args.timeout_seconds)
+            result = inspect_candidate_layouts(source.decode("utf-8"), binary, tuple(args.type_names),
+                                               config, Path(args.output))
         elif args.command == "consume-evidence":
             from .evidence_delivery import EvidenceDeliveryService
             result = EvidenceDeliveryService(args.state_dir).consume(args.execution_key, args.artifact_ref)
