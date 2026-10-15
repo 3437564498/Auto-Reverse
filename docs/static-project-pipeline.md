@@ -106,6 +106,19 @@ cmake --build work/project-rebuilt
 
 相关源码、测试、脚本、工具锁、Schema 或静态 workflow 的 PR 变更会自动触发 [固定工具静态验收](../.github/workflows/static-acceptance.yml)。它下载并校验固定 NDK/Ghidra/JDK，安装 CMake 3.31.6，执行完整 Python 测试、静态矩阵和上面的源码 ZIP 重建/新产物证明样例；无需手动 dispatch。普通 CI 未安装真实工具时仍明确 skip，应单独查看该静态 job 的实际结果，不把 workflow 配置本身记作验收通过。
 
+## 检查原始结构布局证据
+
+后续类型工作可先读取原库自身的有限 DWARF 结构声明：
+
+```bash
+.venv/bin/arm64-recover inspect-dwarf-layouts \
+  --binary ./libtarget.so --max-types 128 > work/original-layouts.json
+```
+
+输入上限为 64 MiB，每次最多检查 128 个聚合声明（包含不支持的声明）。支持的普通结构体列出 unsigned32/64 字段和嵌套结构的声明字节范围，以及原输入、调试区段、CU/DIE 和解析器指纹。无调试信息、类、union、继承、位域、表达式位置、冲突或超出预算时保留 UNKNOWN。
+
+该入口输出原始声明的 A0 辅助证据，供后续类型约束工作使用；调试信息真实性、候选匹配和原调用 ABI 仍未证明。`recover-project` 当前冻结的类型契约仍为有限 unsigned 标量，完整对象布局与类型系统继续列入 V1 缺口。
+
 ## 接续与中断
 
 对于相同输入、工具和配置，重复执行原 `recover-project` 命令即可按账本接续。每 Job 使用排他控制器锁；回执、标量 bundle、验证和集成使用幂等身份，已提交结果不重复生成。另一控制器正在推进同一 Job 时返回 `PIPELINE_BUSY`。

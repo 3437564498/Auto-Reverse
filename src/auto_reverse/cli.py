@@ -59,6 +59,9 @@ def main(argv=None):
     scalar = commands.add_parser("inspect-scalar-abi", help="Read bounded original DWARF unsigned declarations")
     scalar.add_argument("--binary", required=True)
     scalar.add_argument("--function", required=True)
+    layouts = commands.add_parser("inspect-dwarf-layouts", help="Read bounded original DWARF structure layout evidence; calling ABI remains unknown")
+    layouts.add_argument("--binary", required=True)
+    layouts.add_argument("--max-types", type=int, default=128)
     consume = commands.add_parser("consume-evidence", help="Trusted host: classify an actual evidence Proposal")
     consume.add_argument("--execution-key", required=True)
     consume.add_argument("--artifact-ref", required=True)
@@ -232,6 +235,13 @@ def main(argv=None):
         elif args.command == "inspect-scalar-abi":
             from .scalar_abi import extract_scalar_abi
             result = extract_scalar_abi(Path(args.binary).read_bytes(), symbol=args.function)
+        elif args.command == "inspect-dwarf-layouts":
+            from .dwarf_layout import inspect_dwarf_layouts
+            with Path(args.binary).open("rb") as stream:
+                binary = stream.read(64 * 1024 * 1024 + 1)
+            if len(binary) > 64 * 1024 * 1024:
+                raise ValueError("DWARF layout input exceeds the bounded 64 MiB profile")
+            result = inspect_dwarf_layouts(binary, max_types=args.max_types)
         elif args.command == "consume-evidence":
             from .evidence_delivery import EvidenceDeliveryService
             result = EvidenceDeliveryService(args.state_dir).consume(args.execution_key, args.artifact_ref)
