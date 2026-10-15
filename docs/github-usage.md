@@ -2,7 +2,7 @@
 
 日常只需要打开 [待审核更新](https://github.com/3437564498/Auto-Reverse/pulls)，查看唯一活动 PR 和它的 **Checks**。这个入口固定，不需要记住每批 PR 编号。PR 是一批代码更新的审核页面，未合并前的修复继续更新同一个页面，不需要在多个开发分支之间选择。
 
-截至 2026-10-15，PR #6 已进入 `main`，当前批次使用 `codex/m1-integrated-project`。本批正在开发和验证；具体推送与可合并状态以 GitHub 页面为准。开发分支出现、PR 建立、Checks 通过和完整 V1 验收是不同状态，不能互相替代。
+截至 2026-10-15，PR #6 已进入 `main`，本批已推送到 `codex/m1-integrated-project`，集中在 [PR #7](https://github.com/3437564498/Auto-Reverse/pull/7)。本地冻结验收已完成；远端 Checks 与可审核状态以该页面为准。开发分支出现、PR 建立、Checks 通过和完整 V1 验收是不同状态，不能互相替代。
 
 | 页面上的名称 | 含义 |
 |---|---|

@@ -75,6 +75,13 @@ flowchart TD
 
 ## 重建源码工程
 
+独立重建验收使用固定 CMake 3.31.6，可先安装：
+
+```bash
+.venv/bin/python -m pip install cmake==3.31.6
+export PATH="$PWD/.venv/bin:$PATH"
+```
+
 解包后按归档自带 README 的固定 API、STL 和 NDK 配置构建。例如默认 API21、shared libc++ 的工程：
 
 ```bash

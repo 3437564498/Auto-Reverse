@@ -8,6 +8,8 @@
 
 流水线使用确定性静态生成器，模型调用数为零。DSH 账本、插件和 SDK 离线接线已实现；用户暂时无法提供真实 DSH 模型环境，该项保持未验收。当前进度与 V1 剩余范围见 [实施记录](docs/implementation-status.md)。
 
+本批更新集中在 [PR #7](https://github.com/3437564498/Auto-Reverse/pull/7)。真实固定 NDK/Ghidra 的本地完整回归为 **1964 passed、0 skipped**，详细来源和限制见 [验收快照](docs/acceptance/2026-10-15-integrated-project.json)。远端 Checks 与可审核状态以 PR 为准。
+
 ## 开发与运行
 
 ```bash

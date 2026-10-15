@@ -1,6 +1,6 @@
 # 实施状态与验收边界
 
-更新：2026-10-15（Asia/Singapore）。设计基线为 [V1 主方案](android-arm64-so-cpp-recovery-V1.md)。`main` 已合并 PR #6（`1c2ef76`）；当前批次在 `codex/m1-integrated-project` 开发和验证。本页描述当前代码能力，推送、PR 与 Checks 状态以 [GitHub](https://github.com/3437564498/Auto-Reverse/pulls) 为准。
+更新：2026-10-15（Asia/Singapore）。设计基线为 [V1 主方案](android-arm64-so-cpp-recovery-V1.md)。`main` 已合并 PR #6（`1c2ef76`）；本批已推送到唯一开发分支 `codex/m1-integrated-project`，见 [PR #7](https://github.com/3437564498/Auto-Reverse/pull/7)。本地冻结验收已完成，远端 Checks 与可审核状态以该 PR 页面为准。
 
 **完整 V1、M0-S、M0-R 和 M1 的完整退出条件尚未全部验收。** 本批将原有单候选验证扩展为可恢复的自动静态工程流水线，最高交付真实编译的局部 A1。用户暂时无法提供真实 DSH 模型环境，该项保留未验收；确定性静态生成、注入 Provider 和 SDK 离线预检均不计作真实模型验收。
 
@@ -59,10 +59,13 @@ SQLite/CAS 持有 Job、DAG、租约、Attempt、回执、Outbox、32 个共享 
 
 固定工具为 NDK **r27c / 27.2.12479018**、Ghidra **11.3.2**、Temurin **21.0.8+9**，来源与 SHA256 见 `toolchains/static.lock.json`。所有样例只执行宿主基础设施；原库、候选库、模拟器和设备程序均不执行。
 
-本批增加实际 Clang 签名、类型约束 bundle、受控源码安全、多翻译单元链接、最终字节重证、原库清单、Android Profile、源码 ZIP/CMake 重建、持久宿主恢复及最终报告的正反样例与独立审查。自动样例含 unsigned32/64 函数及浮点、访存、全局量、初始化缺口，要求全输入分母与 UNKNOWN 不丢失。测试总数与最终验收快照在本批代码冻结后统一记录，不与旧批数字混用。
+本批冻结代码在真实固定 NDK/Ghidra/JDK 下完整回归 **1964 passed、0 skipped、0 failed**（610.86 秒）。独立流水线故障审查 11 项通过；DSH 离线桥接 30 项和分支清理 13 项通过。Ruff、Schema 再生成和安装后 wheel 的模块、资源及流水线指纹检查通过。记录见 [本批验收快照](acceptance/2026-10-15-integrated-project.json)。
+
+真实 CLI 样例保留 5 个原始导出、11 个已发现函数范围和 216 字节可执行分母，恢复并集成 2 个 unsigned32/64 函数；浮点、访存、全局量、初始化继续形成缺口。Ghidra 导出 54 条指令并独立核对原始字节，同目录恢复无新增任务、事件或工具活动，所有资源清理确认。源码 ZIP 解包后 CMake 重建，再对新构建绑定下的 2 个函数重新证明 EXACT，未复用历史证明。详细记录见 [工程流水线样例](acceptance/2026-10-15-project-pipeline.json)。
 
 ```bash
 .venv/bin/python scripts/install_static_toolchains.py
+.venv/bin/python -m pip install cmake==3.31.6
 export JAVA_HOME="$PWD/work/tools/jdk-21.0.8+9"
 export GHIDRA_HOME="$PWD/work/tools/ghidra_11.3.2_PUBLIC"
 export AUTO_REVERSE_TEST_NDK_ROOT="$PWD/work/tools/android-ndk-r27c"
