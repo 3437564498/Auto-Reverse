@@ -4,9 +4,10 @@ Lease/control credentials deliberately are not model-visible fields.
 """
 
 from enum import Enum
-from typing import Literal
+import re
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_serializer, model_validator
 
 
 class Contract(BaseModel):
@@ -26,6 +27,26 @@ class SemanticStatus(str, Enum):
 class Scope(Contract):
     function_ids: list[str] = Field(default_factory=list)
     region_ids: list[str] = Field(default_factory=list)
+    type_ids: list[Annotated[str, Field(pattern=r"^dwarf-layout:[0-9a-f]{64}$", min_length=77, max_length=77)]] = Field(
+        default_factory=list, max_length=16, json_schema_extra={"uniqueItems": True},
+    )
+
+    @field_validator("type_ids")
+    @classmethod
+    def unique_physical_type_ids(cls, value):
+        if (len(value) != len(set(value))
+                or any(re.fullmatch(r"dwarf-layout:[0-9a-f]{64}", item) is None for item in value)):
+            raise ValueError("type_ids must contain unique original physical DWARF layout IDs")
+        return value
+
+    @model_serializer(mode="wrap")
+    def canonical_scope(self, handler):
+        # Empty type scope has the same canonical representation as historical
+        # WorkPackages. Never rewrite old task/receipt hashes to add a default.
+        result = handler(self)
+        if not self.type_ids:
+            result.pop("type_ids", None)
+        return result
 
 
 class Limits(Contract):
@@ -183,6 +204,7 @@ def write_schemas(directory):
 
     from .abi_contracts import ScalarAbiConstraintsEnvelope
     from .evidence_delivery import EvidenceDeliveryEnvelope
+    from .layout_contracts import LayoutBundleEnvelope
     from .type_solver import ScalarAbiBundleEnvelope
 
     root = Path(directory)
@@ -192,7 +214,8 @@ def write_schemas(directory):
                         ("cpp-source-candidate", CppSourceCandidate),
                         ("evidence-delivery", EvidenceDeliveryEnvelope),
                         ("scalar-abi-constraints", ScalarAbiConstraintsEnvelope),
-                        ("scalar-abi-bundle", ScalarAbiBundleEnvelope)]:
+                        ("scalar-abi-bundle", ScalarAbiBundleEnvelope),
+                        ("original-layout-bundle", LayoutBundleEnvelope)]:
         (root / f"{name}.schema.json").write_text(
             json.dumps(model.model_json_schema(), ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",

@@ -1,0 +1,59 @@
+{
+  "$defs": {
+    "LayoutRoot": {
+      "additionalProperties": false,
+      "properties": {
+        "type_id": {
+          "maxLength": 77,
+          "minLength": 77,
+          "pattern": "^dwarf-layout:[0-9a-f]{64}$",
+          "title": "Type Id",
+          "type": "string"
+        },
+        "expected_declaration_binding_sha256": {
+          "maxLength": 64,
+          "minLength": 64,
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Expected Declaration Binding Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type_id",
+        "expected_declaration_binding_sha256"
+      ],
+      "title": "LayoutRoot",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A bounded selection of original declarations, never a verification claim.",
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "kind": {
+      "const": "original_layout_bundle",
+      "title": "Kind",
+      "type": "string"
+    },
+    "roots": {
+      "items": {
+        "$ref": "#/$defs/LayoutRoot"
+      },
+      "maxItems": 16,
+      "minItems": 1,
+      "title": "Roots",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "roots"
+  ],
+  "title": "LayoutBundleEnvelope",
+  "type": "object"
+}

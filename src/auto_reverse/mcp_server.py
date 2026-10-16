@@ -102,6 +102,16 @@ def create_server(state_dir, *, host="127.0.0.1", port=8765):
         return service.list_abi_contracts(job_id, cursor, limit)
 
     @server.tool()
+    def get_layout_contracts(job_id: str) -> dict[str, Any]:
+        """Read current original structure storage declarations; no freezing, compiler or calling ABI proof."""
+        return service.get_layout_contracts(job_id)
+
+    @server.tool()
+    def list_layout_contracts(job_id: str, cursor: int = 0, limit: int = 100) -> dict[str, Any]:
+        """Read bounded Job-owned layout contract history without creating host tables."""
+        return service.list_layout_contracts(job_id, cursor, limit)
+
+    @server.tool()
     def list_integrations(job_id: str, cursor: int = 0, limit: int = 100) -> dict[str, Any]:
         """Read persisted project builds; creates no activity, compiler or optional host tables."""
         return service.list_integrations(job_id, cursor, limit)

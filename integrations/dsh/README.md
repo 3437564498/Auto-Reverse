@@ -28,7 +28,7 @@ python -m auto_reverse.cli --state-dir <state> domain-rpc
 
 提交给独立构建活动的 C++ 候选使用四字段 envelope：`{schema_version:1,kind:"cpp_source",symbol,source}`，完整 Schema 由 `contract_read.source_candidate_contract` 提供。后端核对实际回执、冻结函数范围和配置后独立 NDK 编译、ABI 结构检查和机器比较；额外 flags/quality/路径不会成为编译参数。该活动不会阻塞工作子会话，也不自动提升 Job quality。后续宿主及 MCP 读取接口见 [持久候选验收](../../docs/candidate-validation.md)。
 
-`type_abi` / `evidence` 工作者同样使用已有 `candidate_stage` / Proposal 接口，但交付分别为 `scalar_abi_constraints` 和 `scoped_evidence` / `evidence_gap`；Schema 与当前声明约束通过 `contract_read` 提供。可信宿主独立消费和冻结，工作者没有对应权限。实际两个角色的桥接及权限回归已覆盖，真实模型仍未调用；边界见 [证据与声明契约](../../docs/evidence-contracts.md)。
+`type_abi` / `evidence` 工作者同样使用已有 `candidate_stage` / Proposal 接口。函数类型包提交 `scalar_abi_constraints` / `scalar_abi_bundle`；带专用 `scope.type_ids` 的布局包提交 `original_layout_bundle`，不能将类型名塞进函数作用域。证据角色提交 `scoped_evidence` / `evidence_gap`。Schema 与当前声明约束通过 `contract_read` 提供。工包须明确授予 `candidate_submit`；`constraint_submit` 尚不具备独立暂存通路。可信宿主独立消费和冻结，工作者没有冻结权限。空类型作用域省略以兼容旧任务。真实模型仍未调用；边界见 [证据与声明契约](../../docs/evidence-contracts.md)。
 
 工具若早于 `startActivation` 返回便开始执行，会等待 `attempt.bind` 真实 RPC 成功后再发送领域请求。该等待有超时和 AbortSignal，绑定失败不会绕过权限。真实 RPC 回归覆盖此时序，没有通过人工 scheduler tick 避开它。
 

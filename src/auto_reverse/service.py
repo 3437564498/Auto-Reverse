@@ -38,7 +38,8 @@ class RecoveryService:
                             "full_input_library_inventory", "android_loader_observations",
                             "partial_project_integration", "durable_final_delivery",
                             "host_tool_reconciliation", "static_recovery_pipeline", "durable_static_analysis",
-                            "original_dwarf_layout_evidence", "candidate_structure_layout_comparison"],
+                            "original_dwarf_layout_evidence", "candidate_structure_layout_comparison",
+                            "original_layout_catalog", "versioned_original_layout_constraints"],
             "recovery_system_complete": False,
             "dsh_model_integration_verified": False,
             "ndk_build_integration_verified": False,
@@ -53,9 +54,10 @@ class RecoveryService:
                 "selection": "Best available local candidates; unintegrated collection; whole-library quality unknown",
                 "evidence_delivery": "Bounded auxiliary findings/gaps; no trusted-fact or quality promotion",
                 "scalar_abi": "Original unsigned 32/64 DWARF declarations only; calling ABI remains unverified",
-                "type_solver": "Finite original unsigned scalar declarations; no pointer, layout, class or JNI inference",
+                "type_solver": "Finite original unsigned scalar and ordinary-structure storage declarations; no aggregate calling ABI, class or JNI inference",
                 "layout_evidence": "Bounded original ordinary-structure DWARF storage observations; A0 evidence, original calling ABI unverified",
-                "candidate_layout": "Fixed Clang checks ordinary unsigned structure declarations against original DWARF; A0 only, no frozen aggregate contract or calling ABI proof",
+                "candidate_layout": "Fixed Clang checks ordinary unsigned structure declarations; A0 only, candidate/project dependencies on frozen layouts remain unsupported",
+                "layout_contracts": "Physical original DWARF type scope and atomic current/history; A0 declarations only, candidate/project dependencies remain unsupported",
                 "project_integration": "Trusted host compiles selected source subsets and verifies final linked bytes statically",
                 "final_delivery": "Version-bound reports preserve original denominators, cleanup, and unresolved library gaps",
                 "android_profile": "Static relocation, lifecycle and loader observations; Android loadability remains unverified",
@@ -252,6 +254,19 @@ class RecoveryService:
         with closing(self.domain._connect()) as connection:
             connection.execute("BEGIN")
             return AbiContractService.read_history(connection, job_id, cursor=cursor, limit=limit)
+
+    def get_layout_contracts(self, job_id: str) -> dict:
+        from .layout_contracts import LayoutContractService
+        with closing(self.domain._connect()) as connection:
+            connection.execute("BEGIN")
+            return LayoutContractService.read_current(connection, job_id, self.objects)
+
+    def list_layout_contracts(self, job_id: str, cursor=0, limit=100) -> dict:
+        from .layout_contracts import LayoutContractService
+        cursor, limit = self.domain._page(cursor, limit)
+        with closing(self.domain._connect()) as connection:
+            connection.execute("BEGIN")
+            return LayoutContractService.read_history(connection, job_id, cursor=cursor, limit=limit)
 
     def list_integrations(self, job_id: str, cursor=0, limit=100) -> dict:
         from .project_service import ProjectIntegrationService

@@ -207,8 +207,9 @@ class CandidateValidationService:
             raise DomainError("REPORT_NOT_READY", "Validation has no persisted report yet")
         return json.loads(self.objects.resolve_artifact(record["report_ref"]).read_bytes())
 
-    def _identity(self, connection: sqlite3.Connection, execution_key: str,
-                  candidate_ref: str, symbol: str) -> dict[str, Any]:
+    def _delivery_identity(self, connection: sqlite3.Connection, execution_key: str,
+                           candidate_ref: str) -> dict[str, Any]:
+        """Verify a committed delivery without inventing a function/type scope."""
         receipt_row = self.domain._row(connection, "receipts", "execution_key", execution_key)
         receipt = json.loads(receipt_row["receipt"])
         proposal = self.domain._row(connection, "proposals", "proposal_id", receipt["proposal_id"])
@@ -234,8 +235,6 @@ class CandidateValidationService:
         if job["state"] not in {"QUEUED", "RUNNING"} or task["state"] in {
                 "CANCELLED", "SUPERSEDED", "FAILED", "BLOCKED"}:
             raise DomainError("JOB_NOT_WRITABLE", "Ended or cancelling work cannot be validated")
-        if symbol not in work["scope"]["function_ids"]:
-            raise DomainError("FUNCTION_SCOPE", "Symbol is outside the frozen function scope")
         if candidate_ref not in payload["artifact_refs"]:
             raise DomainError("ARTIFACT_SCOPE", "Candidate is absent from the committed proposal")
         alias = connection.execute(
@@ -250,6 +249,17 @@ class CandidateValidationService:
         return {**identities, "proposal_id": proposal["proposal_id"], "task_epoch": task["epoch"],
                 "candidate_cas_ref": alias["artifact_id"], "candidate_sha256": alias["sha256"],
                 "candidate_size": alias["size"], "input_ref": json.loads(job["data"])["input_ref"]}
+
+    def _identity(self, connection: sqlite3.Connection, execution_key: str,
+                  candidate_ref: str, symbol: str) -> dict[str, Any]:
+        frozen = self._delivery_identity(connection, execution_key, candidate_ref)
+        task = self.domain._row(connection, "tasks", "task_id", frozen["task_id"])
+        scope = json.loads(task["data"])["scope"]
+        if symbol not in scope["function_ids"]:
+            raise DomainError("FUNCTION_SCOPE", "Symbol is outside the frozen function scope")
+        if scope.get("type_ids"):
+            raise DomainError("TYPE_SCOPE_NOT_IMPLEMENTED", "Candidate validation does not yet verify frozen type dependencies")
+        return frozen
 
     def enqueue(self, execution_key: str, candidate_ref: str, *, symbol: str,
                 idempotency_key: str) -> dict[str, Any]:

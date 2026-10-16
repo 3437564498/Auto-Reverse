@@ -53,6 +53,11 @@ jobs:
           python scripts/run_candidate_layout_sample.py
           --ndk-root work/tools/android-ndk-r27c
           --output work/candidate-layout-acceptance
+      - name: Freeze original layout declarations through a real leased offline delivery
+        run: >-
+          python scripts/run_layout_contract_sample.py
+          --ndk-root work/tools/android-ndk-r27c
+          --output work/layout-contract-acceptance
       - name: Test durable tool activities, current authority and failure windows with real tools
         env:
           AUTO_REVERSE_TEST_NDK_ROOT: ${{ github.workspace }}/work/tools/android-ndk-r27c
@@ -70,4 +75,5 @@ jobs:
             work/project-pipeline-acceptance/project-pipeline-sample.json
             work/project-pipeline-acceptance/recovered/project.zip
             work/candidate-layout-acceptance/candidate-layout-sample.json
+            work/layout-contract-acceptance/layout-contract-sample.json
           if-no-files-found: warn
