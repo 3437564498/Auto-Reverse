@@ -1,6 +1,6 @@
 # 实施状态与验收边界
 
-更新：2026-10-16（Asia/Singapore）。设计基线为 [V1 主方案](android-arm64-so-cpp-recovery-V1.md)。`main` 已合并 PR #6（`1c2ef76`）；开发继续在唯一活动分支 `codex/m1-integrated-project` 和 [PR #7](https://github.com/3437564498/Auto-Reverse/pull/7) 中推进。各验收数字对应下文明确的代码范围，当前 Checks 与可审核状态以该 PR 页面为准。
+更新：2026-10-16（Asia/Singapore）。设计基线为 [V1 主方案](android-arm64-so-cpp-recovery-V1.md)。`main` 已合并 PR #7（`8e5d8ae`）；原始布局声明事务继续在唯一活动分支 `codex/m1-integrated-project` 推进，集中在 [待审核更新](https://github.com/3437564498/Auto-Reverse/pulls) 的活动 PR。各验收数字对应下文明确的代码范围，当前 Checks 与可审核状态以活动 PR 页面为准。
 
 **完整 V1、M0-S、M0-R 和 M1 的完整退出条件尚未全部验收。** 本批将原有单候选验证扩展为可恢复的自动静态工程流水线，最高交付真实编译的局部 A1。用户暂时无法提供真实 DSH 模型环境，该项保留未验收；确定性静态生成、注入 Provider 和 SDK 离线预检均不计作真实模型验收。
 

@@ -118,7 +118,7 @@
     "failed": 0,
     "seconds": 669.74
   },
-  "remote_verification_for_this_increment": "See PR #7 Checks for the commit containing these source fingerprints; this snapshot records local pre-push acceptance.",
+  "remote_verification_for_this_increment": "See the active pull request Checks for the commit containing these source fingerprints; this snapshot records local pre-push acceptance.",
   "artifact_level": "A0",
   "model_calls": 0,
   "target_or_candidate_executed": false,
