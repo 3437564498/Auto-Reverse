@@ -1,0 +1,1351 @@
+{
+  "schema_version": 1,
+  "accepted_on": "2026-10-16",
+  "timezone": "Asia/Singapore",
+  "scope": "bounded fixed-Clang candidate structure declarations compared with original embedded DWARF",
+  "base_commit": "3a2f4235a02176f541bb8a4447e2bfe49be8de08",
+  "source_fingerprints": {
+    "src/auto_reverse/candidate_layout.py": "17548369d84b1d560ac29944cd6443fa5a1e7f07d23d815eabc529fd4405f245",
+    "src/auto_reverse/cli.py": "c4e6724f7ef66bd454db666b41f4f9e16b57da84ab79e9fa410942ab7518a8e1",
+    "src/auto_reverse/service.py": "82b48f71bada3a99190488d6092bd10ebc381bd21ca8dc7f1c2ead57325dbc5e",
+    "tests/test_candidate_layout.py": "95db4ddb1980ce71d7c63e2917fb8dde9cd6492696d7124595f993d88d67d2e5",
+    "tests/test_candidate_layout_adversarial.py": "d54b4684712fa0f9a6632488545822e0552344e794c6ced8f46f292aa230681f",
+    "tests/test_candidate_layout_cli.py": "4fbadb59e2ef3c2e0a4efbc8b35370094877302cb2c0ee78cb0db699820c40cf",
+    "scripts/run_candidate_layout_sample.py": "ef8bdb01ee99c645fadf336b88eac923fbfe9043d82b8254b2667519feb6bdd6",
+    ".github/workflows/static-acceptance.yml": "7a245a2c529a1d525d68abebaebbe064f95fbcabcd5b37625f8a13e948345319"
+  },
+  "kernel_sha256": "0c5062bf34dbf3df306ff43971d1ca31fd56befe7d1fb6d74996c5cd9e008fb6",
+  "incremental_tests": {
+    "passed": 65,
+    "skipped": 0,
+    "failed": 0,
+    "main": 44,
+    "independent_adversarial": 17,
+    "cli": 4
+  },
+  "combined_regression": {
+    "passed": 204,
+    "skipped": 0,
+    "failed": 0,
+    "warnings": 1,
+    "seconds": 26.58
+  },
+  "ruff": "PASS",
+  "schema_regeneration": "UNCHANGED",
+  "installed_wheel_module_resources_and_cli": "PASS",
+  "review_findings_fixed": [
+    "namespace/structure scope-kind substitution",
+    "anonymous structure member hidden in original padding"
+  ],
+  "sample": {
+    "schema_version": 1,
+    "kind": "candidate_layout_sample",
+    "status": "PASS",
+    "fixture_source_sha256": "790a924456374841eeada0ff4ec23337e5bf4965c24ec6862a6d745cd4aa4f40",
+    "original_sha256": "079e8cc701c517989ee08095bf93675e2e5348dcafadf7a030d8ac90cbca8a12",
+    "cases": [
+      {
+        "name": "ordinary",
+        "type_names": [
+          "sample::Plain"
+        ],
+        "status": "PASS",
+        "reason_code": "DECLARED_STRUCTURE_LAYOUT_MATCH",
+        "artifact_level": "A0",
+        "source_sha256": "c56f15463f533db028557df802a06b5461d9ad6d34bf9000692f2b9ef2630ecb",
+        "report_sha256": "0e5ceedf622e68a7d5dbbdbde048f19c5cda0770e02c2369917bf016b9139519",
+        "cleanup_confirmed": true
+      },
+      {
+        "name": "nested",
+        "type_names": [
+          "sample::Nested"
+        ],
+        "status": "PASS",
+        "reason_code": "DECLARED_STRUCTURE_LAYOUT_MATCH",
+        "artifact_level": "A0",
+        "source_sha256": "c56f15463f533db028557df802a06b5461d9ad6d34bf9000692f2b9ef2630ecb",
+        "report_sha256": "e323016553f54f8fce526ce5a43615ff46d8a12c8fd3adf9c66ad0dc7887c2c7",
+        "cleanup_confirmed": true
+      },
+      {
+        "name": "packed",
+        "type_names": [
+          "sample::Packed"
+        ],
+        "status": "PASS",
+        "reason_code": "DECLARED_STRUCTURE_LAYOUT_MATCH",
+        "artifact_level": "A0",
+        "source_sha256": "c56f15463f533db028557df802a06b5461d9ad6d34bf9000692f2b9ef2630ecb",
+        "report_sha256": "1b04647a09950c7c820963cbee70480dc568240d59af79fd502b88eefc07f186",
+        "cleanup_confirmed": true
+      },
+      {
+        "name": "explicit_alignment",
+        "type_names": [
+          "sample::Aligned"
+        ],
+        "status": "PASS",
+        "reason_code": "DECLARED_STRUCTURE_LAYOUT_MATCH",
+        "artifact_level": "A0",
+        "source_sha256": "c56f15463f533db028557df802a06b5461d9ad6d34bf9000692f2b9ef2630ecb",
+        "report_sha256": "0cf410e7faeb3d30b7cdd1b82d23fd239e51431268e1b78e73d534cdf2790388",
+        "cleanup_confirmed": true
+      },
+      {
+        "name": "wrong_same_size_type",
+        "type_names": [
+          "sample::Plain"
+        ],
+        "status": "FAIL",
+        "reason_code": "DECLARED_STRUCTURE_LAYOUT_MISMATCH",
+        "artifact_level": "A0",
+        "source_sha256": "9995f2137847d32429ffa19be4b4e440ff0f0ff4203021f282efad1f06295089",
+        "report_sha256": "a2719d5136e41b030d433cc9de83bc72b572d776b2a1e66dc1e19d418047b67f",
+        "cleanup_confirmed": true
+      },
+      {
+        "name": "wrong_field_offsets",
+        "type_names": [
+          "sample::Plain"
+        ],
+        "status": "FAIL",
+        "reason_code": "DECLARED_STRUCTURE_LAYOUT_MISMATCH",
+        "artifact_level": "A0",
+        "source_sha256": "57bbe1f05d12605ccc6e591f92b088b560afc329c0239ebb1046d7a137325d5f",
+        "report_sha256": "4f5fc31604769b3c2a6c7d4049c3dce72080ff9206e2e04dbf64f46dd2a13239",
+        "cleanup_confirmed": true
+      },
+      {
+        "name": "anonymous_member_in_padding",
+        "type_names": [
+          "sample::Plain"
+        ],
+        "status": "UNKNOWN",
+        "reason_code": "CANDIDATE_LAYOUT_UNSUPPORTED",
+        "artifact_level": "A0",
+        "source_sha256": "011f893b35deb898f398ae5c01f789fa0471c6f3bd8a32962d9f63d1b1d02152",
+        "report_sha256": "754a8bb5e178f27b3c3d46638bbd380636aa2bda73aeee397fc25e12bb8c75e3",
+        "cleanup_confirmed": true
+      },
+      {
+        "name": "namespace_replaced_by_struct",
+        "type_names": [
+          "sample::Plain"
+        ],
+        "status": "FAIL",
+        "reason_code": "DECLARED_STRUCTURE_LAYOUT_MISMATCH",
+        "artifact_level": "A0",
+        "source_sha256": "14a7bdc04281fea195d4e2812693bc7248a94722c51016f316a142227e020c77",
+        "report_sha256": "f99f2a2f756bbaad7110518d226f4a5c2f920ebd66caeeba44574a55f0064d06",
+        "cleanup_confirmed": true
+      },
+      {
+        "name": "wrong_declared_alignment",
+        "type_names": [
+          "sample::Aligned"
+        ],
+        "status": "FAIL",
+        "reason_code": "DECLARED_STRUCTURE_LAYOUT_MISMATCH",
+        "artifact_level": "A0",
+        "source_sha256": "2ad130ca0b9e856ea6abef30bbfd0b661a8d88a9b19d014880a9c56e7b23397c",
+        "report_sha256": "be86eb320b51ff47dd089de7e02cbd67284d532c17e47d95b473c2ef44619fe2",
+        "cleanup_confirmed": true
+      },
+      {
+        "name": "unsupported_original_union",
+        "type_names": [
+          "sample::Unsupported"
+        ],
+        "status": "UNKNOWN",
+        "reason_code": "ORIGINAL_LAYOUT_UNAVAILABLE",
+        "artifact_level": "A0",
+        "source_sha256": "c56f15463f533db028557df802a06b5461d9ad6d34bf9000692f2b9ef2630ecb",
+        "report_sha256": "ca7fac640a63ed8987213f44ddf10b7db9fa4a0130ffcbafa09ae604066b1e71",
+        "cleanup_confirmed": true
+      },
+      {
+        "name": "candidate_cannot_supply_missing_original",
+        "type_names": [
+          "Invented"
+        ],
+        "status": "UNKNOWN",
+        "reason_code": "ORIGINAL_LAYOUT_UNAVAILABLE",
+        "artifact_level": "A0",
+        "source_sha256": "99b1954c73bf049c71ed254deeff27ea21016aee92545370d5f03e5c50fd907e",
+        "report_sha256": "63b1b5d30558b694fc6bafb787821529e0858e387e4fc64704d70aec7fcfbd02",
+        "cleanup_confirmed": true
+      }
+    ],
+    "case_count": 11,
+    "matched_declarations": 4,
+    "artifact_level": "A0",
+    "model_calls": 0,
+    "target_or_candidate_executed": false,
+    "original_calling_abi_verified": false,
+    "full_type_system_solved": false,
+    "whole_program_equivalence": false,
+    "v1_complete": false
+  },
+  "original_layouts": {
+    "schema_version": 1,
+    "kind": "original_dwarf_layout_evidence",
+    "profile": "ordinary-unsigned-structure-layout-v1",
+    "status": "PARTIAL",
+    "input_sha256": "079e8cc701c517989ee08095bf93675e2e5348dcafadf7a030d8ac90cbca8a12",
+    "input_size": 3720,
+    "artifact_level": "A0",
+    "original_calling_abi_verified": false,
+    "full_type_system_solved": false,
+    "whole_program_equivalence": false,
+    "debug_information_authenticity_verified": false,
+    "candidate_declarations_used": false,
+    "implementation_fingerprints": {
+      "dwarf_layout.py": "5a214e403a3e93f6781f22080d683c73f01448a75adb3e9f20fd607d1fb8f8d7",
+      "scalar_abi.py": "9e34fa06c5ca3c32d0c99422a575400ab63466da469792bf46589a64b7be6807"
+    },
+    "evidence": {
+      "source": "original_embedded_dwarf",
+      "debug_sections": [
+        {
+          "name": ".debug_abbrev",
+          "size": 114,
+          "sha256": "3a34cd7a6e00daf4d167e93176c742922fa2211e6aa0cc9621a68d63b3061148"
+        },
+        {
+          "name": ".debug_info",
+          "size": 349,
+          "sha256": "40edb93c0d2ccccb64fda4c361d0079fb05b6bcd7200369e4f048a67009d0b21"
+        },
+        {
+          "name": ".debug_line",
+          "size": 46,
+          "sha256": "af8d833c3333326675e5352d69a4ece7be723fa123b1433319a237236c52038b"
+        },
+        {
+          "name": ".debug_str",
+          "size": 490,
+          "sha256": "ffe30875173b4fef44125690f78cad01120aa3164b46e15fbe3e8977fcd1cf1b"
+        }
+      ]
+    },
+    "limits": {
+      "max_types": 128,
+      "max_members": 128,
+      "max_input_bytes": 67108864,
+      "max_type_bytes": 16777216,
+      "max_nested_depth": 16
+    },
+    "aggregate_declaration_count": 6,
+    "inspected_type_count": 6,
+    "supported_type_count": 5,
+    "truncated": false,
+    "types": [
+      {
+        "source": {
+          "cu_offset": 0,
+          "die_offset": 56,
+          "dwarf_version": 4,
+          "language": 33
+        },
+        "tag": "DW_TAG_structure_type",
+        "name": "Plain",
+        "qualified_name": "sample::Plain",
+        "status": "DECLARED_DEBUG_LAYOUT",
+        "byte_size": 16,
+        "declared_alignment": null,
+        "fields": [
+          {
+            "source": {
+              "cu_offset": 0,
+              "die_offset": 65,
+              "dwarf_version": 4,
+              "language": 33
+            },
+            "name": "low",
+            "status": "DECLARED_RANGE",
+            "byte_offset": 0,
+            "byte_end": 4,
+            "storage": {
+              "kind": "unsigned_scalar",
+              "byte_size": 4,
+              "bit_width": 32,
+              "type_die_offset": 250,
+              "type_chain": [
+                {
+                  "cu_offset": 0,
+                  "die_offset": 250,
+                  "dwarf_version": 4,
+                  "language": 33,
+                  "tag": "DW_TAG_base_type"
+                }
+              ],
+              "scalar_evidence": {
+                "base_die_offset": 250,
+                "encoding": "DW_ATE_unsigned",
+                "byte_size": 4,
+                "type_chain": [
+                  {
+                    "die_offset": 250,
+                    "tag": "DW_TAG_base_type"
+                  }
+                ]
+              }
+            },
+            "reason": ""
+          },
+          {
+            "source": {
+              "cu_offset": 0,
+              "die_offset": 77,
+              "dwarf_version": 4,
+              "language": 33
+            },
+            "name": "high",
+            "status": "DECLARED_RANGE",
+            "byte_offset": 8,
+            "byte_end": 16,
+            "storage": {
+              "kind": "unsigned_scalar",
+              "byte_size": 8,
+              "bit_width": 64,
+              "type_die_offset": 257,
+              "type_chain": [
+                {
+                  "cu_offset": 0,
+                  "die_offset": 257,
+                  "dwarf_version": 4,
+                  "language": 33,
+                  "tag": "DW_TAG_base_type"
+                }
+              ],
+              "scalar_evidence": {
+                "base_die_offset": 257,
+                "encoding": "DW_ATE_unsigned",
+                "byte_size": 8,
+                "type_chain": [
+                  {
+                    "die_offset": 257,
+                    "tag": "DW_TAG_base_type"
+                  }
+                ]
+              }
+            },
+            "reason": ""
+          }
+        ],
+        "reasons": []
+      },
+      {
+        "source": {
+          "cu_offset": 0,
+          "die_offset": 90,
+          "dwarf_version": 4,
+          "language": 33
+        },
+        "tag": "DW_TAG_structure_type",
+        "name": "Nested",
+        "qualified_name": "sample::Nested",
+        "status": "DECLARED_DEBUG_LAYOUT",
+        "byte_size": 16,
+        "declared_alignment": null,
+        "fields": [
+          {
+            "source": {
+              "cu_offset": 0,
+              "die_offset": 99,
+              "dwarf_version": 4,
+              "language": 33
+            },
+            "name": "inner",
+            "status": "DECLARED_RANGE",
+            "byte_offset": 0,
+            "byte_end": 4,
+            "storage": {
+              "kind": "structure",
+              "byte_size": 4,
+              "type_die_offset": 124,
+              "type_chain": [
+                {
+                  "cu_offset": 0,
+                  "die_offset": 124,
+                  "dwarf_version": 4,
+                  "language": 33,
+                  "tag": "DW_TAG_structure_type"
+                }
+              ]
+            },
+            "reason": ""
+          },
+          {
+            "source": {
+              "cu_offset": 0,
+              "die_offset": 111,
+              "dwarf_version": 4,
+              "language": 33
+            },
+            "name": "count",
+            "status": "DECLARED_RANGE",
+            "byte_offset": 8,
+            "byte_end": 16,
+            "storage": {
+              "kind": "unsigned_scalar",
+              "byte_size": 8,
+              "bit_width": 64,
+              "type_die_offset": 257,
+              "type_chain": [
+                {
+                  "cu_offset": 0,
+                  "die_offset": 257,
+                  "dwarf_version": 4,
+                  "language": 33,
+                  "tag": "DW_TAG_base_type"
+                }
+              ],
+              "scalar_evidence": {
+                "base_die_offset": 257,
+                "encoding": "DW_ATE_unsigned",
+                "byte_size": 8,
+                "type_chain": [
+                  {
+                    "die_offset": 257,
+                    "tag": "DW_TAG_base_type"
+                  }
+                ]
+              }
+            },
+            "reason": ""
+          }
+        ],
+        "reasons": []
+      },
+      {
+        "source": {
+          "cu_offset": 0,
+          "die_offset": 124,
+          "dwarf_version": 4,
+          "language": 33
+        },
+        "tag": "DW_TAG_structure_type",
+        "name": "Inner",
+        "qualified_name": "sample::Inner",
+        "status": "DECLARED_DEBUG_LAYOUT",
+        "byte_size": 4,
+        "declared_alignment": null,
+        "fields": [
+          {
+            "source": {
+              "cu_offset": 0,
+              "die_offset": 133,
+              "dwarf_version": 4,
+              "language": 33
+            },
+            "name": "word",
+            "status": "DECLARED_RANGE",
+            "byte_offset": 0,
+            "byte_end": 4,
+            "storage": {
+              "kind": "unsigned_scalar",
+              "byte_size": 4,
+              "bit_width": 32,
+              "type_die_offset": 250,
+              "type_chain": [
+                {
+                  "cu_offset": 0,
+                  "die_offset": 250,
+                  "dwarf_version": 4,
+                  "language": 33,
+                  "tag": "DW_TAG_base_type"
+                }
+              ],
+              "scalar_evidence": {
+                "base_die_offset": 250,
+                "encoding": "DW_ATE_unsigned",
+                "byte_size": 4,
+                "type_chain": [
+                  {
+                    "die_offset": 250,
+                    "tag": "DW_TAG_base_type"
+                  }
+                ]
+              }
+            },
+            "reason": ""
+          }
+        ],
+        "reasons": []
+      },
+      {
+        "source": {
+          "cu_offset": 0,
+          "die_offset": 146,
+          "dwarf_version": 4,
+          "language": 33
+        },
+        "tag": "DW_TAG_structure_type",
+        "name": "Packed",
+        "qualified_name": "sample::Packed",
+        "status": "DECLARED_DEBUG_LAYOUT",
+        "byte_size": 12,
+        "declared_alignment": null,
+        "fields": [
+          {
+            "source": {
+              "cu_offset": 0,
+              "die_offset": 155,
+              "dwarf_version": 4,
+              "language": 33
+            },
+            "name": "low",
+            "status": "DECLARED_RANGE",
+            "byte_offset": 0,
+            "byte_end": 4,
+            "storage": {
+              "kind": "unsigned_scalar",
+              "byte_size": 4,
+              "bit_width": 32,
+              "type_die_offset": 250,
+              "type_chain": [
+                {
+                  "cu_offset": 0,
+                  "die_offset": 250,
+                  "dwarf_version": 4,
+                  "language": 33,
+                  "tag": "DW_TAG_base_type"
+                }
+              ],
+              "scalar_evidence": {
+                "base_die_offset": 250,
+                "encoding": "DW_ATE_unsigned",
+                "byte_size": 4,
+                "type_chain": [
+                  {
+                    "die_offset": 250,
+                    "tag": "DW_TAG_base_type"
+                  }
+                ]
+              }
+            },
+            "reason": ""
+          },
+          {
+            "source": {
+              "cu_offset": 0,
+              "die_offset": 167,
+              "dwarf_version": 4,
+              "language": 33
+            },
+            "name": "high",
+            "status": "DECLARED_RANGE",
+            "byte_offset": 4,
+            "byte_end": 12,
+            "storage": {
+              "kind": "unsigned_scalar",
+              "byte_size": 8,
+              "bit_width": 64,
+              "type_die_offset": 257,
+              "type_chain": [
+                {
+                  "cu_offset": 0,
+                  "die_offset": 257,
+                  "dwarf_version": 4,
+                  "language": 33,
+                  "tag": "DW_TAG_base_type"
+                }
+              ],
+              "scalar_evidence": {
+                "base_die_offset": 257,
+                "encoding": "DW_ATE_unsigned",
+                "byte_size": 8,
+                "type_chain": [
+                  {
+                    "die_offset": 257,
+                    "tag": "DW_TAG_base_type"
+                  }
+                ]
+              }
+            },
+            "reason": ""
+          }
+        ],
+        "reasons": []
+      },
+      {
+        "source": {
+          "cu_offset": 0,
+          "die_offset": 180,
+          "dwarf_version": 4,
+          "language": 33
+        },
+        "tag": "DW_TAG_structure_type",
+        "name": "Aligned",
+        "qualified_name": "sample::Aligned",
+        "status": "DECLARED_DEBUG_LAYOUT",
+        "byte_size": 16,
+        "declared_alignment": 16,
+        "fields": [
+          {
+            "source": {
+              "cu_offset": 0,
+              "die_offset": 190,
+              "dwarf_version": 4,
+              "language": 33
+            },
+            "name": "low",
+            "status": "DECLARED_RANGE",
+            "byte_offset": 0,
+            "byte_end": 4,
+            "storage": {
+              "kind": "unsigned_scalar",
+              "byte_size": 4,
+              "bit_width": 32,
+              "type_die_offset": 250,
+              "type_chain": [
+                {
+                  "cu_offset": 0,
+                  "die_offset": 250,
+                  "dwarf_version": 4,
+                  "language": 33,
+                  "tag": "DW_TAG_base_type"
+                }
+              ],
+              "scalar_evidence": {
+                "base_die_offset": 250,
+                "encoding": "DW_ATE_unsigned",
+                "byte_size": 4,
+                "type_chain": [
+                  {
+                    "die_offset": 250,
+                    "tag": "DW_TAG_base_type"
+                  }
+                ]
+              }
+            },
+            "reason": ""
+          },
+          {
+            "source": {
+              "cu_offset": 0,
+              "die_offset": 202,
+              "dwarf_version": 4,
+              "language": 33
+            },
+            "name": "high",
+            "status": "DECLARED_RANGE",
+            "byte_offset": 8,
+            "byte_end": 16,
+            "storage": {
+              "kind": "unsigned_scalar",
+              "byte_size": 8,
+              "bit_width": 64,
+              "type_die_offset": 257,
+              "type_chain": [
+                {
+                  "cu_offset": 0,
+                  "die_offset": 257,
+                  "dwarf_version": 4,
+                  "language": 33,
+                  "tag": "DW_TAG_base_type"
+                }
+              ],
+              "scalar_evidence": {
+                "base_die_offset": 257,
+                "encoding": "DW_ATE_unsigned",
+                "byte_size": 8,
+                "type_chain": [
+                  {
+                    "die_offset": 257,
+                    "tag": "DW_TAG_base_type"
+                  }
+                ]
+              }
+            },
+            "reason": ""
+          }
+        ],
+        "reasons": []
+      },
+      {
+        "source": {
+          "cu_offset": 0,
+          "die_offset": 215,
+          "dwarf_version": 4,
+          "language": 33
+        },
+        "tag": "DW_TAG_union_type",
+        "name": "Unsupported",
+        "qualified_name": "sample::Unsupported",
+        "status": "UNKNOWN",
+        "byte_size": null,
+        "declared_alignment": null,
+        "fields": [],
+        "reasons": [
+          "union/class layouts are outside the ordinary structure profile"
+        ]
+      }
+    ],
+    "gaps": [
+      "some original aggregate declarations have unsupported or ambiguous layouts"
+    ],
+    "execution_policy": {
+      "mode": "pure_static",
+      "target_or_candidate_executed": false,
+      "external_debug_files_accessed": false
+    },
+    "evidence_binding_sha256": "22bfbd43515707a5fc37379b28310ce76c5be1edb851f36daec6b11b44633e34"
+  },
+  "provenance": {
+    "ndk_revision": "27.2.12479018",
+    "kernel_sha256": "0c5062bf34dbf3df306ff43971d1ca31fd56befe7d1fb6d74996c5cd9e008fb6",
+    "toolchain_files": {
+      "properties": {
+        "sha256": "70f1c5165e6d997b18782a49cff71da7a3caacd0c4cd811da24c43359fb83cf6",
+        "size": 108
+      },
+      "compiler": {
+        "sha256": "a871130d810536f7bb924c8aeaff57c66de27bed9b13d0ccafba25fdcc8bd02d",
+        "size": 135201016
+      },
+      "linker": {
+        "sha256": "c4a7473d3b8a99a32335616838af2aa85c6333091abeab423be2a905ff5f288c",
+        "size": 60017520
+      },
+      "api_crt": {
+        "sha256": "96c0b819d3f6cbf0c690b307f1c8c8c7307fee27c20a2adc2ca21db5714558db",
+        "size": 3648
+      },
+      "libc_stub": {
+        "sha256": "7a2116784004c3ab86297243ae88dd47b231a944e11a758b5eee1c31116f47a3",
+        "size": 204704
+      },
+      "api_header": {
+        "sha256": "54fdb30d96bdce02f112c69000430707914b8cf2ac73fd1a71b543344e66cabe",
+        "size": 8050
+      },
+      "cpp_header": {
+        "sha256": "47fcffb6aed3035ff2257fa7484a00413bece28c88d9e21d4592c78859df10b7",
+        "size": 4003
+      },
+      "runtime_library": {
+        "sha256": "f9992c4ba6b7c5a716e3a202fceb1ce029d6a2b0605838ac6b3219f489dd7970",
+        "size": 1794776
+      }
+    },
+    "helper_sha256": "c762370e632167b104186a745d00351c49e1c8718b0ff243a6548a6a7fb6281a"
+  },
+  "case_evidence": [
+    {
+      "requested_type_names": [
+        "sample::Plain"
+      ],
+      "status": "PASS",
+      "reason_code": "DECLARED_STRUCTURE_LAYOUT_MATCH",
+      "source": {
+        "sha256": "c56f15463f533db028557df802a06b5461d9ad6d34bf9000692f2b9ef2630ecb",
+        "size": 404
+      },
+      "ast": {
+        "sha256": "e05701825e0ce00bb51741629a152d9fea41402f7d2d39c427ff87e7a1e59b5e",
+        "size": 53375
+      },
+      "probe_source": {
+        "sha256": "2dc738261888e29280f19caaf4000b4178d9727af43dfc7b61e76da3d467919d",
+        "size": 1939
+      },
+      "original_scope_kinds": {
+        "sample::Plain": [
+          {
+            "name": "sample",
+            "kind": "namespace"
+          }
+        ]
+      },
+      "candidate_layouts": [
+        {
+          "qualified_name": "sample::Plain",
+          "tag": "struct",
+          "fields": [
+            {
+              "name": "low",
+              "canonical_type": "unsigned int",
+              "source_offset": 47
+            },
+            {
+              "name": "high",
+              "canonical_type": "unsigned long long",
+              "source_offset": 71
+            }
+          ],
+          "scopes": [
+            {
+              "name": "sample",
+              "kind": "namespace"
+            }
+          ],
+          "source_offset": 26
+        }
+      ],
+      "match_scope": {
+        "structure_size": true,
+        "member_offsets": true,
+        "unsigned_storage_shape": true,
+        "nested_type_identity": true,
+        "semantic_scope_identity": true,
+        "declared_alignment": "PARTIAL_OR_UNKNOWN"
+      },
+      "alignment_fully_verified": false,
+      "cleanup_confirmed": true,
+      "layout_binding_sha256": "ae5f93a15bf8fab3a4cfe4c89f386c7cd5bbbb78e2ac0300ae1d638d2ca12ae3"
+    },
+    {
+      "requested_type_names": [
+        "sample::Nested"
+      ],
+      "status": "PASS",
+      "reason_code": "DECLARED_STRUCTURE_LAYOUT_MATCH",
+      "source": {
+        "sha256": "c56f15463f533db028557df802a06b5461d9ad6d34bf9000692f2b9ef2630ecb",
+        "size": 404
+      },
+      "ast": {
+        "sha256": "38a0bff8cb9f8a67ab58c1594d752d221ac921ac659aad51caab34b9c4d000f0",
+        "size": 53373
+      },
+      "probe_source": {
+        "sha256": "36f2a4d1fb032231eb495b8f4bc2e1e9eac70a96e344067c35eaa8c3bc3ec618",
+        "size": 2726
+      },
+      "original_scope_kinds": {
+        "sample::Nested": [
+          {
+            "name": "sample",
+            "kind": "namespace"
+          }
+        ],
+        "sample::Inner": [
+          {
+            "name": "sample",
+            "kind": "namespace"
+          }
+        ]
+      },
+      "candidate_layouts": [
+        {
+          "qualified_name": "sample::Inner",
+          "tag": "struct",
+          "fields": [
+            {
+              "name": "word",
+              "canonical_type": "unsigned int",
+              "source_offset": 108
+            }
+          ],
+          "scopes": [
+            {
+              "name": "sample",
+              "kind": "namespace"
+            }
+          ],
+          "source_offset": 87
+        },
+        {
+          "qualified_name": "sample::Nested",
+          "tag": "struct",
+          "fields": [
+            {
+              "name": "inner",
+              "canonical_type": "sample::Inner",
+              "source_offset": 139
+            },
+            {
+              "name": "count",
+              "canonical_type": "unsigned long long",
+              "source_offset": 165
+            }
+          ],
+          "scopes": [
+            {
+              "name": "sample",
+              "kind": "namespace"
+            }
+          ],
+          "source_offset": 124
+        }
+      ],
+      "match_scope": {
+        "structure_size": true,
+        "member_offsets": true,
+        "unsigned_storage_shape": true,
+        "nested_type_identity": true,
+        "semantic_scope_identity": true,
+        "declared_alignment": "PARTIAL_OR_UNKNOWN"
+      },
+      "alignment_fully_verified": false,
+      "cleanup_confirmed": true,
+      "layout_binding_sha256": "fcf08b37e37fb2315f804b6944d71b61619ece0de6a067bdcd08db60161e2a57"
+    },
+    {
+      "requested_type_names": [
+        "sample::Packed"
+      ],
+      "status": "PASS",
+      "reason_code": "DECLARED_STRUCTURE_LAYOUT_MATCH",
+      "source": {
+        "sha256": "c56f15463f533db028557df802a06b5461d9ad6d34bf9000692f2b9ef2630ecb",
+        "size": 404
+      },
+      "ast": {
+        "sha256": "e75e365c90dc8ad4fecbb2a93ca591a09d0937e6b0fc7f8395759f53f83a6a2e",
+        "size": 53373
+      },
+      "probe_source": {
+        "sha256": "1c9ffc9eb52ae49ec9b5819f5204f39eb2a0b5e9f5cbddf787fb75e5434d93fa",
+        "size": 1959
+      },
+      "original_scope_kinds": {
+        "sample::Packed": [
+          {
+            "name": "sample",
+            "kind": "namespace"
+          }
+        ]
+      },
+      "candidate_layouts": [
+        {
+          "qualified_name": "sample::Packed",
+          "tag": "struct",
+          "fields": [
+            {
+              "name": "low",
+              "canonical_type": "unsigned int",
+              "source_offset": 228
+            },
+            {
+              "name": "high",
+              "canonical_type": "unsigned long long",
+              "source_offset": 252
+            }
+          ],
+          "scopes": [
+            {
+              "name": "sample",
+              "kind": "namespace"
+            }
+          ],
+          "source_offset": 206
+        }
+      ],
+      "match_scope": {
+        "structure_size": true,
+        "member_offsets": true,
+        "unsigned_storage_shape": true,
+        "nested_type_identity": true,
+        "semantic_scope_identity": true,
+        "declared_alignment": "PARTIAL_OR_UNKNOWN"
+      },
+      "alignment_fully_verified": false,
+      "cleanup_confirmed": true,
+      "layout_binding_sha256": "97de1f3fc64216e4ace8a07b9ccaaa0921cccaacbac434159126b32dfffd18d9"
+    },
+    {
+      "requested_type_names": [
+        "sample::Aligned"
+      ],
+      "status": "PASS",
+      "reason_code": "DECLARED_STRUCTURE_LAYOUT_MATCH",
+      "source": {
+        "sha256": "c56f15463f533db028557df802a06b5461d9ad6d34bf9000692f2b9ef2630ecb",
+        "size": 404
+      },
+      "ast": {
+        "sha256": "51ce79254e48a445f157b209744b19780f9d4f2b67162d2f68e522b8e0511e16",
+        "size": 53385
+      },
+      "probe_source": {
+        "sha256": "0ed1e6f2bb5555e4c266d893f7e1550391c8c7e1b7983cf841ed403ee0e22b01",
+        "size": 2050
+      },
+      "original_scope_kinds": {
+        "sample::Aligned": [
+          {
+            "name": "sample",
+            "kind": "namespace"
+          }
+        ]
+      },
+      "candidate_layouts": [
+        {
+          "qualified_name": "sample::Aligned",
+          "tag": "struct",
+          "fields": [
+            {
+              "name": "low",
+              "canonical_type": "unsigned int",
+              "source_offset": 303
+            },
+            {
+              "name": "high",
+              "canonical_type": "unsigned long long",
+              "source_offset": 327
+            }
+          ],
+          "scopes": [
+            {
+              "name": "sample",
+              "kind": "namespace"
+            }
+          ],
+          "source_offset": 280
+        }
+      ],
+      "match_scope": {
+        "structure_size": true,
+        "member_offsets": true,
+        "unsigned_storage_shape": true,
+        "nested_type_identity": true,
+        "semantic_scope_identity": true,
+        "declared_alignment": "MATCH"
+      },
+      "alignment_fully_verified": true,
+      "cleanup_confirmed": true,
+      "layout_binding_sha256": "95383b5036b68875cdd10dfd3ea9a2dba0275ca06202a4b94cac466ad7013733"
+    },
+    {
+      "requested_type_names": [
+        "sample::Plain"
+      ],
+      "status": "FAIL",
+      "reason_code": "DECLARED_STRUCTURE_LAYOUT_MISMATCH",
+      "source": {
+        "sha256": "9995f2137847d32429ffa19be4b4e440ff0f0ff4203021f282efad1f06295089",
+        "size": 397
+      },
+      "ast": {
+        "sha256": "7ee87e8e236132f292ca8a7850f45d28e7f6fba6cf2e4caaf36ee561d3b72531",
+        "size": 53380
+      },
+      "original_scope_kinds": {
+        "sample::Plain": [
+          {
+            "name": "sample",
+            "kind": "namespace"
+          }
+        ]
+      },
+      "candidate_layouts": [
+        {
+          "qualified_name": "sample::Plain",
+          "tag": "struct",
+          "fields": [
+            {
+              "name": "low",
+              "canonical_type": "float",
+              "source_offset": 40
+            },
+            {
+              "name": "high",
+              "canonical_type": "unsigned long long",
+              "source_offset": 64
+            }
+          ],
+          "scopes": [
+            {
+              "name": "sample",
+              "kind": "namespace"
+            }
+          ],
+          "source_offset": 26
+        }
+      ],
+      "match_scope": {
+        "structure_size": false,
+        "member_offsets": false,
+        "unsigned_storage_shape": false,
+        "nested_type_identity": false,
+        "semantic_scope_identity": false,
+        "declared_alignment": "UNKNOWN"
+      },
+      "alignment_fully_verified": false,
+      "cleanup_confirmed": true,
+      "layout_binding_sha256": "fecf904d1228687277fe29c9c294faf6249b41aaf76c395c3a30b15b471b561a"
+    },
+    {
+      "requested_type_names": [
+        "sample::Plain"
+      ],
+      "status": "FAIL",
+      "reason_code": "DECLARED_STRUCTURE_LAYOUT_MISMATCH",
+      "source": {
+        "sha256": "57bbe1f05d12605ccc6e591f92b088b560afc329c0239ebb1046d7a137325d5f",
+        "size": 404
+      },
+      "ast": {
+        "sha256": "e281a2c770d357dbca57e8650c67541be00c6721602881ab11f5c9b79d6db1ae",
+        "size": 53386
+      },
+      "original_scope_kinds": {
+        "sample::Plain": [
+          {
+            "name": "sample",
+            "kind": "namespace"
+          }
+        ]
+      },
+      "candidate_layouts": [
+        {
+          "qualified_name": "sample::Plain",
+          "tag": "struct",
+          "fields": [
+            {
+              "name": "high",
+              "canonical_type": "unsigned long long",
+              "source_offset": 53
+            },
+            {
+              "name": "low",
+              "canonical_type": "unsigned int",
+              "source_offset": 72
+            }
+          ],
+          "scopes": [
+            {
+              "name": "sample",
+              "kind": "namespace"
+            }
+          ],
+          "source_offset": 26
+        }
+      ],
+      "match_scope": {
+        "structure_size": false,
+        "member_offsets": false,
+        "unsigned_storage_shape": false,
+        "nested_type_identity": false,
+        "semantic_scope_identity": false,
+        "declared_alignment": "UNKNOWN"
+      },
+      "alignment_fully_verified": false,
+      "cleanup_confirmed": true,
+      "layout_binding_sha256": "e53d4d28a225927c38a898209c1cfe0d6da2ad1193047ac058bdef373be42b55"
+    },
+    {
+      "requested_type_names": [
+        "sample::Plain"
+      ],
+      "status": "UNKNOWN",
+      "reason_code": "CANDIDATE_LAYOUT_UNSUPPORTED",
+      "source": {
+        "sha256": "011f893b35deb898f398ae5c01f789fa0471c6f3bd8a32962d9f63d1b1d02152",
+        "size": 439
+      },
+      "ast": {
+        "sha256": "c7b5189ad85019b4f7d2a030ae2789ff87140c640dbb300c8684e6caadd390d3",
+        "size": 57782
+      },
+      "original_scope_kinds": {
+        "sample::Plain": [
+          {
+            "name": "sample",
+            "kind": "namespace"
+          }
+        ]
+      },
+      "candidate_layouts": [],
+      "match_scope": {
+        "structure_size": false,
+        "member_offsets": false,
+        "unsigned_storage_shape": false,
+        "nested_type_identity": false,
+        "semantic_scope_identity": false,
+        "declared_alignment": "UNKNOWN"
+      },
+      "alignment_fully_verified": false,
+      "cleanup_confirmed": true,
+      "layout_binding_sha256": "6863fd8a2666c4ac8d9cdd5756f6c0ef8ac8b16a71043419e117012da7d27c2f"
+    },
+    {
+      "requested_type_names": [
+        "sample::Plain"
+      ],
+      "status": "FAIL",
+      "reason_code": "DECLARED_STRUCTURE_LAYOUT_MISMATCH",
+      "source": {
+        "sha256": "14a7bdc04281fea195d4e2812693bc7248a94722c51016f316a142227e020c77",
+        "size": 80
+      },
+      "ast": {
+        "sha256": "4f84de54d78b2bdd9d8f15108e73e79a2d4252e8fccdb5df45b492f3a87e4f74",
+        "size": 33822
+      },
+      "original_scope_kinds": {
+        "sample::Plain": [
+          {
+            "name": "sample",
+            "kind": "namespace"
+          }
+        ]
+      },
+      "candidate_layouts": [
+        {
+          "qualified_name": "sample::Plain",
+          "tag": "struct",
+          "fields": [
+            {
+              "name": "low",
+              "canonical_type": "unsigned int",
+              "source_offset": 44
+            },
+            {
+              "name": "high",
+              "canonical_type": "unsigned long long",
+              "source_offset": 68
+            }
+          ],
+          "scopes": [
+            {
+              "name": "sample",
+              "kind": "struct"
+            }
+          ],
+          "source_offset": 23
+        }
+      ],
+      "match_scope": {
+        "structure_size": false,
+        "member_offsets": false,
+        "unsigned_storage_shape": false,
+        "nested_type_identity": false,
+        "semantic_scope_identity": false,
+        "declared_alignment": "UNKNOWN"
+      },
+      "alignment_fully_verified": false,
+      "cleanup_confirmed": true,
+      "layout_binding_sha256": "6db1ce1e1c732319fee5c44ddd35cd87e183582ebe00b9066853ad9642c25115"
+    },
+    {
+      "requested_type_names": [
+        "sample::Aligned"
+      ],
+      "status": "FAIL",
+      "reason_code": "DECLARED_STRUCTURE_LAYOUT_MISMATCH",
+      "source": {
+        "sha256": "2ad130ca0b9e856ea6abef30bbfd0b661a8d88a9b19d014880a9c56e7b23397c",
+        "size": 392
+      },
+      "ast": {
+        "sha256": "b21ac3841a75774df4110e134a63935e4ab465d64e035babbaa37e54ae16e789",
+        "size": 51498
+      },
+      "probe_source": {
+        "sha256": "de4713d146aea344af65bf6f36ee471c9e1fe0d911718e0478349c4fae7951a2",
+        "size": 2038
+      },
+      "original_scope_kinds": {
+        "sample::Aligned": [
+          {
+            "name": "sample",
+            "kind": "namespace"
+          }
+        ]
+      },
+      "candidate_layouts": [
+        {
+          "qualified_name": "sample::Aligned",
+          "tag": "struct",
+          "fields": [
+            {
+              "name": "low",
+              "canonical_type": "unsigned int",
+              "source_offset": 291
+            },
+            {
+              "name": "high",
+              "canonical_type": "unsigned long long",
+              "source_offset": 315
+            }
+          ],
+          "scopes": [
+            {
+              "name": "sample",
+              "kind": "namespace"
+            }
+          ],
+          "source_offset": 268
+        }
+      ],
+      "match_scope": {
+        "structure_size": false,
+        "member_offsets": false,
+        "unsigned_storage_shape": false,
+        "nested_type_identity": false,
+        "semantic_scope_identity": false,
+        "declared_alignment": "UNKNOWN"
+      },
+      "alignment_fully_verified": false,
+      "cleanup_confirmed": true,
+      "layout_binding_sha256": "6f9331fd4510c1998ae8a901ec243648e779164229f37ceaf9b3b16e63134640"
+    },
+    {
+      "requested_type_names": [
+        "sample::Unsupported"
+      ],
+      "status": "UNKNOWN",
+      "reason_code": "ORIGINAL_LAYOUT_UNAVAILABLE",
+      "source": {
+        "sha256": "c56f15463f533db028557df802a06b5461d9ad6d34bf9000692f2b9ef2630ecb",
+        "size": 404
+      },
+      "original_scope_kinds": {},
+      "candidate_layouts": [],
+      "match_scope": {
+        "structure_size": false,
+        "member_offsets": false,
+        "unsigned_storage_shape": false,
+        "nested_type_identity": false,
+        "semantic_scope_identity": false,
+        "declared_alignment": "UNKNOWN"
+      },
+      "alignment_fully_verified": false,
+      "cleanup_confirmed": true,
+      "layout_binding_sha256": "38388d238d5783ff58191624139ec111486923462d3c8a0512f9edd4de27ae06"
+    },
+    {
+      "requested_type_names": [
+        "Invented"
+      ],
+      "status": "UNKNOWN",
+      "reason_code": "ORIGINAL_LAYOUT_UNAVAILABLE",
+      "source": {
+        "sha256": "99b1954c73bf049c71ed254deeff27ea21016aee92545370d5f03e5c50fd907e",
+        "size": 424
+      },
+      "original_scope_kinds": {},
+      "candidate_layouts": [],
+      "match_scope": {
+        "structure_size": false,
+        "member_offsets": false,
+        "unsigned_storage_shape": false,
+        "nested_type_identity": false,
+        "semantic_scope_identity": false,
+        "declared_alignment": "UNKNOWN"
+      },
+      "alignment_fully_verified": false,
+      "cleanup_confirmed": true,
+      "layout_binding_sha256": "24bf36a1b7dace1417c53328e92f35fadda1c4489d4c78821f3df867f576da4e"
+    }
+  ],
+  "artifact_level": "A0",
+  "model_calls": 0,
+  "target_or_candidate_executed": false,
+  "original_calling_abi_verified": false,
+  "full_type_system_solved": false,
+  "whole_program_equivalence": false,
+  "v1_complete": false,
+  "limitations": [
+    "Original DWARF authenticity is unverified.",
+    "Undeclared original alignment remains unknown.",
+    "No aggregate contract transaction, Job authority, machine semantics or calling ABI proof is established.",
+    "Original and candidate libraries are never loaded or executed."
+  ],
+  "remote_full_suite": "PENDING_FOR_THIS_INCREMENT"
+}

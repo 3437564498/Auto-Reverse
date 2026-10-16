@@ -34,7 +34,11 @@ class RecoveryService:
                             "elf_abi_structure_comparison", "durable_candidate_validation",
                             "bounded_repair_feedback", "current_candidate_selection",
                             "scoped_evidence_delivery", "original_scalar_dwarf_evidence",
-                            "versioned_scalar_abi_constraints"],
+                            "versioned_scalar_abi_constraints", "finite_scalar_type_solver",
+                            "full_input_library_inventory", "android_loader_observations",
+                            "partial_project_integration", "durable_final_delivery",
+                            "host_tool_reconciliation", "static_recovery_pipeline", "durable_static_analysis",
+                            "original_dwarf_layout_evidence", "candidate_structure_layout_comparison"],
             "recovery_system_complete": False,
             "dsh_model_integration_verified": False,
             "ndk_build_integration_verified": False,
@@ -49,6 +53,13 @@ class RecoveryService:
                 "selection": "Best available local candidates; unintegrated collection; whole-library quality unknown",
                 "evidence_delivery": "Bounded auxiliary findings/gaps; no trusted-fact or quality promotion",
                 "scalar_abi": "Original unsigned 32/64 DWARF declarations only; calling ABI remains unverified",
+                "type_solver": "Finite original unsigned scalar declarations; no pointer, layout, class or JNI inference",
+                "layout_evidence": "Bounded original ordinary-structure DWARF storage observations; A0 evidence, original calling ABI unverified",
+                "candidate_layout": "Fixed Clang checks ordinary unsigned structure declarations against original DWARF; A0 only, no frozen aggregate contract or calling ABI proof",
+                "project_integration": "Trusted host compiles selected source subsets and verifies final linked bytes statically",
+                "final_delivery": "Version-bound reports preserve original denominators, cleanup, and unresolved library gaps",
+                "android_profile": "Static relocation, lifecycle and loader observations; Android loadability remains unverified",
+                "static_pipeline": "Trusted deterministic controller; zero model calls; unsupported recovery remains explicit",
             },
             "worker_global_max": 32,
             "verification_scope": "Explicit function scope; no whole-library equivalence claim",
@@ -196,6 +207,17 @@ class RecoveryService:
         if selection.get("selection_snapshot_id") and not selection["current_valid"]:
             job.update(historical_quality=job["quality"], quality=selection["quality"],
                        quality_is_current=False)
+        delivery = self.get_final_delivery(job_id)
+        if delivery.get("report_ref"):
+            if not delivery["current_valid"]:
+                job.setdefault("historical_quality", job["quality"])
+                job.update(quality=delivery["quality"], quality_is_current=False)
+            elif (delivery["input_snapshot_id"] == job["input_snapshot_id"]
+                  and delivery["contract_revision"] == job["contract_revision"]):
+                # A current final report verifies its complete material, including
+                # the selected sources and integrated ELF, independently of the
+                # local candidate collection's historical quality projection.
+                job.update(quality=delivery["quality"], quality_is_current=True)
         return job
 
     def list_candidates(self, job_id: str, cursor=0, limit=100) -> dict:
@@ -230,3 +252,42 @@ class RecoveryService:
         with closing(self.domain._connect()) as connection:
             connection.execute("BEGIN")
             return AbiContractService.read_history(connection, job_id, cursor=cursor, limit=limit)
+
+    def list_integrations(self, job_id: str, cursor=0, limit=100) -> dict:
+        from .project_service import ProjectIntegrationService
+        return ProjectIntegrationService.for_read(self.backend).list(job_id, cursor=cursor, limit=limit)
+
+    def list_analyses(self, job_id: str, cursor=0, limit=100) -> dict:
+        from .analysis_service import GhidraAnalysisService
+        return GhidraAnalysisService.for_read(self.backend).list(job_id, cursor=cursor, limit=limit)
+
+    def get_analysis(self, job_id: str, activity_id: str) -> dict:
+        from .analysis_service import GhidraAnalysisService
+        return GhidraAnalysisService.for_read(self.backend).get_view(job_id, activity_id)
+
+    def read_analysis_report(self, job_id: str, activity_id: str, offset=0, limit=65536) -> dict:
+        from .analysis_service import GhidraAnalysisService
+        return GhidraAnalysisService.for_read(self.backend).read_report(
+            job_id, activity_id, offset=offset, limit=limit)
+
+    def get_integration(self, job_id: str, activity_id: str) -> dict:
+        from .project_service import ProjectIntegrationService
+        return ProjectIntegrationService.for_read(self.backend).get_view(job_id, activity_id)
+
+    def read_integration_report(self, job_id: str, activity_id: str, offset=0, limit=65536) -> dict:
+        from .project_service import ProjectIntegrationService
+        return ProjectIntegrationService.for_read(self.backend).read_report(
+            job_id, activity_id, offset=offset, limit=limit)
+
+    def get_final_delivery(self, job_id: str) -> dict:
+        from .final_report import FinalReportService
+        return FinalReportService.for_read(self.backend).get_view(job_id)
+
+    def list_final_deliveries(self, job_id: str, cursor=0, limit=100) -> dict:
+        from .final_report import FinalReportService
+        return FinalReportService.for_read(self.backend).list_history(job_id, cursor=cursor, limit=limit)
+
+    def read_final_report(self, job_id: str, delivery_id: str, offset=0, limit=65536) -> dict:
+        from .final_report import FinalReportService
+        return FinalReportService.for_read(self.backend).read_report(
+            job_id, delivery_id, offset=offset, limit=limit)

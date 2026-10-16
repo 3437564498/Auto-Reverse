@@ -1,0 +1,104 @@
+{
+  "analysis": {
+    "cleanup_confirmed": true,
+    "counts": {
+      "basic_blocks": 17,
+      "functions": 16,
+      "instructions": 54,
+      "pcode_operations": 105
+    },
+    "current_valid": true,
+    "evidence_status": "EXPORTED",
+    "function_discovery_complete": false,
+    "input_sha256": "e3a17169136e42a58beab34681c5773ff26f4d757f5972586068475a23cbe409",
+    "java_version": "21.0.8",
+    "original_bytes_verified": true,
+    "processor_semantics_verified": false,
+    "tool_version": "11.3.2"
+  },
+  "archive_rebuild": {
+    "archive_sha256": "5de214ce110e06b9324f35f7c6959da0d03706a6d47b46e49f144341a204661f",
+    "build_binding_changed": true,
+    "candidate_sha256": "fb15ebf44bba44795122704751a2b8f8d781bb2ecf766141dac365e1fd0f3da7",
+    "candidate_size": 5480,
+    "fresh_selected_semantic": {
+      "different_function_count": 0,
+      "exact_function_count": 2,
+      "scope": "selected_module_functions_only",
+      "selected_function_count": 2,
+      "status": "EXACT_EQUIVALENT",
+      "unknown_function_count": 0
+    },
+    "historical_proof_reused": false,
+    "new_build_binding_sha256": "9bed526d8d5a52e6e9fbd0bcdaab7f806566b5c8acc41c694c77e1c5dc33b706",
+    "original_calling_abi": "UNKNOWN",
+    "original_denominators": {
+      "actual_function_count": null,
+      "discovered_function_extent_count": 11,
+      "original_defined_function_symbol_count": 11,
+      "original_dynamic_export_count": 5,
+      "original_dynamic_import_count": 2,
+      "original_executable_bytes": 216
+    },
+    "source_module_count": 2,
+    "target_or_candidate_executed": false,
+    "whole_library_semantic": {
+      "reason": "selected function proofs cannot establish whole-library behavior",
+      "status": "UNKNOWN",
+      "whole_program_equivalence": false
+    }
+  },
+  "artifact_level": "A1",
+  "contract_revision": 2,
+  "current_valid": true,
+  "execution_state": "COMPLETED",
+  "export_sha256": {
+    "candidate.so": "fb15ebf44bba44795122704751a2b8f8d781bb2ecf766141dac365e1fd0f3da7",
+    "project.zip": "5de214ce110e06b9324f35f7c6959da0d03706a6d47b46e49f144341a204661f",
+    "report.json": "7f6cf22fe45b592f5e335b24be7377382a387f3a0f87634e2df9dfcee6ad5246"
+  },
+  "model_calls": 0,
+  "original_denominators": {
+    "actual_function_count": null,
+    "discovered_function_extent_count": 11,
+    "original_defined_function_symbol_count": 11,
+    "original_dynamic_export_count": 5,
+    "original_dynamic_import_count": 2,
+    "original_executable_bytes": 216
+  },
+  "pipeline_kernel_sha256": "bc6b0c6a02b981d074608d4f1eb853084776ba55de8b92b75cb14ca3cd390368",
+  "pipeline_state": "DONE",
+  "resume": {
+    "ledger_counts": {
+      "analysis_activities": 1,
+      "attempts": 3,
+      "events": 115,
+      "final_deliveries": 1,
+      "host_tool_launches": 16,
+      "host_tool_processes": 16,
+      "integration_activities": 1,
+      "receipts": 3,
+      "scalar_abi_bundles": 1,
+      "tasks": 3,
+      "validation_activities": 2
+    },
+    "no_new_ledger_rows": true,
+    "same_job": true,
+    "same_report": true
+  },
+  "sample_passed": true,
+  "schema_version": 1,
+  "selected_symbols": [
+    "add_seven",
+    "mixed_shift"
+  ],
+  "target_or_candidate_executed": false,
+  "whole_library_abi": {
+    "reason_code": "WHOLE_LIBRARY_OBLIGATIONS_OPEN",
+    "status": "UNKNOWN"
+  },
+  "whole_library_semantic": {
+    "reason_code": "WHOLE_LIBRARY_OBLIGATIONS_OPEN",
+    "status": "UNKNOWN"
+  }
+}

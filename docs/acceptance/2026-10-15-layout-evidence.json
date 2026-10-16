@@ -1,0 +1,598 @@
+{
+  "schema_version": 1,
+  "accepted_on": "2026-10-15",
+  "timezone": "Asia/Singapore",
+  "scope": "bounded original embedded DWARF ordinary structure declaration evidence",
+  "independent_layout_tests": {
+    "passed": 56,
+    "skipped": 0
+  },
+  "cli_and_existing_interfaces": {
+    "passed": 29,
+    "skipped": 0
+  },
+  "combined_tests": {
+    "passed": 85,
+    "skipped": 0,
+    "failed": 0,
+    "warnings": 1
+  },
+  "ruff": "PASS",
+  "fixture_source_sha256": "253d9051a937f7bb0826b8c3b30412d10082b986db22d64fc6004255b0e1f5a1",
+  "compile_time_layout_assertions": "PASS",
+  "actual_cli_completed": true,
+  "artifact_level": "A0",
+  "model_calls": 0,
+  "target_or_candidate_executed": false,
+  "full_type_system_solved": false,
+  "original_calling_abi_verified": false,
+  "v1_complete": false,
+  "report": {
+    "schema_version": 1,
+    "kind": "original_dwarf_layout_evidence",
+    "profile": "ordinary-unsigned-structure-layout-v1",
+    "status": "PARTIAL",
+    "input_sha256": "30c3f4b6dc9d91a4f99fd48675521d7795a88afe1ebc17689cc3eb7c2f9e383d",
+    "input_size": 3840,
+    "artifact_level": "A0",
+    "original_calling_abi_verified": false,
+    "full_type_system_solved": false,
+    "whole_program_equivalence": false,
+    "debug_information_authenticity_verified": false,
+    "candidate_declarations_used": false,
+    "implementation_fingerprints": {
+      "dwarf_layout.py": "5a214e403a3e93f6781f22080d683c73f01448a75adb3e9f20fd607d1fb8f8d7",
+      "scalar_abi.py": "9e34fa06c5ca3c32d0c99422a575400ab63466da469792bf46589a64b7be6807"
+    },
+    "evidence": {
+      "source": "original_embedded_dwarf",
+      "debug_sections": [
+        {
+          "name": ".debug_abbrev",
+          "size": 157,
+          "sha256": "264e197a4a4fe06ae66f0be11370a3c836d2f1119059864e0dd727f0c3d29327"
+        },
+        {
+          "name": ".debug_info",
+          "size": 494,
+          "sha256": "7e48c2a1af8020b347669c89115c7bd80ce17e2a9bb48c013ad3c929b02a34e4"
+        },
+        {
+          "name": ".debug_line",
+          "size": 76,
+          "sha256": "9431a9b452142a32915419b1042ef791c4935b42f0d4db9ea66204f96b59d134"
+        },
+        {
+          "name": ".debug_str",
+          "size": 492,
+          "sha256": "352a2b6b33d4d3eadbca9d2fd2d2ed1d152ff75c7644b3f6b304edabc6e6bb1d"
+        }
+      ]
+    },
+    "limits": {
+      "max_types": 128,
+      "max_members": 128,
+      "max_input_bytes": 67108864,
+      "max_type_bytes": 16777216,
+      "max_nested_depth": 16
+    },
+    "aggregate_declaration_count": 10,
+    "inspected_type_count": 10,
+    "supported_type_count": 6,
+    "truncated": false,
+    "types": [
+      {
+        "source": {
+          "cu_offset": 0,
+          "die_offset": 51,
+          "dwarf_version": 4,
+          "language": 33
+        },
+        "tag": "DW_TAG_structure_type",
+        "name": "Plain",
+        "qualified_name": "Plain",
+        "status": "DECLARED_DEBUG_LAYOUT",
+        "byte_size": 16,
+        "declared_alignment": null,
+        "fields": [
+          {
+            "source": {
+              "cu_offset": 0,
+              "die_offset": 60,
+              "dwarf_version": 4,
+              "language": 33
+            },
+            "name": "low",
+            "status": "DECLARED_RANGE",
+            "byte_offset": 0,
+            "byte_end": 4,
+            "storage": {
+              "kind": "unsigned_scalar",
+              "byte_size": 4,
+              "bit_width": 32,
+              "type_die_offset": 85,
+              "type_chain": [
+                {
+                  "cu_offset": 0,
+                  "die_offset": 85,
+                  "dwarf_version": 4,
+                  "language": 33,
+                  "tag": "DW_TAG_base_type"
+                }
+              ],
+              "scalar_evidence": {
+                "base_die_offset": 85,
+                "encoding": "DW_ATE_unsigned",
+                "byte_size": 4,
+                "type_chain": [
+                  {
+                    "die_offset": 85,
+                    "tag": "DW_TAG_base_type"
+                  }
+                ]
+              }
+            },
+            "reason": ""
+          },
+          {
+            "source": {
+              "cu_offset": 0,
+              "die_offset": 72,
+              "dwarf_version": 4,
+              "language": 33
+            },
+            "name": "high",
+            "status": "DECLARED_RANGE",
+            "byte_offset": 8,
+            "byte_end": 16,
+            "storage": {
+              "kind": "unsigned_scalar",
+              "byte_size": 8,
+              "bit_width": 64,
+              "type_die_offset": 92,
+              "type_chain": [
+                {
+                  "cu_offset": 0,
+                  "die_offset": 92,
+                  "dwarf_version": 4,
+                  "language": 33,
+                  "tag": "DW_TAG_base_type"
+                }
+              ],
+              "scalar_evidence": {
+                "base_die_offset": 92,
+                "encoding": "DW_ATE_unsigned",
+                "byte_size": 8,
+                "type_chain": [
+                  {
+                    "die_offset": 92,
+                    "tag": "DW_TAG_base_type"
+                  }
+                ]
+              }
+            },
+            "reason": ""
+          }
+        ],
+        "reasons": []
+      },
+      {
+        "source": {
+          "cu_offset": 0,
+          "die_offset": 120,
+          "dwarf_version": 4,
+          "language": 33
+        },
+        "tag": "DW_TAG_structure_type",
+        "name": "Nested",
+        "qualified_name": "Nested",
+        "status": "DECLARED_DEBUG_LAYOUT",
+        "byte_size": 16,
+        "declared_alignment": null,
+        "fields": [
+          {
+            "source": {
+              "cu_offset": 0,
+              "die_offset": 129,
+              "dwarf_version": 4,
+              "language": 33
+            },
+            "name": "inner",
+            "status": "DECLARED_RANGE",
+            "byte_offset": 0,
+            "byte_end": 4,
+            "storage": {
+              "kind": "structure",
+              "byte_size": 4,
+              "type_die_offset": 154,
+              "type_chain": [
+                {
+                  "cu_offset": 0,
+                  "die_offset": 154,
+                  "dwarf_version": 4,
+                  "language": 33,
+                  "tag": "DW_TAG_structure_type"
+                }
+              ]
+            },
+            "reason": ""
+          },
+          {
+            "source": {
+              "cu_offset": 0,
+              "die_offset": 141,
+              "dwarf_version": 4,
+              "language": 33
+            },
+            "name": "count",
+            "status": "DECLARED_RANGE",
+            "byte_offset": 8,
+            "byte_end": 16,
+            "storage": {
+              "kind": "unsigned_scalar",
+              "byte_size": 8,
+              "bit_width": 64,
+              "type_die_offset": 92,
+              "type_chain": [
+                {
+                  "cu_offset": 0,
+                  "die_offset": 92,
+                  "dwarf_version": 4,
+                  "language": 33,
+                  "tag": "DW_TAG_base_type"
+                }
+              ],
+              "scalar_evidence": {
+                "base_die_offset": 92,
+                "encoding": "DW_ATE_unsigned",
+                "byte_size": 8,
+                "type_chain": [
+                  {
+                    "die_offset": 92,
+                    "tag": "DW_TAG_base_type"
+                  }
+                ]
+              }
+            },
+            "reason": ""
+          }
+        ],
+        "reasons": []
+      },
+      {
+        "source": {
+          "cu_offset": 0,
+          "die_offset": 154,
+          "dwarf_version": 4,
+          "language": 33
+        },
+        "tag": "DW_TAG_structure_type",
+        "name": "Inner",
+        "qualified_name": "Inner",
+        "status": "DECLARED_DEBUG_LAYOUT",
+        "byte_size": 4,
+        "declared_alignment": null,
+        "fields": [
+          {
+            "source": {
+              "cu_offset": 0,
+              "die_offset": 163,
+              "dwarf_version": 4,
+              "language": 33
+            },
+            "name": "value",
+            "status": "DECLARED_RANGE",
+            "byte_offset": 0,
+            "byte_end": 4,
+            "storage": {
+              "kind": "unsigned_scalar",
+              "byte_size": 4,
+              "bit_width": 32,
+              "type_die_offset": 85,
+              "type_chain": [
+                {
+                  "cu_offset": 0,
+                  "die_offset": 85,
+                  "dwarf_version": 4,
+                  "language": 33,
+                  "tag": "DW_TAG_base_type"
+                }
+              ],
+              "scalar_evidence": {
+                "base_die_offset": 85,
+                "encoding": "DW_ATE_unsigned",
+                "byte_size": 4,
+                "type_chain": [
+                  {
+                    "die_offset": 85,
+                    "tag": "DW_TAG_base_type"
+                  }
+                ]
+              }
+            },
+            "reason": ""
+          }
+        ],
+        "reasons": []
+      },
+      {
+        "source": {
+          "cu_offset": 0,
+          "die_offset": 197,
+          "dwarf_version": 4,
+          "language": 33
+        },
+        "tag": "DW_TAG_structure_type",
+        "name": "Empty",
+        "qualified_name": "Empty",
+        "status": "DECLARED_DEBUG_LAYOUT",
+        "byte_size": 1,
+        "declared_alignment": null,
+        "fields": [],
+        "reasons": []
+      },
+      {
+        "source": {
+          "cu_offset": 0,
+          "die_offset": 227,
+          "dwarf_version": 4,
+          "language": 33
+        },
+        "tag": "DW_TAG_structure_type",
+        "name": "Packed",
+        "qualified_name": "Packed",
+        "status": "DECLARED_DEBUG_LAYOUT",
+        "byte_size": 12,
+        "declared_alignment": null,
+        "fields": [
+          {
+            "source": {
+              "cu_offset": 0,
+              "die_offset": 236,
+              "dwarf_version": 4,
+              "language": 33
+            },
+            "name": "low",
+            "status": "DECLARED_RANGE",
+            "byte_offset": 0,
+            "byte_end": 4,
+            "storage": {
+              "kind": "unsigned_scalar",
+              "byte_size": 4,
+              "bit_width": 32,
+              "type_die_offset": 85,
+              "type_chain": [
+                {
+                  "cu_offset": 0,
+                  "die_offset": 85,
+                  "dwarf_version": 4,
+                  "language": 33,
+                  "tag": "DW_TAG_base_type"
+                }
+              ],
+              "scalar_evidence": {
+                "base_die_offset": 85,
+                "encoding": "DW_ATE_unsigned",
+                "byte_size": 4,
+                "type_chain": [
+                  {
+                    "die_offset": 85,
+                    "tag": "DW_TAG_base_type"
+                  }
+                ]
+              }
+            },
+            "reason": ""
+          },
+          {
+            "source": {
+              "cu_offset": 0,
+              "die_offset": 248,
+              "dwarf_version": 4,
+              "language": 33
+            },
+            "name": "high",
+            "status": "DECLARED_RANGE",
+            "byte_offset": 4,
+            "byte_end": 12,
+            "storage": {
+              "kind": "unsigned_scalar",
+              "byte_size": 8,
+              "bit_width": 64,
+              "type_die_offset": 92,
+              "type_chain": [
+                {
+                  "cu_offset": 0,
+                  "die_offset": 92,
+                  "dwarf_version": 4,
+                  "language": 33,
+                  "tag": "DW_TAG_base_type"
+                }
+              ],
+              "scalar_evidence": {
+                "base_die_offset": 92,
+                "encoding": "DW_ATE_unsigned",
+                "byte_size": 8,
+                "type_chain": [
+                  {
+                    "die_offset": 92,
+                    "tag": "DW_TAG_base_type"
+                  }
+                ]
+              }
+            },
+            "reason": ""
+          }
+        ],
+        "reasons": []
+      },
+      {
+        "source": {
+          "cu_offset": 0,
+          "die_offset": 282,
+          "dwarf_version": 4,
+          "language": 33
+        },
+        "tag": "DW_TAG_union_type",
+        "name": "Choice",
+        "qualified_name": "Choice",
+        "status": "UNKNOWN",
+        "byte_size": null,
+        "declared_alignment": null,
+        "fields": [],
+        "reasons": [
+          "union/class layouts are outside the ordinary structure profile"
+        ]
+      },
+      {
+        "source": {
+          "cu_offset": 0,
+          "die_offset": 337,
+          "dwarf_version": 4,
+          "language": 33
+        },
+        "tag": "DW_TAG_structure_type",
+        "name": "Bits",
+        "qualified_name": "Bits",
+        "status": "UNKNOWN",
+        "byte_size": 4,
+        "declared_alignment": null,
+        "fields": [
+          {
+            "source": {
+              "cu_offset": 0,
+              "die_offset": 346,
+              "dwarf_version": 4,
+              "language": 33
+            },
+            "name": "flag",
+            "status": "UNKNOWN",
+            "byte_offset": null,
+            "byte_end": null,
+            "storage": null,
+            "reason": "bitfield/dynamic/inherited layout attributes are unsupported"
+          }
+        ],
+        "reasons": [
+          "bitfield/dynamic/inherited layout attributes are unsupported"
+        ]
+      },
+      {
+        "source": {
+          "cu_offset": 0,
+          "die_offset": 381,
+          "dwarf_version": 4,
+          "language": 33
+        },
+        "tag": "DW_TAG_structure_type",
+        "name": "Derived",
+        "qualified_name": "Derived",
+        "status": "UNKNOWN",
+        "byte_size": 8,
+        "declared_alignment": null,
+        "fields": [],
+        "reasons": [
+          "inheritance/method/unsupported structure children are present"
+        ]
+      },
+      {
+        "source": {
+          "cu_offset": 0,
+          "die_offset": 409,
+          "dwarf_version": 4,
+          "language": 33
+        },
+        "tag": "DW_TAG_structure_type",
+        "name": "Base",
+        "qualified_name": "Base",
+        "status": "DECLARED_DEBUG_LAYOUT",
+        "byte_size": 4,
+        "declared_alignment": null,
+        "fields": [
+          {
+            "source": {
+              "cu_offset": 0,
+              "die_offset": 418,
+              "dwarf_version": 4,
+              "language": 33
+            },
+            "name": "base",
+            "status": "DECLARED_RANGE",
+            "byte_offset": 0,
+            "byte_end": 4,
+            "storage": {
+              "kind": "unsigned_scalar",
+              "byte_size": 4,
+              "bit_width": 32,
+              "type_die_offset": 85,
+              "type_chain": [
+                {
+                  "cu_offset": 0,
+                  "die_offset": 85,
+                  "dwarf_version": 4,
+                  "language": 33,
+                  "tag": "DW_TAG_base_type"
+                }
+              ],
+              "scalar_evidence": {
+                "base_die_offset": 85,
+                "encoding": "DW_ATE_unsigned",
+                "byte_size": 4,
+                "type_chain": [
+                  {
+                    "die_offset": 85,
+                    "tag": "DW_TAG_base_type"
+                  }
+                ]
+              }
+            },
+            "reason": ""
+          }
+        ],
+        "reasons": []
+      },
+      {
+        "source": {
+          "cu_offset": 0,
+          "die_offset": 452,
+          "dwarf_version": 4,
+          "language": 33
+        },
+        "tag": "DW_TAG_structure_type",
+        "name": "Array",
+        "qualified_name": "Array",
+        "status": "UNKNOWN",
+        "byte_size": 8,
+        "declared_alignment": null,
+        "fields": [
+          {
+            "source": {
+              "cu_offset": 0,
+              "die_offset": 461,
+              "dwarf_version": 4,
+              "language": 33
+            },
+            "name": "values",
+            "status": "UNKNOWN",
+            "byte_offset": 0,
+            "byte_end": null,
+            "storage": null,
+            "reason": "member type DW_TAG_array_type is outside the ordinary structure profile"
+          }
+        ],
+        "reasons": [
+          "member type DW_TAG_array_type is outside the ordinary structure profile"
+        ]
+      }
+    ],
+    "gaps": [
+      "some original aggregate declarations have unsupported or ambiguous layouts"
+    ],
+    "execution_policy": {
+      "mode": "pure_static",
+      "target_or_candidate_executed": false,
+      "external_debug_files_accessed": false
+    },
+    "evidence_binding_sha256": "3bedbd4cb2b1b0c44e5b96219f08cc9812c53de79d3608d381ebbb97f1dacd14"
+  }
+}

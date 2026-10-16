@@ -1,6 +1,8 @@
 """Deterministic, compile-only recovery of a small integer-register leaf subset.
 
-The declarations are a chosen scalar register model, not recovered prototypes.
+Default declarations use a chosen scalar register model. An explicit scalar
+shape can instead constrain declarations; the generator does not authenticate
+that shape or establish the original calling ABI.
 Every discovered function symbol stays in the frozen scope, including imports,
 internal symbols and unsupported functions. No original code is executed,
 forwarded to, embedded in the candidate, or replaced with a stub.
@@ -19,7 +21,7 @@ from .intake import ELFIntakeError, extract_function, function_info, inspect_elf
 from .semantics import verify_machine_code
 
 
-RECOVERY_VERSION = "integer-register-leaf-2"
+RECOVERY_VERSION = "integer-register-leaf-3"
 _MAX_LEAF_BYTES = 1024
 _C_IDENTIFIER = re.compile(r"[A-Za-z][A-Za-z0-9_]*\Z", re.ASCII)
 _KEYWORDS = frozenset("""
@@ -142,8 +144,8 @@ def _instruction(word: int, written: set[int]) -> dict[str, Any] | None:
             result = {"opcode": "MOV", "encoding": "movn" if complement else "movz",
                       "width": width}
         result["immediate"] = str(immediate)
-    # UBFM only when its exact bitfields encode architectural LSL/LSR
-    # aliases. General extracts/inserts and signed bitfields are excluded.
+    # Unsigned UBFM includes LSL/LSR aliases and constant extract/insert.
+    # The sf/N check excludes reserved encodings and all signed SBFM/BFM.
     elif word & 0x7FC00000 == (0x53400000 if width == 64 else 0x53000000):
         source = (word >> 5) & 31
         rotation, mask_end = (word >> 16) & 63, (word >> 10) & 63
@@ -151,14 +153,33 @@ def _instruction(word: int, written: set[int]) -> dict[str, Any] | None:
             return None
         if mask_end == width - 1:
             opcode, operator, amount = "LSR", ">>", rotation
+            expression = f"{_register(source, width, written)} {operator} {amount}U"
+            result = {"opcode": opcode, "encoding": "ubfm-shift-alias", "width": width,
+                      "shift": {"kind": opcode, "amount": amount}}
         elif rotation and mask_end + 1 == rotation:
             opcode, operator, amount = "LSL", "<<", width - rotation
+            expression = f"{_register(source, width, written)} {operator} {amount}U"
+            result = {"opcode": opcode, "encoding": "ubfm-shift-alias", "width": width,
+                      "shift": {"kind": opcode, "amount": amount}}
+        elif mask_end >= rotation:
+            bit_width = mask_end - rotation + 1
+            mask = (1 << bit_width) - 1
+            shifted = _register(source, width, written)
+            if rotation:
+                shifted = f"({shifted} >> {rotation}U)"
+            expression = f"{shifted} & {mask}{'ULL' if width == 64 else 'U'}"
+            result = {"opcode": "UBFX", "encoding": "ubfm-extract-alias", "width": width,
+                      "least_significant_bit": rotation, "extracted_bits": bit_width,
+                      "mask": str(mask)}
         else:
-            return None
+            bit_width, amount = mask_end + 1, width - rotation
+            mask = (1 << bit_width) - 1
+            expression = (f"({_register(source, width, written)} & "
+                          f"{mask}{'ULL' if width == 64 else 'U'}) << {amount}U")
+            result = {"opcode": "UBFIZ", "encoding": "ubfm-insert-alias", "width": width,
+                      "least_significant_bit": amount, "inserted_bits": bit_width,
+                      "mask": str(mask)}
         sources = [source]
-        expression = f"{_register(source, width, written)} {operator} {amount}U"
-        result = {"opcode": opcode, "encoding": "ubfm-shift-alias", "width": width,
-                  "shift": {"kind": opcode, "amount": amount}}
     else:
         return None
     if width == 32:
@@ -194,6 +215,50 @@ def register_call_model() -> dict[str, Any]:
     }
 
 
+def _scalar_signature(symbol: str, parameter_widths: tuple[int, ...],
+                      return_width: int) -> dict[str, Any]:
+    types = {32: "unsigned int", 64: "unsigned long long"}
+    parameter_types = [types[width] for width in parameter_widths]
+    return_type = types[return_width]
+    return {
+        "parameter_widths": list(parameter_widths),
+        "return_width": return_width,
+        "cpp_parameter_types": parameter_types,
+        "cpp_return_type": return_type,
+        "declaration": f'extern "C" {return_type} {symbol}({", ".join(parameter_types)});',
+        "original_calling_abi_verified": False,
+    }
+
+
+def _scalar_call_model(parameter_widths: tuple[int, ...], return_width: int) -> dict[str, Any]:
+    model = register_call_model()
+    shape = {"parameter_widths": list(parameter_widths), "return_width": return_width}
+    types = {32: "unsigned int", 64: "unsigned long long"}
+    model.update(
+        id=f"contract://declared-scalar-shape/{_json_hash(shape)}",
+        status="DECLARED_SCALAR_SHAPE",
+        inputs=[{
+            "register": f"x{i}", "width": width, "cpp_type": types[width],
+            "domain": f"all-{width}-bit-patterns",
+            "upper_bits": "unspecified; cannot be read before full register write" if width == 32
+                          else "all bits declared",
+        } for i, width in enumerate(parameter_widths)],
+        **{"return": {"register": "x0", "width": return_width,
+                      "cpp_type": types[return_width]}},
+        parameter_count=len(parameter_widths),
+        shape_authentication="caller-owned; source generator does not authenticate declarations",
+        original_prototype_recovered=False,
+        original_types_recovered=False,
+        original_calling_abi_verified=False,
+    )
+    model["caller_saved_temporaries"]["registers"] = [
+        f"x{i}" for i in range(len(parameter_widths), 18)
+    ]
+    model["observations"][0] = "low-32-bits-of-x0" if return_width == 32 else "x0"
+    model["semantic_checker_observations_changed"] = False
+    return model
+
+
 def recovery_capabilities() -> dict[str, Any]:
     """Separate source-generation capability from the larger SMT opcode model."""
     return {
@@ -213,32 +278,59 @@ def recovery_capabilities() -> dict[str, Any]:
                 ("EOR", "dest/source x0..17/w0..17; second register LSL/LSR below width; no complement"),
                 ("LSL", "exact UBFM immediate alias; amount strictly below width"),
                 ("LSR", "exact UBFM immediate alias; amount strictly below width"),
+                ("UBFX", "unsigned UBFM constant extract; checked sf/N and bounded immr/imms; no signed bits"),
+                ("UBFIZ", "unsigned UBFM low-bit insert; checked sf/N and bounded immr/imms; no signed bits"),
                 ("NOP", "exact architectural encoding D503201F"),
                 ("RET", "exact D65F03C0 RET X30 as final word; no trailing words"),
             )
         ],
         "scope": "complete known symbol extent of exported safe C-identifier leaf",
         "source_registers": "declared x0..7 inputs; x8..17 require prior full write; W writes zero-extend",
+        "scalar_declarations": {
+            "optional": True, "parameter_count": {"minimum": 0, "maximum": 8},
+            "parameter_widths": [32, 64], "return_widths": [32, 64], "signed": False,
+            "declaration_authentication": "caller-owned; source generator is not an authority",
+            "unsigned32_parameter_high_bits": "unspecified until actual W/X register write",
+            "semantic_observations_or_preconditions_changed": False,
+        },
         "not_recovered": ["original prototypes", "C++ types or classes", "JNI", "calls",
                           "memory", "global data", "original calling ABI", "entry closures"],
         "lifting_establishes_equivalence": False,
     }
 
 
-def lift_integer_leaf(code: bytes, *, symbol: str, address: int = 0x1000) -> dict[str, Any]:
+def lift_integer_leaf(code: bytes, *, symbol: str, address: int = 0x1000,
+                      parameter_widths: tuple[int, ...] | list[int] | None = None,
+                      return_width: int | None = None) -> dict[str, Any]:
     """Produce C++ only after every supplied machine word passes the leaf parser.
 
     The source uses unsigned modulo arithmetic and explicit W-register truncation.
-    This parser is a source generator; successful lifting is not a proof.
+    Both optional scalar-shape fields must be supplied together. A 32-bit formal
+    defines only Wn initially; reading its unspecified Xn high bits is rejected
+    until a real architectural write defines them. Every Wn write zero extends.
+    This parser is a source generator; successful lifting is not a proof, and
+    declaring a scalar shape does not change the machine verifier's observations.
     """
     if not isinstance(code, bytes):
         raise TypeError("code must be actual machine-code bytes")
     if (not isinstance(address, int) or isinstance(address, bool) or address < 0
             or address % 4 or address + len(code) >= 1 << 64):
         raise ValueError("address must be an aligned non-wrapping uint64 address")
+    typed = parameter_widths is not None or return_width is not None
+    if typed:
+        if (not isinstance(parameter_widths, (tuple, list)) or len(parameter_widths) > 8
+                or any(type(width) is not int or width not in (32, 64) for width in parameter_widths)
+                or type(return_width) is not int or return_width not in (32, 64)):
+            raise ValueError("scalar shape requires 0..8 unsigned 32/64-bit parameters and a 32/64-bit return")
+        widths = tuple(parameter_widths)
+        assert return_width is not None
+    else:
+        widths = (64,) * 8
+        return_width = 64
     result: dict[str, Any] = {"status": "UNKNOWN", "symbol": symbol,
                              "source": None, "instructions": [], "reason": None,
-                             "call_model": register_call_model(), "source_map": []}
+                             "call_model": _scalar_call_model(widths, return_width) if typed
+                                           else register_call_model(), "source_map": []}
     if not _safe_symbol(symbol):
         result["reason"] = "unsafe_or_non_scalar_c_export_name"
         return result
@@ -247,7 +339,7 @@ def lift_integer_leaf(code: bytes, *, symbol: str, address: int = 0x1000) -> dic
         return result
     digest = _hash(code)
     written = {0}
-    initialized = set(range(8))
+    initialized_widths = dict(enumerate(widths))
     for offset in range(0, len(code), 4):
         raw = code[offset:offset + 4]
         decoded = _instruction(int.from_bytes(raw, "little"), written)
@@ -257,14 +349,26 @@ def lift_integer_leaf(code: bytes, *, symbol: str, address: int = 0x1000) -> dic
                   "recovery_supported": decoded is not None}
         if decoded is not None:
             record.update(decoded)
-            missing = set(decoded.get("source_indices", ())) - initialized
+            sources = set(decoded.get("source_indices", ()))
+            missing = sources - initialized_widths.keys()
+            undefined_upper = {index for index in sources - missing
+                               if initialized_widths[index] < decoded.get("width", 64)}
             if missing:
                 record.update(recovery_supported=False,
                               undefined_register_inputs=[f"x{i}" for i in sorted(missing)])
                 result["reason"] = "caller_saved_register_read_before_write"
+            elif undefined_upper:
+                record.update(recovery_supported=False,
+                              undefined_upper_register_bits=[f"x{i}" for i in sorted(undefined_upper)])
+                result["reason"] = "declared_32_bit_parameter_high_bits_read_before_write"
+            elif decoded["opcode"] == "RET" and initialized_widths.get(0, 0) < return_width:
+                record.update(recovery_supported=False, declared_return_width=return_width)
+                result["reason"] = result["reason"] or "return_register_not_defined_to_declared_width"
             elif "destination_index" in decoded:
-                initialized.add(decoded["destination_index"])
+                initialized_widths[decoded["destination_index"]] = 64
                 written.add(decoded["destination_index"])
+            if decoded["opcode"] == "RET" and return_width == 32:
+                record["statement"] = "return static_cast<unsigned int>(ar_x0);"
         result["instructions"].append(record)
         if decoded is None:
             result["reason"] = "instruction_outside_integer_leaf_recovery_subset"
@@ -274,14 +378,29 @@ def lift_integer_leaf(code: bytes, *, symbol: str, address: int = 0x1000) -> dic
         result["reason"] = result["reason"] or "final_ret_x30_required"
     if result["reason"] is not None:
         return result
-    parameters = ", ".join(
-        f"[[maybe_unused]] unsigned long long ar_a{i}" for i in range(8)
-    )
-    lines = ['extern "C" __attribute__((visibility("default"), noinline))',
-             f"unsigned long long {symbol}({parameters}) {{",
-             "    unsigned long long ar_x0 = ar_a0;"]
+    types = {32: "unsigned int", 64: "unsigned long long"}
+    parameters = ", ".join(f"[[maybe_unused]] {types[width]} ar_a{i}"
+                           for i, width in enumerate(widths))
+    lines = []
+    if typed:
+        signature = _scalar_signature(symbol, widths, return_width)
+        result["scalar_signature"] = signature
+        result["public_declaration"] = signature["declaration"]
+        result["public_type_declarations"] = (
+            "typedef unsigned int ar_uint32;\n"
+            "typedef unsigned long long ar_uint64;\n"
+            'static_assert(sizeof(ar_uint32) == 4, "32-bit scalar type required");\n'
+            'static_assert(sizeof(ar_uint64) == 8, "64-bit scalar type required");\n'
+        )
+        lines.extend([
+            'static_assert(sizeof(unsigned int) == 4, "32-bit scalar type required");',
+            'static_assert(sizeof(unsigned long long) == 8, "64-bit scalar type required");',
+        ])
+    lines.extend(['extern "C" __attribute__((visibility("default"), noinline))',
+                  f"{types[return_width]} {symbol}({parameters}) {{",
+                  "    unsigned long long ar_x0" + (" = ar_a0;" if widths else ";")])
     for index in sorted(written - {0}):
-        initial_value = f" = ar_a{index}" if index < 8 else ""
+        initial_value = f" = ar_a{index}" if index < len(widths) else ""
         lines.append(f"    unsigned long long ar_x{index}{initial_value};")
     for record in result["instructions"]:
         lines.append("    " + record["statement"])

@@ -18,9 +18,11 @@ import re
 import signal
 import subprocess
 import time
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from .intake import inspect_elf
 
@@ -30,6 +32,13 @@ NDK_CLANG_BUILD = "r522817c"
 TEMPLATE_VERSION = "ndk-r27c-arm64-cpp17-v1"
 _MAX_SOURCE_BYTES = 1024 * 1024
 _MAX_DIAGNOSTIC_BYTES = 1024 * 1024
+_MAX_COMMAND_OUTPUT_BYTES = 16 * 1024 * 1024
+_COMPILER_OBSERVER: ContextVar[Callable[[dict[str, Any]], None] | None] = ContextVar(
+    "auto_reverse_compiler_observer", default=None)
+_COMPILER_STARTING: ContextVar[Callable[[dict[str, Any]], str] | None] = ContextVar(
+    "auto_reverse_compiler_starting", default=None)
+_COMPILER_SPAWN_FAILED: ContextVar[Callable[[dict[str, Any]], None] | None] = ContextVar(
+    "auto_reverse_compiler_spawn_failed", default=None)
 _STANDARD_HEADERS = frozenset(
     {"array", "cstddef", "cstdint", "cstring", "limits", "type_traits", "utility"}
 )
@@ -250,34 +259,84 @@ def _confirm_process_group_stopped(process_group: int, timeout: float = 1.0) -> 
 
 
 def _run_compiler(
-    argv: list[str], output: Path, phase: str, timeout: float, environment: dict[str, str]
+    argv: list[str], output: Path, phase: str, timeout: float, environment: dict[str, str],
+    *, max_output_bytes: int = _MAX_COMMAND_OUTPUT_BYTES,
+    compiler_started: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
+    import selectors
+
+    if type(max_output_bytes) is not int or not 1 <= max_output_bytes <= 64 * 1024 * 1024:
+        raise ValueError("compiler output limit must be an integer from 1 to 64 MiB")
     stdout, stderr = output / f"{phase}.stdout.txt", output / f"{phase}.stderr.txt"
     result: dict[str, Any] = {"phase": phase, "argv": argv, "shell": False,
-                              "timed_out": False, "returncode": None}
+                              "timed_out": False, "returncode": None,
+                              "max_output_bytes": max_output_bytes, "output_limit_exceeded": False}
     started = time.monotonic()
     with stdout.open("xb") as out, stderr.open("xb") as err:
+        observer = compiler_started or _COMPILER_OBSERVER.get()
+        starting, spawn_failed = _COMPILER_STARTING.get(), _COMPILER_SPAWN_FAILED.get()
+        launch = {"phase": phase, "argv_sha256": _canonical_hash(argv)}
+        if starting is not None:
+            try:
+                launch["launch_id"] = starting(dict(launch))
+            except Exception as exc:
+                raise CompilerObservationError("Compiler launch intent registration failed") from exc
         try:
             process = subprocess.Popen(argv, cwd=output, env=environment, stdin=subprocess.DEVNULL,
-                                       stdout=out, stderr=err, start_new_session=True, shell=False)
+                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                       start_new_session=True, shell=False)
         except OSError as exc:
             result["spawn_error"] = str(exc)
+            if spawn_failed is not None:
+                try:
+                    spawn_failed({**launch, "spawn_error": str(exc)})
+                except Exception as callback_error:
+                    raise CompilerObservationError("Compiler no-process launch confirmation failed") from callback_error
             result["cleanup"] = {"compiler_reaped": True, "process_group_sigkill_sent": False,
                                    "process_group_stopped_confirmed": True,
                                    "observation": "process-not-started"}
         else:
             try:
-                process.wait(timeout=timeout)
-            except subprocess.TimeoutExpired:
-                result["timed_out"] = True
-                try:
-                    os.killpg(process.pid, signal.SIGTERM)
-                except ProcessLookupError:
-                    pass
-                try:
-                    process.wait(timeout=0.5)
-                except subprocess.TimeoutExpired:
-                    pass
+                if observer is not None:
+                    try:
+                        observer({**launch, "pid": process.pid, "pgid": process.pid})
+                    except Exception as exc:
+                        raise CompilerObservationError("Compiler owner/process registration failed") from exc
+                captured, parent_exited = 0, False
+                with selectors.DefaultSelector() as selector:
+                    selector.register(process.stdout, selectors.EVENT_READ, out)
+                    selector.register(process.stderr, selectors.EVENT_READ, err)
+                    while selector.get_map():
+                        remaining = timeout - (time.monotonic() - started)
+                        if remaining <= 0:
+                            result["timed_out"] = True
+                            break
+                        if process.poll() is not None and not parent_exited:
+                            # A compiler child cannot prolong collection after
+                            # its parent exited; buffered pipe bytes still drain.
+                            parent_exited = True
+                            try:
+                                os.killpg(process.pid, signal.SIGKILL)
+                            except ProcessLookupError:
+                                pass
+                        for key, _ in selector.select(min(remaining, 0.05)):
+                            block = os.read(key.fileobj.fileno(), 65536)
+                            if not block:
+                                selector.unregister(key.fileobj)
+                                continue
+                            available = max_output_bytes - captured
+                            key.data.write(block[:available])
+                            captured += min(len(block), available)
+                            if len(block) > available:
+                                result["output_limit_exceeded"] = True
+                                break
+                        if result["output_limit_exceeded"]:
+                            break
+                if not result["timed_out"] and not result["output_limit_exceeded"]:
+                    try:
+                        process.wait(timeout=max(0.001, timeout - (time.monotonic() - started)))
+                    except subprocess.TimeoutExpired:
+                        result["timed_out"] = True
             finally:
                 # Kill the entire session's process group even if the parent has
                 # already exited, so an inherited child cannot keep running.
@@ -297,9 +356,37 @@ def _run_compiler(
                                        "process_group_sigkill_sent": killed,
                                        "escaped_process_containment": False,
                                        **_confirm_process_group_stopped(process.pid)}
+                process.stdout.close()
+                process.stderr.close()
     result["elapsed_seconds"] = round(time.monotonic() - started, 6)
     result["stdout"], result["stderr"] = _diagnostic(stdout), _diagnostic(stderr)
     return result
+
+
+class CompilerObservationError(ValueError):
+    code = "PROCESS_REGISTRATION_FAILED"
+
+
+@contextmanager
+def observe_compilers(observer: Callable[[dict[str, Any]], None], *,
+                      starting: Callable[[dict[str, Any]], str] | None = None,
+                      spawn_failed: Callable[[dict[str, Any]], None] | None = None):
+    """Trusted host registration for every compiler in this execution context."""
+    if not callable(observer):
+        raise TypeError("compiler observer must be callable")
+    if (starting is None) != (spawn_failed is None) or any(
+        callback is not None and not callable(callback) for callback in (starting, spawn_failed)
+    ):
+        raise TypeError("launch intent and no-process callbacks must both be callable")
+    token = _COMPILER_OBSERVER.set(observer)
+    starting_token = _COMPILER_STARTING.set(starting)
+    failed_token = _COMPILER_SPAWN_FAILED.set(spawn_failed)
+    try:
+        yield
+    finally:
+        _COMPILER_OBSERVER.reset(token)
+        _COMPILER_STARTING.reset(starting_token)
+        _COMPILER_SPAWN_FAILED.reset(failed_token)
 
 
 def _toolchain_layout(config: BuildConfig) -> dict[str, Path]:
@@ -463,7 +550,7 @@ def build_candidate(source: str, output_dir: str | Path, config: BuildConfig) ->
                             "compiler-version", config.timeout_seconds, environment)
     report["commands"].append(version)
     report["execution_policy"]["compiler_executed"] = True
-    if version["timed_out"] or version.get("spawn_error"):
+    if version["timed_out"] or version.get("spawn_error") or version.get("output_limit_exceeded"):
         report["build"] = {"status": "UNKNOWN", "reason_code": "TOOLCHAIN_PREFLIGHT_FAILED"}
         return finish()
     identity = version["stdout"]["text"]
@@ -481,7 +568,7 @@ def build_candidate(source: str, output_dir: str | Path, config: BuildConfig) ->
     helpers = _run_compiler([*common, "-c", str(helper_check), "-o", str(output / "helper-check.o")],
                             output, "helper-compile", config.timeout_seconds, environment)
     report["commands"].append(helpers)
-    if helpers["timed_out"] or helpers.get("spawn_error"):
+    if helpers["timed_out"] or helpers.get("spawn_error") or helpers.get("output_limit_exceeded"):
         report["build"] = {"status": "UNKNOWN", "reason_code": "HELPER_COMPILE_INTERRUPTED"}
         return finish()
     if helpers["returncode"] != 0:
@@ -502,7 +589,7 @@ def build_candidate(source: str, output_dir: str | Path, config: BuildConfig) ->
     compiled = _run_compiler(command, output, "candidate-compile", config.timeout_seconds,
                              environment)
     report["commands"].append(compiled)
-    if compiled["timed_out"] or compiled.get("spawn_error"):
+    if compiled["timed_out"] or compiled.get("spawn_error") or compiled.get("output_limit_exceeded"):
         report["build"] = {"status": "UNKNOWN", "reason_code": "CANDIDATE_COMPILE_INTERRUPTED"}
         return finish()
     if compiled["returncode"] != 0:

@@ -267,6 +267,16 @@ class DomainStore:
         ).fetchone() is not None
 
     @staticmethod
+    def _tool_activity_tables(connection: sqlite3.Connection) -> tuple[str, ...]:
+        """Optional host tool ledgers share cancellation and cleanup boundaries."""
+        names = {row[0] for row in connection.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' "
+            "AND name IN ('validation_activities','integration_activities','analysis_activities')"
+        )}
+        return tuple(name for name in ("validation_activities", "integration_activities", "analysis_activities")
+                     if name in names)
+
+    @staticmethod
     def _cleanup(connection: sqlite3.Connection, job_id: str) -> str:
         states = {
             row[0]
@@ -274,9 +284,9 @@ class DomainStore:
                 "SELECT cleanup_status FROM attempts WHERE job_id=?", (job_id,)
             )
         }
-        if DomainStore._has_validation_activities(connection):
+        for table in DomainStore._tool_activity_tables(connection):
             states.update(row[0] for row in connection.execute(
-                "SELECT cleanup_status FROM validation_activities WHERE job_id=?", (job_id,)
+                f"SELECT cleanup_status FROM {table} WHERE job_id=?", (job_id,)
             ))
         for status in ("QUARANTINED", "UNCONFIRMED", "PENDING"):
             if status in states:
@@ -289,9 +299,9 @@ class DomainStore:
             "SELECT 1 FROM attempts WHERE job_id=? AND occupied=1", (job_id,)
         ).fetchone():
             return True
-        return bool(DomainStore._has_validation_activities(connection) and connection.execute(
-            "SELECT 1 FROM validation_activities WHERE job_id=? AND occupied=1", (job_id,)
-        ).fetchone())
+        return any(connection.execute(
+            f"SELECT 1 FROM {table} WHERE job_id=? AND occupied=1", (job_id,)
+        ).fetchone() for table in DomainStore._tool_activity_tables(connection))
 
     def _finish_cancellation_if_clean(self, connection: sqlite3.Connection, job_id: str) -> None:
         job = self._row(connection, "jobs", "job_id", job_id)
@@ -449,11 +459,16 @@ class DomainStore:
             ).fetchall()
             if any(row["state"] not in TERMINAL_TASKS for row in unfinished):
                 raise DomainError("UNFINISHED_PLAN", "Job has unfinished work packages")
-            if self._has_validation_activities(connection) and connection.execute(
-                "SELECT 1 FROM validation_activities WHERE job_id=? "
-                "AND state IN ('READY','RUNNING','QUARANTINED')", (job_id,)
-            ).fetchone():
-                raise DomainError("UNFINISHED_VALIDATION", "Job has unfinished independent validation")
+            for table in self._tool_activity_tables(connection):
+                if connection.execute(
+                    f"SELECT 1 FROM {table} WHERE job_id=? "
+                    "AND (state IN ('READY','RUNNING','QUARANTINED') OR occupied=1)",
+                    (job_id,),
+                ).fetchone():
+                    code = "UNFINISHED_" + table.removesuffix("_activities").upper()
+                    raise DomainError(code, "Job has unfinished independent host work")
+            if self._resources_occupied(connection, job_id) or self._cleanup(connection, job_id) not in {"CONFIRMED", "NOT_REQUIRED"}:
+                raise DomainError("CLEANUP_PENDING", "Job cannot complete before all workers and tools are confirmed stopped")
         if (
             next_state == "CANCELLED"
             and self._resources_occupied(connection, job_id)
@@ -1268,23 +1283,30 @@ class DomainStore:
                 "UPDATE attempts SET state='CANCELLED',updated_at=? WHERE job_id=? AND occupied=1",
                 (time.time(), job_id),
             )
-            if self._has_validation_activities(connection):
+            for table in self._tool_activity_tables(connection):
+                kind = table.removesuffix("_activities")
                 pending = connection.execute(
-                    "SELECT activity_id,state FROM validation_activities WHERE job_id=? "
-                    "AND state IN ('READY','RUNNING','QUARANTINED')", (job_id,)
+                    f"SELECT activity_id,state,occupied FROM {table} WHERE job_id=? "
+                    "AND (state IN ('READY','RUNNING','QUARANTINED') OR occupied=1)", (job_id,)
                 ).fetchall()
                 for activity in pending:
                     connection.execute(
-                        "UPDATE validation_activities SET cancel_requested=1,updated_at=? WHERE activity_id=?",
+                        f"UPDATE {table} SET cancel_requested=1,updated_at=? WHERE activity_id=?",
                         (time.time(), activity["activity_id"]),
                     )
-                    if activity["state"] == "READY":
+                    stopped = activity["state"] == "READY" and not activity["occupied"]
+                    if stopped:
                         connection.execute(
-                            "UPDATE validation_activities SET state='CANCELED',cleanup_status='CONFIRMED' "
+                            f"UPDATE {table} SET state='CANCELED',cleanup_status='CONFIRMED' "
                             "WHERE activity_id=?", (activity["activity_id"],)
                         )
-                    self._emit(connection, job_id, "validation.cancel_requested", {
-                        "activity_id": activity["activity_id"], "resources_stopped": activity["state"] == "READY",
+                    elif activity["state"] not in {"RUNNING", "QUARANTINED"}:
+                        connection.execute(
+                            f"UPDATE {table} SET state='QUARANTINED',cleanup_status='QUARANTINED' "
+                            "WHERE activity_id=?", (activity["activity_id"],)
+                        )
+                    self._emit(connection, job_id, f"{kind}.cancel_requested", {
+                        "activity_id": activity["activity_id"], "resources_stopped": stopped,
                     })
             self._change_job(
                 connection, job_id, "CANCELLING", "dispatch stopped; cleanup requested"

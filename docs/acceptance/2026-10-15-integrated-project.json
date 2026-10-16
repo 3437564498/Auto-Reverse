@@ -1,0 +1,106 @@
+{
+  "accepted_on": "2026-10-15",
+  "branch_cleanup": {
+    "passed": 13,
+    "skipped": 0
+  },
+  "dsh_offline": {
+    "model_calls": 0,
+    "passed": 30,
+    "skipped": 0
+  },
+  "fingerprints": {
+    ".github/workflows/static-acceptance.yml": "22086d2737e6502311cddf54419428c9889ebfb25795ddda902e43f2be1decf2",
+    "schemas/scalar-abi-bundle.schema.json": "002807e6444d238c8aeeb30a2e929c4003b10747ddc62cbe8662971db938ee4f",
+    "scripts/run_project_pipeline_sample.py": "44d31e430644d0531c7f43b2ef148482aff7038316d5f0baa808be86ec42a847",
+    "src/auto_reverse/__init__.py": "58f35f53ea13ca2357707cd1001d607b2a1b9b703ff5c7cb31f19182cbf57f16",
+    "src/auto_reverse/abi.py": "900a6268c00b7cdfb7d855490225d3806e2ddcff996111ca678e9c47e833c74e",
+    "src/auto_reverse/abi_contracts.py": "03cd9ae798eeaba0cfd3669c643a960133ce6921b3a385ef21a9eb521e0f950a",
+    "src/auto_reverse/analysis_service.py": "0b15220e819f3099848ab5ba0c5043f4412c0e7573e53b3c21fb7eeb16f8a19b",
+    "src/auto_reverse/android_profile.py": "84288f9663d713ac30c3dd06210569b9253babe433b8c8d1df55f21e4857ced3",
+    "src/auto_reverse/artifacts.py": "d66f853d1b0cba20ffe89761edf725c06d7a061806e803aaf705f12fbf21c571",
+    "src/auto_reverse/backend_rpc.py": "e5944b8f2079ed845e74300ff0f3d00124fc83b810a4890de5d85f5bb38072a1",
+    "src/auto_reverse/build_gate.py": "2411e76ebed3ea0ba28d658ae024245a1c9600f22aadf45f083c442f9aed46be",
+    "src/auto_reverse/candidate_selection.py": "c845fa4b3da4793720e75d4dd344d6397c46cfa5cacdb06e14340982684ebadf",
+    "src/auto_reverse/candidate_validation.py": "1770f58683efd03a992ea122ea52e1fa5ed46698a33cd5f686205407ec2e9fd9",
+    "src/auto_reverse/capabilities.py": "f0b8fad603f6d6ad6e8b71fa6c25bcbea3b9988f89abbff1fb23c4be715221f8",
+    "src/auto_reverse/cli.py": "725a9e37bee4d4646a1991caad16eed2dc7fc070e64ad021e6cb70676fbd97c9",
+    "src/auto_reverse/contracts.py": "43e30587f6eb1cf295c7fabc3820d5ddc3b9e62cc2c31f19dffdea2c3926a702",
+    "src/auto_reverse/domain.py": "18702644b77d36518b592c3fdebcfaec3f665b3d342d7bf1243c0733fe890b3a",
+    "src/auto_reverse/evidence_delivery.py": "a6340c2b76e8ab60d4e8ea0f2144b802b1eaa4d43dba9514e029646bc0ec271c",
+    "src/auto_reverse/final_report.py": "94c57eeaa47a047d31d79bde04b5654a0a3409077aa8eb3be6440c8903d12e71",
+    "src/auto_reverse/ghidra.py": "28325a72ac144ed7f7c2a57ba86b6842a9eb38a5b3644039585163d00b540116",
+    "src/auto_reverse/host_reconcile.py": "3f2655b3af6b1124986e006a013480fa0eb73157a100e25465c99c432a404b73",
+    "src/auto_reverse/intake.py": "b08729df5a482c12cac0214fa6cc08462f09c069bd4a2cb888784d6aaaf38ee7",
+    "src/auto_reverse/library_inventory.py": "f258c2652b305e9b89836440a484e8d90d7be162eeb0aaf3ab9277ca6afa9162",
+    "src/auto_reverse/mcp_server.py": "e5a21f4143cfccca733e8a27cd786b01e29afac8afc6245d8527f5568b3fc399",
+    "src/auto_reverse/postprocessing.py": "445a9b03236cc63a38f4a28b3f170e9ea3e803fa868b8dcb51f6a5d342111773",
+    "src/auto_reverse/project_archive.py": "b9b888288366a1cb444c37da96e5a0f75fd1418afad77487893c7e54a268ccd1",
+    "src/auto_reverse/project_build.py": "b3615aacb600c8d8429311cdd7fc827a076b33de12f771ce22a8e42647fe26f1",
+    "src/auto_reverse/project_service.py": "91fb7c0dfb4e16b7d05ec3f2eeb9671354ed7b1374036bdb8e06dc5a405a6792",
+    "src/auto_reverse/project_verification.py": "ed9623704539edb671e88cc0ce7682f19523c64a359cb3b482e0424358b408c7",
+    "src/auto_reverse/recovery.py": "47fb1650eac008ea4836c0214e307e302aa7025de8babb4a9f334877586cfe1e",
+    "src/auto_reverse/repair_feedback.py": "637b90b01b130ab3b848c4fdf3b10c00b389140607f9504e5bfec2da2c8883df",
+    "src/auto_reverse/resources/ExportRawPcode.java": "f3cf310108ffcfc46230443adff8043cc0911977b596bc65d27083767cc8d60b",
+    "src/auto_reverse/resources/ghidra-toolchain-pin.json": "c9840cd44ae20d5f7f852896ccf5995f59463eb6f7a7a120f6a3bc03724ae581",
+    "src/auto_reverse/resources/machine_helpers.hpp": "c762370e632167b104186a745d00351c49e1c8718b0ff243a6548a6a7fb6281a",
+    "src/auto_reverse/scalar_abi.py": "9e34fa06c5ca3c32d0c99422a575400ab63466da469792bf46589a64b7be6807",
+    "src/auto_reverse/semantics.py": "edab377402214b4cfc4e2dc94290b83ea8f575c8b60ea46599c776eaa3e6dad3",
+    "src/auto_reverse/service.py": "15eae563de6301d85ed9266f3476089ec6c7c8c9b73eb7c5b357e57ff790a33f",
+    "src/auto_reverse/source_safety.py": "dfaff69a4ba579b471166e58a4b52011802a0c40fa6e5d3d66d9d3b60dda150b",
+    "src/auto_reverse/source_signature.py": "bfa3ce16a5e7bc100a531a3f2f59adc9c32f5678034ff3aae7932d1645efdff4",
+    "src/auto_reverse/static_pipeline.py": "512832a1fd2de3729785f35a2613561c763490fae3fef8c87ea3814205192ab5",
+    "src/auto_reverse/type_solver.py": "f7d34175c690846dcf79b3f44203071bb3d919be505b3979da12d716c1f38bb1",
+    "toolchains/static.lock.json": "b91f9a87e495994d716f200490ca13dfdaa89004b8df1f9b7da82d38da82eb63"
+  },
+  "implementation_source_commit": "da5535dcad71f5acfc1e3ea77a7158807d3bda3e",
+  "independent_pipeline_review": {
+    "passed": 11,
+    "skipped": 0
+  },
+  "installed_wheel": {
+    "new_modules_imported": 13,
+    "required_resources_present": 3,
+    "status": "PASS"
+  },
+  "maximum_artifact_level": "A1",
+  "model_calls": 0,
+  "project_pipeline_evidence": "2026-10-15-project-pipeline.json",
+  "python": {
+    "failed": 0,
+    "ndk_and_ghidra_enabled": true,
+    "passed": 1964,
+    "seconds": 610.86,
+    "skipped": 0,
+    "warnings": 1
+  },
+  "remaining": [
+    "complete independent ISA/helper and original calling ABI acceptance",
+    "complete type constraints and C++ object layout",
+    "whole-library and entry/dependency closures",
+    "complete Android/JNI/TLS/loader/runtime semantics",
+    "real DSH model lifecycle, repair, and 8/16/32 throughput acceptance",
+    "production durable batches and fixed-scope release gates"
+  ],
+  "ruff": "PASS",
+  "schema_regeneration": "MATCH",
+  "schema_version": 1,
+  "static_micro_matrix": {
+    "all_expectations_matched": true,
+    "case_count": 27,
+    "classification_counts": {
+      "DIFFERENT": 8,
+      "EXACT_EQUIVALENT": 6,
+      "INVALID_PRECONDITION": 2,
+      "UNKNOWN": 11
+    },
+    "full_m0_s_exit_satisfied": false,
+    "manifest_sha256": "7751e7d4764fb4b22ddd093650711895f0a009382bb53d3258d2cb7f4fdba341",
+    "status": "PASS",
+    "whole_library_equivalence": false
+  },
+  "target_or_candidate_executed": false,
+  "timezone": "Asia/Singapore",
+  "v1_complete": false,
+  "work_package_and_proposal_schema": "UNCHANGED"
+}

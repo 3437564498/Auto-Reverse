@@ -21,7 +21,7 @@ import signal
 import subprocess
 import tempfile
 import time
-from typing import Any
+from typing import Any, Callable
 
 import capstone
 
@@ -34,6 +34,8 @@ COMPILER_SPEC_ID = "default"
 _INTEGRATION_DIR = Path(__file__).resolve().parents[2] / "integrations" / "ghidra"
 _ADDRESS = re.compile(r"0x[0-9a-fA-F]{1,16}\Z")
 _SHA256 = re.compile(r"[0-9a-fA-F]{64}\Z")
+_MAX_EXPORT_BYTES = 64 * 1024 * 1024
+_MAX_LOG_BYTES = 16 * 1024 * 1024
 
 
 class RawIRValidationError(ValueError):
@@ -318,7 +320,9 @@ def _artifact(path: Path, kind: str) -> dict:
 
 
 def analyze_with_ghidra(binary: str | Path, output_dir: str | Path,
-                        ghidra_home: str | Path, timeout_seconds: int = 300) -> dict[str, Any]:
+                        ghidra_home: str | Path, timeout_seconds: int = 300, *,
+                        java_home: str | Path | None = None,
+                        cancel_requested: Callable[[], bool] | None = None) -> dict[str, Any]:
     """Import ELF64 LE AArch64 with a fixed trusted Headless Java exporter.
 
     ``status == 'exported'`` means complete export of the analyzed inventory,
@@ -329,6 +333,8 @@ def analyze_with_ghidra(binary: str | Path, output_dir: str | Path,
     """
     if type(timeout_seconds) is not int or timeout_seconds <= 0:
         raise ValueError("timeout_seconds must be a positive integer")
+    if cancel_requested is not None and not callable(cancel_requested):
+        raise TypeError("Cancellation observation must be a trusted host callback")
     destination = Path(output_dir).resolve()
     destination.mkdir(parents=True, exist_ok=True)
     manifest_path = destination / "analysis-manifest.json"
@@ -346,7 +352,23 @@ def analyze_with_ghidra(binary: str | Path, output_dir: str | Path,
         "timeout_seconds": timeout_seconds, "semantic_status": "not_verified",
         "equivalence_result": None, "artifact_refs": [], "raw_ir_path": None,
         "ghidra_raw_ir_path": None, "cleanup": {"temporary_project_removed": True},
+        "tool_spawn_attempted": False, "tool_process_started": False,
+        "output_budget": {"maximum_export_bytes": _MAX_EXPORT_BYTES,
+                          "maximum_combined_log_bytes": _MAX_LOG_BYTES},
     }
+
+    def enforce_output_budget():
+        for name in ("raw-ir.ghidra.json", "raw-ir.ghidra.json.partial"):
+            path = destination / name
+            if path.exists() and path.stat().st_size > _MAX_EXPORT_BYTES:
+                manifest["status"] = "output_limit"
+                raise RawIRValidationError("Ghidra export exceeds the bounded evidence profile")
+        logs = (destination / name for name in (
+            "headless.log", "ghidra-application.log", "ghidra-script.log"))
+        if sum(path.stat().st_size for path in logs if path.exists()) > _MAX_LOG_BYTES:
+            manifest["status"] = "output_limit"
+            raise RawIRValidationError("Ghidra logs exceed the bounded output profile")
+
     process = None
     temporary = None
     runtime_home = None
@@ -414,6 +436,14 @@ def analyze_with_ghidra(binary: str | Path, output_dir: str | Path,
                    "-scriptlog", str(destination / "ghidra-script.log"), "-deleteProject"]
         manifest["command"] = command
         environment = os.environ.copy()  # Preserve proxy, CA, and configured Java trust.
+        if java_home is not None:
+            selected_java = Path(java_home).resolve()
+            if not (selected_java / "bin" / "java").is_file():
+                manifest["status"] = "tool_unavailable"
+                raise FileNotFoundError("Configured Java runtime is unavailable")
+            environment["JAVA_HOME"] = str(selected_java)
+            # The pinned launch script probes PATH before JAVA_HOME.
+            environment["PATH"] = str(selected_java / "bin") + ":/usr/bin:/bin"
         for key in ("JAVA_TOOL_OPTIONS", "JDK_JAVA_OPTIONS", "_JAVA_OPTIONS", "CLASSPATH",
                     "LD_PRELOAD", "LD_AUDIT", "LD_LIBRARY_PATH", "BASH_ENV", "ENV"):
             environment.pop(key, None)
@@ -426,17 +456,60 @@ def analyze_with_ghidra(binary: str | Path, output_dir: str | Path,
         for key, directory in (("XDG_CONFIG_HOME", "config"), ("XDG_CACHE_HOME", "cache")):
             environment[key] = str(temporary / directory)
         with (destination / "headless.log").open("w") as log:
-            process = subprocess.Popen(command, cwd=temporary, env=environment,
-                                       stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT,
-                                       start_new_session=True, shell=False)
-            manifest["tool_pid"] = process.pid
+            # The same durable pre-spawn fence used by compiler activities also
+            # covers Headless Java. A host crash before PID association leaves
+            # a PENDING launch intent; recovery must retain its occupied slot.
+            from . import build_gate
+
+            launch = {"phase": "ghidra-headless", "argv_sha256": build_gate._canonical_hash(command)}
+            if cancel_requested is not None and cancel_requested():
+                manifest["status"] = "canceled"
+                raise RuntimeError("Host canceled or fenced the analysis before tool launch")
+            starting = build_gate._COMPILER_STARTING.get()
+            spawn_failed = build_gate._COMPILER_SPAWN_FAILED.get()
+            observer = build_gate._COMPILER_OBSERVER.get()
+            if starting is not None:
+                launch["launch_id"] = starting(dict(launch))
+            manifest["tool_spawn_attempted"] = True
             try:
-                manifest["returncode"] = process.wait(timeout=timeout_seconds)
+                process = subprocess.Popen(command, cwd=temporary, env=environment,
+                                           stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT,
+                                           start_new_session=True, shell=False)
+            except OSError as exception:
+                if spawn_failed is not None:
+                    spawn_failed({**launch, "spawn_error": str(exception)})
+                raise
+            manifest["tool_process_started"] = True
+            manifest["tool_pid"] = process.pid
+            if observer is not None:
+                observer({**launch, "pid": process.pid, "pgid": process.pid})
+            try:
+                if cancel_requested is None:
+                    manifest["returncode"] = process.wait(timeout=timeout_seconds)
+                else:
+                    deadline = time.monotonic() + timeout_seconds
+                    while True:
+                        enforce_output_budget()
+                        if cancel_requested():
+                            manifest["status"] = "canceled"
+                            raise RuntimeError("Host canceled or fenced the analysis")
+                        remaining = deadline - time.monotonic()
+                        if remaining <= 0:
+                            raise subprocess.TimeoutExpired(command, timeout_seconds)
+                        try:
+                            manifest["returncode"] = process.wait(timeout=min(0.25, remaining))
+                            break
+                        except subprocess.TimeoutExpired:
+                            if time.monotonic() >= deadline:
+                                raise
             except subprocess.TimeoutExpired:
                 manifest["status"] = "timeout"
                 raise TimeoutError("host timeout terminated Ghidra import/analysis/export") from None
         if manifest["returncode"] != 0:
             raise RuntimeError(f"Ghidra Headless exited with code {manifest['returncode']}")
+        # Never parse an oversized export, even when the process completed
+        # between polls or the direct static-import API has no cancel hook.
+        enforce_output_budget()
         manifest["status"] = "invalid_export"
         document = validate_raw_ir(json.loads(raw_path.read_text()), intake["sha256"])
         _require(isinstance(document.get("java_runtime"), dict)

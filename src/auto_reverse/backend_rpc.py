@@ -393,6 +393,7 @@ class BackendRPC:
     def _contract_read(self, params: dict) -> dict:
         from .abi_contracts import AbiContractService, ScalarAbiConstraintsEnvelope
         from .evidence_delivery import EvidenceDeliveryEnvelope
+        from .type_solver import ScalarAbiBundleEnvelope
 
         with self.domain._transaction() as connection:
             attempt, _, job, work = self._bound(connection, params, "contract_read")
@@ -403,6 +404,9 @@ class BackendRPC:
                     "source_candidate_contract": CppSourceCandidate.model_json_schema(),
                     "evidence_delivery_contract": EvidenceDeliveryEnvelope.model_json_schema(),
                     "scalar_abi_constraints_contract": ScalarAbiConstraintsEnvelope.model_json_schema(),
+                    "scalar_abi_bundle_contract": ScalarAbiBundleEnvelope.model_json_schema(),
+                    "allowed_delivery_kinds": ["scalar_abi_constraints", "scalar_abi_bundle"] if work["role"] == "type_abi" else
+                        (["cpp_source"] if work["role"] in {"recovery", "repair", "integration", "naming"} else ["scoped_evidence", "diagnostic"]),
                     "abi_contracts": AbiContractService.read_current(connection, job["job_id"], self.objects),
                     "expected_delivery_kind": "cpp_source" if work["role"] in {
                         "recovery", "repair", "integration", "naming"
