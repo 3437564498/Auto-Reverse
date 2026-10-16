@@ -47,7 +47,8 @@ def _implementation_fingerprint() -> str:
     root = Path(__file__).parent
     names = ("candidate_selection.py", "candidate_validation.py", "build_gate.py", "abi.py",
              "intake.py", "semantics.py", "capabilities.py", "recovery.py", "domain.py",
-             "source_signature.py", "scalar_abi.py", "abi_contracts.py")
+             "source_signature.py", "scalar_abi.py", "abi_contracts.py", "layout_contracts.py",
+             "layout_dependencies.py", "candidate_layout.py", "dwarf_layout.py")
     return _digest({name: _sha((root / name).read_bytes()) for name in names})
 
 
@@ -184,6 +185,10 @@ class CandidateSelectionService:
         attempt = self.domain._row(connection, "attempts", "attempt_id", row["attempt_id"])
         job = self.domain._row(connection, "jobs", "job_id", row["job_id"])
         payload, work = json.loads(proposal["payload"]), json.loads(task["data"])
+        if work["role"] not in {"recovery", "repair", "integration", "naming"}:
+            raise DomainError("ROLE_SCOPE", "Completed candidate no longer has a source-recovery role")
+        if "candidate_submit" not in work["allowed_operations"]:
+            raise DomainError("OPERATION_DENIED", "Completed candidate lost its frozen source submission permission")
         identities = {key: frozen[key] for key in ("execution_key", "job_id", "task_id", "attempt_id",
                                                    "input_snapshot_id", "contract_revision")}
         alias = connection.execute("SELECT * FROM rpc_candidate_aliases WHERE alias=?", (row["candidate_ref"],)).fetchone()
@@ -254,6 +259,7 @@ class CandidateSelectionService:
                     or _digest(authority) != frozen.get("source_signature_authority_sha256")):
                 raise DomainError("SOURCE_SIGNATURE_AUTHORITY_CHANGED", "Current declaration authority changed")
             report = self._load(row["report_ref"], cache)
+            layout_material = self.validation._verified_layout_material(connection, frozen, report)
             identities = {"activity_id": row["activity_id"], "job_id": row["job_id"],
                           "execution_key": row["execution_key"], "proposal_id": frozen["proposal_id"],
                           "symbol": row["symbol"], "candidate_ref": row["candidate_ref"],
@@ -325,6 +331,17 @@ class CandidateSelectionService:
                 if not connection.execute("SELECT 1 FROM job_artifacts WHERE job_id=? AND artifact_ref=?",
                                           (row["job_id"], ref)).fetchone():
                     raise DomainError("ARTIFACT_SCOPE", "Validation object was not committed to this Job")
+            if layout_material is not None:
+                for key in ("layout_material_ref", "compiled_source_ref", "layout_guard_ref"):
+                    if not connection.execute("SELECT 1 FROM job_artifacts WHERE job_id=? AND artifact_ref=?",
+                                              (row["job_id"], report[key])).fetchone():
+                        raise DomainError("ARTIFACT_SCOPE", "Guarded layout material was not published to this Job")
+                result.update(layout_authority=frozen["layout_authority"],
+                              layout_authority_sha256=frozen["layout_authority_sha256"],
+                              **{key: report[key] for key in (
+                                  "layout_material_ref", "layout_material_sha256", "compiled_source_ref",
+                                  "compiled_source_sha256", "compiled_source_size", "layout_guard_ref",
+                                  "layout_guard_sha256", "layout_guard_size")})
             local = proof["semantic"]
             result.update(local_semantic=local, verification_ref=report["verification_ref"],
                           build_manifest_ref=report["build_manifest_ref"], abi_report_ref=report["abi_report_ref"],
@@ -351,6 +368,9 @@ class CandidateSelectionService:
                    "toolchain": gate.get("toolchain"), "artifacts": gate["artifacts"],
                    "commands": [command["argv"] for command in gate["commands"]]}
         files = gate.get("toolchain", {}).get("files", {})
+        actual_source = {"sha256": frozen["source_sha256"], "size": frozen["source_size"]}
+        if frozen.get("layout_authority") is not None:
+            actual_source = {"sha256": report["compiled_source_sha256"], "size": report["compiled_source_size"]}
         if (parameters != config["parameters"] or _canonical_hash(binding) != gate["build_binding_sha256"]
                 or gate["build"]["status"] != "PASS" or gate["abi"]["status"] != "PASS"
                 or gate["execution_policy"].get("compiler_executed") is not True
@@ -360,10 +380,10 @@ class CandidateSelectionService:
                        or command.get("cleanup", {}).get("compiler_reaped") is not True
                        or command.get("cleanup", {}).get("process_group_stopped_confirmed") is not True
                        for command in gate["commands"])
-                or gate["source"] != {"sha256": frozen["source_sha256"], "size": frozen["source_size"]}
+                or gate["source"] != actual_source
                 or len(shared) != 1 or len(sources) != 1
                 or (shared[0]["sha256"], shared[0]["size"]) != (candidate["sha256"], candidate["size"])
-                or (sources[0]["sha256"], sources[0]["size"]) != (frozen["source_sha256"], frozen["source_size"])
+                or (sources[0]["sha256"], sources[0]["size"]) != (actual_source["sha256"], actual_source["size"])
                 or any({key: files.get(name, {}).get(key) for key in ("sha256", "size")} != fingerprint
                        for name, fingerprint in config["toolchain_files"].items())
                 or gate["toolchain"].get("helper", {}).get("sha256") != config["helper_sha256"]
@@ -381,9 +401,16 @@ class CandidateSelectionService:
                    "proposal_id": frozen["proposal_id"], "symbol": row["symbol"],
                    "input_snapshot_id": frozen["input_snapshot_id"], "contract_revision": frozen["contract_revision"],
                    "original_binary_sha256": frozen["input_sha256"], "candidate_binary_sha256": candidate_info["input_sha256"],
-                   "staged_envelope_sha256": frozen["candidate_sha256"], "compiled_source_sha256": frozen["source_sha256"],
+                   "staged_envelope_sha256": frozen["candidate_sha256"],
+                   "compiled_source_sha256": (report["compiled_source_sha256"] if frozen.get("layout_authority")
+                                              is not None else frozen["source_sha256"]),
                    "original_code_sha256": _sha(original_bytes), "candidate_code_sha256": _sha(candidate_bytes),
                    "build_binding_sha256": gate["build_binding_sha256"], "call_model_ref": frozen["call_model"]["id"]}
+        if frozen.get("layout_authority") is not None:
+            binding.update(staged_source_sha256=frozen["source_sha256"],
+                           layout_material_sha256=report["layout_material_sha256"],
+                           layout_authority_sha256=frozen["layout_authority_sha256"],
+                           layout_guard_sha256=report["layout_guard_sha256"])
         expected_tools = {
             "decoder": {"name": "capstone", "version": capabilities.CAPSTONE_PACKAGE_VERSION,
                         "binding_version": capstone.__version__},

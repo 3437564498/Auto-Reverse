@@ -157,7 +157,7 @@ cmake --build work/project-rebuilt
 
 `get-layout-contracts` 每次核对原始字节、解析器、实际发布回执/Proposal、原授权作用域、证据清单及 CAS；失效项明确列出。历史重放不再次推进版本，也不让历史记录获得当前权威。两项公开 MCP 读取不会创建可选表、冻结声明或启动编译器。空 `type_ids` 保留旧版任务的原始规范表示，既有幂等键和回执哈希不改写。
 
-这项事务只冻结原始普通结构存储声明，最高 A0。`recover-project` 的自动 TYPES 阶段仍只处理有限标量；候选实际 TU、工程公共类型与 FINAL 布局依赖需要继续接入，当前带 `type_ids` 的源码候选明确拒绝。聚合传参/返回和完整调用 ABI 继续 UNKNOWN。
+这项事务只冻结原始普通结构存储声明，最高 A0。`recover-project` 的自动 TYPES 阶段仍只处理有限标量；宿主另行指定的候选实际 TU、跨文件工程、ZIP 与 FINAL 布局依赖见[实际编译的布局依赖](layout-dependencies.md)。聚合传参/返回和完整调用 ABI 继续 UNKNOWN。
 
 可复现真实原库、离线租约交付、两个根与一个嵌套类型、一次版本推进和无副作用历史重放：
 

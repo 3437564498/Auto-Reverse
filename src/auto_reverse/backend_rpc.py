@@ -392,8 +392,10 @@ class BackendRPC:
 
     def _contract_read(self, params: dict) -> dict:
         from .abi_contracts import AbiContractService, ScalarAbiConstraintsEnvelope
+        from .candidate_validation import _LAYOUT_DEPENDENCIES_ENABLED
         from .evidence_delivery import EvidenceDeliveryEnvelope
         from .layout_contracts import LayoutBundleEnvelope, LayoutContractService
+        from .layout_dependencies import LAYOUT_DEPENDENCY_PROFILE
         from .type_solver import ScalarAbiBundleEnvelope
 
         with self.domain._transaction() as connection:
@@ -407,6 +409,19 @@ class BackendRPC:
                     "scalar_abi_constraints_contract": ScalarAbiConstraintsEnvelope.model_json_schema(),
                     "scalar_abi_bundle_contract": ScalarAbiBundleEnvelope.model_json_schema(),
                     "original_layout_bundle_contract": LayoutBundleEnvelope.model_json_schema(),
+                    "layout_dependency_contract": ({
+                        "profile": LAYOUT_DEPENDENCY_PROFILE,
+                        "root_type_ids": work["scope"]["type_ids"],
+                        "validation_available": _LAYOUT_DEPENDENCIES_ENABLED,
+                        "function_signature": "unsigned32/64 scalar parameters and return only",
+                        "record_profile": "global or named-namespace ordinary structs; unsigned32/64 or explicitly qualified bound structs; cv qualifiers; literal record alignment and packed attribute",
+                        "definitions_owned_by": "candidate_source",
+                        "guards_owned_by": "trusted_host",
+                        "worker_supplied_layout_material_allowed": False,
+                        "layout_artifact_level": "A0",
+                        "aggregate_function_abi_verified": False,
+                        "type_usage_verified": False,
+                    } if work["role"] in {"recovery", "repair", "integration", "naming"} and work["scope"].get("type_ids") else None),
                     "allowed_delivery_kinds": (["original_layout_bundle"] if work["scope"].get("type_ids") else
                                                ["scalar_abi_constraints", "scalar_abi_bundle"]) if work["role"] == "type_abi" else
                         (["cpp_source"] if work["role"] in {"recovery", "repair", "integration", "naming"} else ["scoped_evidence", "diagnostic"]),

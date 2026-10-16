@@ -133,14 +133,17 @@ class EvidenceDeliveryService:
 
     def _identity(self, connection: sqlite3.Connection, execution_key: str,
                   artifact_ref: str, symbol: str) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
-        frozen = self.validation._identity(connection, execution_key, artifact_ref, symbol)
+        frozen = self.validation._delivery_identity(connection, execution_key, artifact_ref)
         attempt = self.domain._row(connection, "attempts", "attempt_id", frozen["attempt_id"])
         task = self.domain._row(connection, "tasks", "task_id", frozen["task_id"])
         work = json.loads(task["data"])
+        expected_scope = {"function_ids": [symbol], "region_ids": []}
+        if work["scope"].get("type_ids"):
+            expected_scope["type_ids"] = work["scope"]["type_ids"]
         proposal = json.loads(self.domain._row(connection, "proposals", "proposal_id", frozen["proposal_id"])["payload"])
         if (frozen["execution_key"] != execution_key or task["job_id"] != frozen["job_id"]
                 or work["job_id"] != frozen["job_id"] or work["task_id"] != frozen["task_id"]
-                or work["role"] != "evidence" or work["scope"] != {"function_ids": [symbol], "region_ids": []}
+                or work["role"] != "evidence" or work["scope"] != expected_scope
                 or not {"candidate_submit", "evidence_read"} <= set(work["allowed_operations"])):
             raise DomainError("EVIDENCE_TASK_SCOPE", "Only the recorded single-function evidence Task can be consumed")
         if (task["state"] not in {"RESULT_PROPOSED", "CHECKING", "COMPLETED"}
@@ -166,7 +169,8 @@ class EvidenceDeliveryService:
         lineage = json.loads(lineage_row[0])
         if (lineage.get("role") != "evidence" or lineage.get("symbol") != symbol
                 or lineage.get("input_snapshot_id") != frozen["input_snapshot_id"]
-                or lineage.get("contract_revision") != frozen["contract_revision"]):
+                or lineage.get("contract_revision") != frozen["contract_revision"]
+                or lineage.get("type_ids", []) != work["scope"].get("type_ids", [])):
             raise DomainError("LINEAGE_SCOPE", "Evidence Task differs from its frozen lineage")
         task_ids, seen, child, child_work, expected_action = {task_id}, {task_id}, lineage, work, "EVIDENCE_READY"
         for _ in range(MAX_REPAIR_ROUNDS + MAX_EVIDENCE_ROUNDS):
@@ -189,6 +193,8 @@ class EvidenceDeliveryService:
                 raise DomainError("STALE_LINEAGE", "Parent feedback no longer binds the actual validation report")
             report = self.feedback._object(parent["report_ref"])
             parent_frozen, parent_work = self.feedback._checked(connection, activity, report)
+            if parent_work["scope"].get("type_ids", []) != child_work["scope"].get("type_ids", []):
+                raise DomainError("LINEAGE_SCOPE", "Evidence lineage changed its host-scoped type dependencies")
             self.feedback._materials(activity, parent_frozen, report)
             ancestor_task = activity["task_id"]
             if ancestor_task in seen:

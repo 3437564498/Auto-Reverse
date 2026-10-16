@@ -126,17 +126,17 @@ def test_scalar_function_authority_cannot_consume_type_only_or_mixed_scope(tmp_p
     with service.domain._transaction() as connection:
         assert_code(code, service._delivery_authority, connection,
                     receipt["execution_key"], artifact["artifact_ref"], "foo")
-        assert_code(code, service.validation._identity, connection,
+        assert_code("ROLE_SCOPE", service.validation._identity, connection,
                     receipt["execution_key"], artifact["artifact_ref"], "foo")
 
 
-def test_source_candidate_cannot_bypass_unimplemented_type_dependencies(tmp_path):
+def test_source_candidate_cannot_bypass_missing_current_type_dependencies(tmp_path):
     state, backend, job, receipt, artifact = typed_delivery(
         tmp_path, role="recovery", functions=("foo",),
         payload=cpp_source_envelope(SOURCE, symbol="foo"),
     )
     service = CandidateValidationService(state, BuildConfig(tmp_path / "missing-ndk"))
-    assert_code("TYPE_SCOPE_NOT_IMPLEMENTED", service.enqueue,
+    assert_code("LAYOUT_CONTRACT_UNVERIFIED", service.enqueue,
                 receipt["execution_key"], artifact["artifact_ref"], symbol="foo", idempotency_key="unchecked-type")
     with closing(backend.domain._connect()) as connection:
         assert connection.execute("SELECT COUNT(*) FROM validation_activities").fetchone()[0] == 0

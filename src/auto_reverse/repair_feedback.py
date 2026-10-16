@@ -180,12 +180,22 @@ class RepairFeedbackService:
             raise DomainError("ARTIFACT_SCOPE", "Published report is absent from this Job")
         work = json.loads(self.domain._row(connection, "tasks", "task_id", row["task_id"])["data"])
         self.backend._manifest(work)
+        if frozen.get("layout_authority") is not None and report.get("build_manifest_ref"):
+            self.validation._verified_layout_material(connection, frozen, report,
+                require_actual_tu_guard=report["build"]["status"] == "PASS")
+            for key in ("layout_material_ref", "compiled_source_ref", "layout_guard_ref"):
+                if not connection.execute("SELECT 1 FROM job_artifacts WHERE job_id=? AND artifact_ref=?",
+                                          (row["job_id"], report[key])).fetchone():
+                    raise DomainError("ARTIFACT_SCOPE", "Feedback layout material was not published to this Job")
         return frozen, work
 
     def _materials(self, row: sqlite3.Row, frozen: dict[str, Any], report: dict[str, Any]) -> dict[str, Any]:
         """Bind every diagnostic to the immutable genuine build/check outputs."""
+        if frozen.get("layout_authority") is not None and not report.get("build_manifest_ref"):
+            raise DomainError("LAYOUT_PRECHECK_NOT_COMPILED", "Layout precheck did not produce an actual guarded build")
         gate = self._object(report["build_manifest_ref"])
-        if (gate.get("source", {}).get("sha256") != frozen["source_sha256"]
+        compiled_sha256 = report["compiled_source_sha256"] if frozen.get("layout_authority") is not None else frozen["source_sha256"]
+        if (gate.get("source", {}).get("sha256") != compiled_sha256
                 or gate.get("parameters") != frozen["build_config"]["parameters"]
                 or gate.get("build") != report["build"]
                 or gate.get("abi") != report.get("candidate_structural_checks")):
@@ -223,12 +233,19 @@ class RepairFeedbackService:
                         "original_binary_sha256": frozen["input_sha256"],
                         "candidate_binary_sha256": row["candidate_elf_ref"].split(":")[-1],
                         "staged_envelope_sha256": frozen["candidate_sha256"],
-                        "compiled_source_sha256": frozen["source_sha256"],
+                        "compiled_source_sha256": compiled_sha256,
                         "candidate_code_sha256": code_hash,
                         "build_binding_sha256": gate.get("build_binding_sha256"),
                         "call_model_ref": frozen["call_model"]["id"],
                     }.items())):
                 raise DomainError("VERIFICATION_BINDING_MISMATCH", "Machine diagnostic has another identity")
+            if frozen.get("layout_authority") is not None and any(binding.get(key) != value for key, value in {
+                    "staged_source_sha256": frozen["source_sha256"],
+                    "layout_material_sha256": report["layout_material_sha256"],
+                    "layout_authority_sha256": frozen["layout_authority_sha256"],
+                    "layout_guard_sha256": report["layout_guard_sha256"],
+            }.items()):
+                raise DomainError("VERIFICATION_BINDING_MISMATCH", "Feedback proof lost its actual layout/source binding")
             original_code = extract_function(self.objects.resolve_artifact(frozen["input_cas_ref"]), row["symbol"])
             if binding.get("original_code_sha256") != hashlib.sha256(original_code).hexdigest():
                 raise DomainError("VERIFICATION_BINDING_MISMATCH", "Original machine-code binding changed")
@@ -262,7 +279,8 @@ class RepairFeedbackService:
             if activity["report_ref"]:
                 report = self._object(activity["report_ref"])
                 generated.update(filter(None, (report.get("build_manifest_ref"), report.get("abi_report_ref"),
-                                              report.get("verification_ref"))))
+                                              report.get("verification_ref"), report.get("layout_material_ref"),
+                                              report.get("compiled_source_ref"), report.get("layout_guard_ref"))))
         for decision in connection.execute("SELECT payload FROM repair_feedback_decisions WHERE job_id=?", (row["job_id"],)):
             data = json.loads(decision[0])
             generated.update(filter(None, (data.get("diagnostic_ref"), data.get("evidence_manifest_ref"))))
@@ -289,7 +307,8 @@ class RepairFeedbackService:
         if prior:
             lineage = json.loads(prior[0])
             if (lineage["symbol"] != row["symbol"] or lineage["input_snapshot_id"] != work["input_snapshot_id"]
-                    or lineage["contract_revision"] != work["contract_revision"] or lineage["role"] != work["role"]):
+                    or lineage["contract_revision"] != work["contract_revision"] or lineage["role"] != work["role"]
+                    or lineage.get("type_ids", []) != work["scope"].get("type_ids", [])):
                 raise DomainError("LINEAGE_SCOPE", "Follow-up does not match its immutable lineage")
             parent = self._record(self.domain._row(connection, "repair_feedback_decisions",
                                                    "decision_id", lineage["parent_decision_id"]))
@@ -334,13 +353,16 @@ class RepairFeedbackService:
             return lineage
         if work["role"] != "recovery":
             raise DomainError("UNTRACKED_REPAIR_LINEAGE", "Only a genuine recovery candidate starts a feedback lineage")
-        return {"root_id": "rroot-" + _hash({"execution_key": row["execution_key"],
+        result = {"root_id": "rroot-" + _hash({"execution_key": row["execution_key"],
                                              "candidate_ref": row["candidate_ref"], "symbol": row["symbol"]}),
                 "root_execution_key": row["execution_key"], "root_candidate_ref": row["candidate_ref"],
                 "root_task_id": row["task_id"], "symbol": row["symbol"], "depth": 0,
                 "input_snapshot_id": work["input_snapshot_id"], "contract_revision": work["contract_revision"],
                 "role": work["role"], "max_repair_rounds": min(policy.generation.max_repair_rounds, MAX_REPAIR_ROUNDS),
                 "max_evidence_rounds": MAX_EVIDENCE_ROUNDS}
+        if work["scope"].get("type_ids"):
+            result["type_ids"] = work["scope"]["type_ids"]
+        return result
 
     def _followup(self, connection: sqlite3.Connection, row: sqlite3.Row, frozen: dict[str, Any],
                   work: dict[str, Any], report: dict[str, Any], decision: dict[str, Any],
@@ -350,7 +372,8 @@ class RepairFeedbackService:
         refs = sorted(set([*original["artifacts"], work["evidence_manifest_ref"],
                            frozen["input_cas_ref"], frozen["candidate_cas_ref"], frozen["source_ref"],
                            row["report_ref"], decision["diagnostic_ref"], report["build_manifest_ref"],
-                           *[report[key] for key in ("abi_report_ref", "verification_ref", "candidate_elf_ref")
+                           *[report[key] for key in ("abi_report_ref", "verification_ref", "candidate_elf_ref",
+                                                    "layout_material_ref", "compiled_source_ref", "layout_guard_ref")
                              if report.get(key)]]))
         manifest = {"schema_version": 1, "job_id": row["job_id"], "task_id": task_id,
                     "input_snapshot_id": frozen["input_snapshot_id"],
@@ -365,9 +388,12 @@ class RepairFeedbackService:
         operations.append("candidate_submit")
         if role == "evidence":
             operations.append("constraint_submit")
+        scope = {"function_ids": [row["symbol"]], "region_ids": []}
+        if work["scope"].get("type_ids"):
+            scope["type_ids"] = work["scope"]["type_ids"]
         package = WorkPackageSpec.model_validate({
             "job_id": row["job_id"], "task_id": task_id, "role": role,
-            "scope": {"function_ids": [row["symbol"]], "region_ids": []},
+            "scope": scope,
             "input_snapshot_id": frozen["input_snapshot_id"], "contract_revision": frozen["contract_revision"],
             "dependencies": [row["task_id"]], "evidence_manifest_ref": record["artifact_id"],
             "candidate_namespace": f"candidate://{row['job_id']}/{task_id}",
@@ -400,7 +426,8 @@ class RepairFeedbackService:
                 (row["job_id"], row["symbol"], row["activity_id"])):
             other = json.loads(candidate["frozen"])
             if any(other.get(key) != frozen[key] for key in (
-                    "input_snapshot_id", "contract_revision", "original_function", "call_model", "config_sha256")):
+                    "input_snapshot_id", "contract_revision", "original_function", "call_model", "config_sha256")) or (
+                    other.get("layout_authority_sha256") != frozen.get("layout_authority_sha256")):
                 continue
             assessment = self.selection._assess(connection, candidate, cache, implementation)
             if assessment["eligible"] and assessment["local_semantic"].get("status") == "EXACT_EQUIVALENT":

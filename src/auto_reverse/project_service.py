@@ -24,6 +24,9 @@ from .candidate_validation import CandidateValidationService
 from .domain import DomainError, _json, _string
 from .host_reconcile import HostReconciliationService
 from .library_inventory import inspect_library_inventory
+from .layout_contracts import LayoutContractService
+from .layout_dependencies import (assert_layout_authority_current, assert_layout_tu_consistency,
+                                  strip_layout_declarations_for_audit, verify_layout_material)
 
 
 def _hash(value: bytes) -> str:
@@ -40,6 +43,7 @@ def integration_kernel_fingerprint() -> str:
              "library_inventory.py", "source_safety.py", "source_signature.py", "build_gate.py",
              "candidate_selection.py", "candidate_validation.py", "abi_contracts.py", "scalar_abi.py",
              "semantics.py", "capabilities.py", "recovery.py", "domain.py", "host_reconcile.py")
+    names += ("layout_dependencies.py", "layout_contracts.py", "candidate_layout.py", "dwarf_layout.py")
     return _digest({name: _hash((root / name).read_bytes()) for name in names})
 
 
@@ -174,6 +178,11 @@ class ProjectIntegrationService:
         contracts = AbiContractService.read_current(connection, row["job_id"], self.objects)
         if contracts != frozen["abi_contracts"]:
             raise DomainError("ABI_CONTRACT_UNVERIFIED", "Current scalar declarations changed")
+        for authority in frozen.get("layout_authorities", {}).values():
+            assert_layout_authority_current(connection, authority, self.objects)
+        if ("layout_contracts" in frozen
+                and LayoutContractService.read_current(connection, row["job_id"], self.objects) != frozen["layout_contracts"]):
+            raise DomainError("LAYOUT_CONTRACT_UNVERIFIED", "Current layout declaration authority changed")
         return frozen
 
     def enqueue(self, job_id: str, *, idempotency_key: str):
@@ -219,6 +228,11 @@ class ProjectIntegrationService:
                 "abi_contracts": AbiContractService.read_current(connection, job_id, self.objects),
                 "build_config": config, "config_sha256": _digest(config),
                 "implementation_sha256": integration_kernel_fingerprint()}
+            authorities = {f"unit_{index:03}_{_hash(item['symbol'].encode())[:12]}.cpp": item["layout_authority"]
+                           for index, item in enumerate(candidates) if "layout_authority" in item}
+            if authorities:
+                frozen.update(layout_authorities=authorities,
+                              layout_contracts=LayoutContractService.read_current(connection, job_id, self.objects))
             now, activity_id = time.time(), "integration-" + uuid.uuid4().hex
             connection.execute("""INSERT INTO integration_activities
                 (activity_id,job_id,frozen,payload_hash,state,cleanup_status,created_at,updated_at)
@@ -274,6 +288,14 @@ class ProjectIntegrationService:
                 raise DomainError("ARTIFACT_HASH_MISMATCH", "Selected source changed")
             sources[name] = source.decode("utf-8")
             report = self._object(candidate["report_ref"])
+            authority = frozen.get("layout_authorities", {}).get(name)
+            if authority is not None:
+                if candidate.get("layout_authority") != authority:
+                    raise DomainError("LAYOUT_CONTRACT_UNVERIFIED", "Selected layout authority differs from frozen project scope")
+                material = self._object(candidate["layout_material_ref"])
+                if self.objects.get_metadata(candidate["layout_material_ref"])["sha256"] != candidate["layout_material_sha256"]:
+                    raise DomainError("LAYOUT_MATERIAL_UNVERIFIED", "Selected layout material changed")
+                verify_layout_material(sources[name], authority, material)
             contract = contracts.get(symbol)
             if contract:
                 signature = self._object(report["source_signature_manifest_ref"])
@@ -315,12 +337,31 @@ class ProjectIntegrationService:
             output = self.domain.state_dir / "integration-work" / record["activity_id"] / f"run-{record['run_number']}"
             report["cleanup_confirmed"] = False
             with self.reconciliation.observe_compilers("integration", record, frozen, worker_id):
-                built = build_project(sources, output, config, scalar_shapes=shapes)
+                extra = {"layout_authorities": frozen["layout_authorities"],
+                         "original_binary": self.objects.resolve_input(frozen["input_ref"]).read_bytes()} if frozen.get("layout_authorities") else {}
+                built = build_project(sources, output, config, scalar_shapes=shapes, **extra)
             report["cleanup_confirmed"] = built["cleanup_confirmed"]
             report["build"] = built["build"]
             built_record = self.objects.put_json(built, kind="integrated_build_manifest")
             artifacts.append(built_record)
             report["build_manifest_ref"] = built_record["artifact_id"]
+            if built.get("layout_dependencies"):
+                dependencies = []
+                for name, dependency in sorted(built["layout_dependencies"].items()):
+                    material = dependency["material"]
+                    material_cas = self.objects.put_json(material, kind="integrated_layout_material")
+                    artifacts.append(material_cas)
+                    entry = {"name": name, "authority_sha256": dependency["authority"]["authority_sha256"],
+                             "layout_material_ref": material_cas["artifact_id"], "layout_material_sha256": material_cas["sha256"]}
+                    if material.get("status") == "PASS":
+                        for key, text, kind in (("compiled_source", material["guarded_source"], "integrated_compiled_source"),
+                                                ("layout_guard", material["guard_text"], "integrated_layout_guard")):
+                            artifact = self.objects.put_bytes(text.encode(), kind=kind)
+                            artifacts.append(artifact)
+                            entry.update({key + "_ref": artifact["artifact_id"], key + "_sha256": artifact["sha256"],
+                                          key + "_size": artifact["size"]})
+                    dependencies.append(entry)
+                report["layout_dependencies"] = dependencies
             if built["build"]["status"] == "PASS" and built["cleanup_confirmed"]:
                 library = next(item for item in built["artifacts"] if item["kind"] == "shared_library")
                 original = self.objects.resolve_input(frozen["input_ref"])
@@ -339,7 +380,12 @@ class ProjectIntegrationService:
                     shape = shapes.get(symbol)
                     if shape:
                         info = function_info(original, symbol)
-                        safety.append(audit_generated_leaf(sources[list(sources)[index]],
+                        source_name = list(sources)[index]
+                        source = sources[source_name]
+                        if source_name in built.get("layout_dependencies", {}):
+                            source = strip_layout_declarations_for_audit(source,
+                                built["layout_dependencies"][source_name]["material"])
+                        safety.append(audit_generated_leaf(source,
                             original_code=extract_function(original, symbol), symbol=symbol,
                             address=int(info["address"], 16), parameter_widths=shape["parameter_widths"],
                             return_width=shape["return_width"]))
@@ -427,6 +473,8 @@ class ProjectIntegrationService:
             raise DomainError("PUBLICATION_BINDING_MISMATCH", "Integration report lacks its original publication")
         refs = [row["report_ref"], row["candidate_elf_ref"], row["project_archive_ref"],
                 report["build_manifest_ref"], report["verification_ref"]]
+        for item in report.get("layout_dependencies", []):
+            refs.extend(item[key] for key in ("layout_material_ref", "compiled_source_ref", "layout_guard_ref"))
         for ref in refs:
             self.objects.get_metadata(ref)
             if not connection.execute("SELECT 1 FROM job_artifacts WHERE job_id=? AND artifact_ref=?",
@@ -436,6 +484,8 @@ class ProjectIntegrationService:
         gate_binding = {key: gate[key] for key in ("kernel_sha256", "implementation_fingerprints", "source_modules",
             "parameters", "scalar_declarations", "toolchain", "artifacts", "cleanup_status")}
         gate_binding["commands"] = [command["argv"] for command in gate["commands"]]
+        if "layout_dependencies" in gate:
+            gate_binding["layout_dependencies"] = gate["layout_dependencies"]
         if (gate.get("build_binding_sha256") != _canonical_hash(gate_binding)
                 or gate["build_binding_sha256"] != report["build_binding_sha256"]
                 or gate.get("parameters") != {**frozen["build_config"]["parameters"], "project_template_version": PROJECT_TEMPLATE_VERSION}
@@ -451,10 +501,48 @@ class ProjectIntegrationService:
         modules = gate["source_modules"]
         if len(modules) != len(sources) or {module["name"] for module in modules} != set(sources):
             raise DomainError("SOURCE_BINDING_MISMATCH", "Integrated source inventory differs from selected sources")
+        checked_layouts = []
+        layout_publications = {item["name"]: item for item in report.get("layout_dependencies", [])}
+        if (set(layout_publications) != set(frozen.get("layout_authorities", {}))
+                or set(gate.get("layout_dependencies", {})) != set(frozen.get("layout_authorities", {}))):
+            raise DomainError("LAYOUT_MATERIAL_UNVERIFIED", "Project layout module scope changed")
         for module in modules:
             source = sources[module["name"]].encode()
             if module["source"] != {"sha256": _hash(source), "size": len(source)}:
                 raise DomainError("SOURCE_BINDING_MISMATCH", "Joint module differs from its actual staged source")
+            authority = frozen.get("layout_authorities", {}).get(module["name"])
+            if authority is not None:
+                dependency = gate["layout_dependencies"][module["name"]]
+                publication = layout_publications[module["name"]]
+                material = self._object(publication["layout_material_ref"])
+                if (dependency != {"authority": authority, "material": material}
+                        or self.objects.get_metadata(publication["layout_material_ref"])["sha256"] != publication["layout_material_sha256"]
+                        or publication["authority_sha256"] != authority["authority_sha256"]):
+                    raise DomainError("LAYOUT_MATERIAL_UNVERIFIED", "Actual project material differs from its published authority")
+                verify_layout_material(source.decode(), authority, material)
+                checked_layouts.append(material)
+                if (module.get("compiled_source") != {"sha256": material["compiled_source_sha256"], "size": material["compiled_source_size"]}
+                        or module.get("layout_guard") != {"sha256": material["guard_sha256"], "size": material["guard_size"]}
+                        or module.get("layout_material_sha256") != material["material_sha256"]
+                        or module.get("layout_authority_sha256") != authority["authority_sha256"]
+                        or module.get("layout_tu_guard_verified") is not True):
+                    raise DomainError("LAYOUT_MATERIAL_UNVERIFIED", "Actual object lacks its bound translation-unit guard")
+                for prefix, text in (("compiled_source", material["guarded_source"]), ("layout_guard", material["guard_text"])):
+                    metadata = self.objects.get_metadata(publication[prefix + "_ref"])
+                    if (self.objects.resolve_artifact(publication[prefix + "_ref"]).read_bytes() != text.encode()
+                            or (metadata["sha256"], metadata["size"]) != (publication[prefix + "_sha256"], publication[prefix + "_size"])):
+                        raise DomainError("LAYOUT_MATERIAL_UNVERIFIED", "Actual compiled source or guard CAS changed")
+                source_artifacts = [item for item in gate["artifacts"] if item["kind"] == "source" and item["name"] == module["name"]]
+                if (len(source_artifacts) != 1
+                        or any(source_artifacts[0][key] != module["compiled_source"][key] for key in ("sha256", "size"))):
+                    raise DomainError("LAYOUT_MATERIAL_UNVERIFIED", "Actual compile input was not the guarded source")
+                commands = [command["argv"] for command in gate["commands"] if "-c" in command["argv"]
+                            and source_artifacts[0]["path"] in command["argv"]]
+                if (len(commands) != 1 or commands[0][commands[0].index("-c") + 1] != source_artifacts[0]["path"]
+                        or "-o" not in commands[0] or commands[0][commands[0].index("-o") + 1] != module["object"]["path"]):
+                    raise DomainError("LAYOUT_MATERIAL_UNVERIFIED", "Guarded TU did not produce the linked object")
+        if checked_layouts and gate.get("layout_tu_consistency") != assert_layout_tu_consistency(checked_layouts):
+            raise DomainError("LAYOUT_TU_CONFLICT", "Project cross-translation-unit layout identity changed")
         candidate_metadata = self.objects.get_metadata(row["candidate_elf_ref"])
         library = [artifact for artifact in gate["artifacts"] if artifact["kind"] == "shared_library"]
         if len(library) != 1 or any(library[0][key] != candidate_metadata[key] for key in ("sha256", "size")):
@@ -521,6 +609,8 @@ class ProjectIntegrationService:
             material.update({key: report[key] for key in ("source_refs", "candidate_elf_ref", "project_archive_ref",
                 "build_binding_sha256", "config_sha256", "implementation_sha256", "artifact_level", "build",
                 "abi", "local_semantic", "coverage", "gaps")}, current_valid=True, actual_compiled=True)
+            if "layout_dependencies" in report:
+                material["layout_dependencies"] = report["layout_dependencies"]
         except (DomainError, ValueError, OSError, KeyError, TypeError, RecursionError) as exc:
             material["reason_code"] = getattr(exc, "code", "INTEGRATION_UNVERIFIED")
         return material

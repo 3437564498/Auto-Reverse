@@ -58,6 +58,11 @@ jobs:
           python scripts/run_layout_contract_sample.py
           --ndk-root work/tools/android-ndk-r27c
           --output work/layout-contract-acceptance
+      - name: Compile actual layout-guarded candidates and project, rebuild archive and prove new bytes
+        run: >-
+          python scripts/run_layout_dependency_sample.py
+          --ndk-root work/tools/android-ndk-r27c
+          --output work/layout-dependency-acceptance
       - name: Test durable tool activities, current authority and failure windows with real tools
         env:
           AUTO_REVERSE_TEST_NDK_ROOT: ${{ github.workspace }}/work/tools/android-ndk-r27c
@@ -76,4 +81,6 @@ jobs:
             work/project-pipeline-acceptance/recovered/project.zip
             work/candidate-layout-acceptance/candidate-layout-sample.json
             work/layout-contract-acceptance/layout-contract-sample.json
+            work/layout-dependency-acceptance/layout-dependency-sample.json
+            work/layout-dependency-acceptance/project.zip
           if-no-files-found: warn

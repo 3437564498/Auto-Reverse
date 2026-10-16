@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 import hashlib
+import importlib.resources
 from io import BytesIO
 import json
 import math
@@ -25,7 +26,7 @@ from .build_gate import NDK_CLANG_VERSION, NDK_REVISION, lint_source
 _MAX_PUBLIC_REPORT_BYTES = 16 * 1024 * 1024
 _MAX_ARCHIVE_INPUT_BYTES = 32 * 1024 * 1024
 _MAX_TRACKED_ARTIFACT_BYTES = 256 * 1024 * 1024
-_MAX_ARCHIVE_FILES = 72
+_MAX_ARCHIVE_FILES = 138
 _SOURCE_NAME = re.compile(r"[A-Za-z_][A-Za-z_0-9]{0,95}\.cpp\Z")
 _HASH = re.compile(r"[0-9a-f]{64}\Z")
 _SONAME = re.compile(r"lib([A-Za-z_0-9]+)\.so\Z")
@@ -42,6 +43,9 @@ _EXPECTED_HEADER_PATHS = {
     "project_header": "include/auto_reverse/project_contract.hpp",
     "helper_probe": "helper-check.cpp",
 }
+_PUBLIC_LAYOUT_SHAPE_KEYS = ("type_id", "qualified_name", "canonical_fields", "record_tokens", "source_range",
+                             "scope_kinds", "byte_size", "candidate_alignment", "original_declared_alignment",
+                             "packed", "explicit_alignment")
 
 
 def _json(value: Any) -> bytes:
@@ -51,6 +55,49 @@ def _json(value: Any) -> bytes:
 
 def _digest(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def _host_header_files(declarations: Any, parameters: dict[str, Any]) -> dict[str, bytes]:
+    """Recreate the fixed host text; hashes alone cannot exclude hostile macros."""
+    from .project_build import _scalar_header
+
+    exports = parameters.get("expected_exports")
+    if exports is not None and (not isinstance(exports, list) or len(exports) > 64
+                                or any(not isinstance(symbol, str) for symbol in exports)):
+        raise ValueError("public scalar export scope is invalid")
+    header, _ = _scalar_header(declarations, tuple(exports) if exports is not None else None)
+    helper = importlib.resources.files("auto_reverse").joinpath("resources/machine_helpers.hpp").read_bytes()
+    return {_EXPECTED_HEADER_PATHS["helper_header"]: helper,
+            _EXPECTED_HEADER_PATHS["project_header"]: header,
+            _EXPECTED_HEADER_PATHS["helper_probe"]: b'#include "auto_reverse/machine_helpers.hpp"\n'}
+
+
+def _verify_layout_search_paths(root: Path, source_names: list[str]) -> None:
+    """Bound every archive-local include search location without following links."""
+    def exact_directory(path: Path, expected: dict[str, bool]) -> None:
+        if path.is_symlink() or not path.is_dir():
+            raise ValueError("archived include search path or source tree is not an ordinary directory")
+        observed = set()
+        with os.scandir(path) as entries:
+            for entry in entries:
+                if len(observed) >= len(expected) or entry.name not in expected or entry.is_symlink():
+                    raise ValueError("archived include search path or source tree contains untracked files or links")
+                directory = expected[entry.name]
+                if (directory and not entry.is_dir(follow_symlinks=False)
+                        or not directory and not entry.is_file(follow_symlinks=False)):
+                    raise ValueError("archived include search path or source tree has an unexpected file kind")
+                observed.add(entry.name)
+        if observed != set(expected):
+            raise ValueError("archived include search path or source tree is incomplete")
+
+    exact_directory(root / "include", {"auto_reverse": True})
+    exact_directory(root / "include/auto_reverse", {"machine_helpers.hpp": False, "project_contract.hpp": False})
+    exact_directory(root / "src", {name: False for name in source_names})
+    # The fixed helper probe resides at the project root. Its quoted include
+    # searches this directory before the explicitly supplied include/ path.
+    quote_shadow = root / "auto_reverse"
+    if quote_shadow.is_symlink() or quote_shadow.exists():
+        raise ValueError("archived helper probe quote search path contains an untracked shadow")
 
 
 @contextmanager
@@ -329,6 +376,12 @@ def pack_project(output: Path, build_report: dict[str, Any],
                                          for name in names)
             or len(set(name.casefold() for name in names)) != len(names)):
         raise ValueError("project source names must be safe unique C++ basenames")
+    dependencies = build_report.get("layout_dependencies", {})
+    typed_names = {module["name"] for module in modules if any(key in module for key in (
+        "compiled_source", "layout_guard", "layout_authority_sha256", "layout_material_sha256", "layout_tu_guard_verified"))}
+    if (not isinstance(dependencies, dict) or set(dependencies) != typed_names
+            or not set(dependencies) <= set(names)):
+        raise ValueError("typed project module scope differs from its actual layout dependencies")
     files: dict[str, bytes] = {}
     observed_names, observed_objects, headers, binary_kinds = set(), set(), set(), set()
     artifacts = build_report.get("artifacts")
@@ -357,9 +410,10 @@ def pack_project(output: Path, build_report: dict[str, Any],
             if name not in names or relative != "src/" + name:
                 raise ValueError("source artifact differs from its actual module path")
             module = next(module for module in modules if module["name"] == name)
-            if (not isinstance(module.get("source"), dict)
-                    or module["source"].get("sha256") != artifact["sha256"]
-                    or module.get("source", {}).get("size") != artifact["size"]):
+            compiled = module.get("compiled_source", module.get("source"))
+            if (not isinstance(compiled, dict)
+                    or compiled.get("sha256") != artifact["sha256"]
+                    or compiled.get("size") != artifact["size"]):
                 raise ValueError("source artifact differs from its frozen module binding")
             observed_names.add(name)
         elif kind in _EXPECTED_HEADER_PATHS:
@@ -395,7 +449,19 @@ def pack_project(output: Path, build_report: dict[str, Any],
                 raise ValueError("project source archive exceeds its bounded input size")
         data = _tracked(path, artifact, read=kind in _SOURCE_KINDS)
         if kind == "source":
-            lint_source(data.decode("utf-8"))
+            dependency = build_report.get("layout_dependencies", {}).get(artifact["name"])
+            if dependency:
+                from .layout_dependencies import verify_layout_material
+                material, authority = dependency["material"], dependency["authority"]
+                source = data[:material["source_size"]].decode("utf-8")
+                verify_layout_material(source, authority, material)
+                if (data != material["guarded_source"].encode()
+                        or module.get("layout_tu_guard_verified") is not True
+                        or module.get("layout_material_sha256") != material["material_sha256"]
+                        or module.get("layout_authority_sha256") != authority["authority_sha256"]):
+                    raise ValueError("actual archived translation unit lost its verified host layout guard")
+            else:
+                lint_source(data.decode("utf-8"))
         if data is not None:
             files[relative] = data
     if (observed_names != set(names) or observed_objects != set(names)
@@ -425,7 +491,10 @@ def pack_project(output: Path, build_report: dict[str, Any],
             "source_report_sha256": _digest(_json(verification_report)),
             "normalization": {"host_paths_replaced": True, "source_proof_reusable_for_rebuild": False},
             "report": public_verification})
-    public_build = _public_report(build_report, output, ndk_root)
+    # The private authority contains immutable delivery and Job provenance. Only
+    # explicit public shape/byte bindings belong in the portable source ZIP.
+    public_build_input = {key: value for key, value in build_report.items() if key != "layout_dependencies"}
+    public_build = _public_report(public_build_input, output, ndk_root)
     files["reports/project-build.json"] = _json({
         "schema_version": 1, "kind": "public_project_build_report",
         "source_report_sha256": _digest(_json(build_report)),
@@ -433,6 +502,40 @@ def pack_project(output: Path, build_report: dict[str, Any],
         "report": public_build})
     files["CMakeLists.txt"] = _cmake(parameters, sorted(names))
     files["README.md"] = _readme(parameters, verification_report)
+    dependencies = build_report.get("layout_dependencies", {})
+    if dependencies:
+        declarations = build_report["scalar_declarations"]["declarations"]
+        expected_host = _host_header_files(declarations, parameters)
+        if any(files.get(name) != content for name, content in expected_host.items()):
+            raise ValueError("actual project host headers differ from the fixed trusted templates")
+        public_modules = []
+        for name, dependency in sorted(dependencies.items()):
+            authority, material = dependency["authority"], dependency["material"]
+            module = next(item for item in modules if item["name"] == name)
+            if (module.get("layout_tu_guard_verified") is not True
+                    or material.get("status") != "PASS" or material.get("cleanup_confirmed") is not True):
+                raise ValueError("layout dependency was not verified in the actual object translation unit")
+            guard = material["guard_text"].encode()
+            files["guards/" + name + ".layout-guard.txt"] = guard
+            public_modules.append({"name": name, "source": module["source"],
+                "compiled_source": module["compiled_source"], "guard": module["layout_guard"],
+                "material_sha256": material["material_sha256"],
+                "authority_sha256": authority["authority_sha256"],
+                "root_type_ids": authority["root_type_ids"], "type_ids": authority["type_ids"],
+                "types": [{key: item[key] for key in _PUBLIC_LAYOUT_SHAPE_KEYS}
+                          for item in material["types"]],
+                "actual_tu_guard_verified": True})
+        files["reports/layout-dependencies.json"] = _json({
+            "schema_version": 1, "kind": "public_project_layout_dependencies",
+            "profile": "unsigned-structure-tu-dependencies-v1", "parameters": parameters,
+            "original_current_status": "UNAVAILABLE_OFFLINE", "artifact_level": "A0",
+            "original_calling_abi_verified": False, "full_type_system_solved": False,
+            "type_usage_verified": False, "whole_program_equivalence": False,
+            "reconstruction_requires_new_provenance_and_proof": True,
+            "scalar_declarations": declarations,
+            "host_files": [{"path": name, "sha256": _digest(files[name]), "size": len(files[name])}
+                           for name in sorted(expected_host)],
+            "all_source_names": sorted(names), "modules": public_modules})
     if (len(files) > _MAX_ARCHIVE_FILES or any(len(data) > _MAX_PUBLIC_REPORT_BYTES for data in files.values())
             or sum(len(data) for data in files.values()) > _MAX_ARCHIVE_INPUT_BYTES):
         raise ValueError("public project archive exceeds its bounded file/report profile")
@@ -451,3 +554,98 @@ def pack_project(output: Path, build_report: dict[str, Any],
             "reconstruction_requires_new_provenance_and_proof": True,
             "files": [{"path": name, "sha256": _digest(content), "size": len(content)}
                       for name, content in sorted(files.items())]}
+
+
+def verify_archived_layouts(root: Path, *, expected_manifest_sha256: str | None = None) -> dict[str, Any]:
+    """Check portable frozen source/guard bytes without claiming original current.
+
+    A rebuilt object/ELF still needs its own trusted tool provenance and new
+    static proof. This reader neither compiles nor accesses private Job state.
+    """
+    root = Path(root).absolute()
+    if not root.is_dir() or any(path.is_symlink() for path in (root, *root.parents)):
+        raise ValueError("archive root must be a non-symlink directory")
+    root = root.resolve()
+
+    def read(name: str, limit: int) -> bytes:
+        path, _ = _file_inside(root, str(root / name))
+        with _regular_file(path) as stream:
+            data = stream.read(limit + 1)
+        if len(data) > limit:
+            raise ValueError("archived layout file exceeds its bounded profile")
+        return data
+
+    data = read("reports/layout-dependencies.json", _MAX_PUBLIC_REPORT_BYTES)
+    if expected_manifest_sha256 is not None and (not isinstance(expected_manifest_sha256, str)
+            or not _HASH.fullmatch(expected_manifest_sha256) or _digest(data) != expected_manifest_sha256):
+        raise ValueError("public layout manifest differs from its expected immutable binding")
+    manifest = json.loads(data)
+    if (not isinstance(manifest, dict) or type(manifest.get("schema_version")) is not int
+            or manifest["schema_version"] != 1 or manifest.get("kind") != "public_project_layout_dependencies"
+            or manifest.get("profile") != "unsigned-structure-tu-dependencies-v1"
+            or manifest.get("original_current_status") != "UNAVAILABLE_OFFLINE"
+            or manifest.get("reconstruction_requires_new_provenance_and_proof") is not True
+            or manifest.get("artifact_level") != "A0"
+            or any(manifest.get(key) is not False for key in ("original_calling_abi_verified", "full_type_system_solved",
+                                                             "type_usage_verified", "whole_program_equivalence"))):
+        raise ValueError("public layout manifest makes unsupported current or quality claims")
+    modules, names = manifest.get("modules"), manifest.get("all_source_names")
+    if (not isinstance(modules, list) or not 1 <= len(modules) <= 64 or not isinstance(names, list)
+            or not 1 <= len(names) <= 64 or any(not isinstance(name, str) or not _SOURCE_NAME.fullmatch(name) for name in names)
+            or names != sorted(set(names)) or len({name.casefold() for name in names}) != len(names)
+            or any(not isinstance(item, dict) or not isinstance(item.get("name"), str) for item in modules)
+            or len({item["name"] for item in modules}) != len(modules)):
+        raise ValueError("public layout module inventory is invalid")
+    parameters = _parameters({"parameters": manifest.get("parameters")})
+    _verify_layout_search_paths(root, names)
+    expected_host = _host_header_files(manifest.get("scalar_declarations"), parameters)
+    host_files = manifest.get("host_files")
+    if (not isinstance(host_files, list) or len(host_files) != len(expected_host)
+            or any(not isinstance(item, dict) or set(item) != {"path", "sha256", "size"}
+                   or not isinstance(item["path"], str) for item in host_files)
+            or {item["path"] for item in host_files} != set(expected_host)):
+        raise ValueError("public layout host header inventory is invalid")
+    for item in host_files:
+        content = read(item["path"], _MAX_PUBLIC_REPORT_BYTES)
+        if (content != expected_host[item["path"]] or type(item["size"]) is not int
+                or item["size"] != len(content) or item["sha256"] != _digest(content)):
+            raise ValueError("archived host header or probe no longer matches its fixed template")
+    canonical, qualified_ids = {}, {}
+    for module in modules:
+        name = module.get("name")
+        if name not in names or module.get("actual_tu_guard_verified") is not True:
+            raise ValueError("public layout module was not part of the actual project")
+        compiled = read("src/" + name, 1024 * 1024)
+        guard = read("guards/" + name + ".layout-guard.txt", 256 * 1024)
+        source_size = module.get("source", {}).get("size")
+        if type(source_size) is not int or not 0 < source_size <= len(compiled):
+            raise ValueError("public layout original source boundary is invalid")
+        source = compiled[:source_size]
+        if (compiled[source_size:] != guard
+                or any(module.get(key) != {"sha256": _digest(value), "size": len(value)}
+                       for key, value in (("source", source), ("compiled_source", compiled), ("guard", guard)))):
+            raise ValueError("archived source prefix or actual translation-unit guard changed")
+        lint_source(source.decode("utf-8"))
+        types = module.get("types")
+        if not isinstance(types, list) or not 1 <= len(types) <= 128:
+            raise ValueError("public layout shape inventory exceeds its bounded profile")
+        from .layout_dependencies import verify_public_layout_tu
+        verify_public_layout_tu(source.decode("utf-8"), types, guard.decode("utf-8"))
+        for shape in types:
+            key = shape["type_id"]
+            qualified = shape["qualified_name"]
+            if qualified in qualified_ids and qualified_ids[qualified] != key:
+                raise ValueError("one public C++ type name cannot identify different physical layouts")
+            qualified_ids[qualified] = key
+            identity = {field: shape[field] for field in ("qualified_name", "canonical_fields", "record_tokens", "candidate_alignment")}
+            if key in canonical and canonical[key] != identity:
+                raise ValueError("public layout shapes conflict across translation units")
+            canonical[key] = identity
+    if read("CMakeLists.txt", _MAX_PUBLIC_REPORT_BYTES) != _cmake(manifest["parameters"], names):
+        raise ValueError("archive CMake no longer compiles the actual guarded translation units")
+    return {"schema_version": 1, "kind": "archived_layout_binding_check", "status": "PASS",
+            "manifest_sha256": _digest(data), "checked_module_names": [item["name"] for item in modules],
+            "original_current_status": "UNAVAILABLE_OFFLINE", "artifact_level": "A0",
+            "reconstruction_requires_new_provenance_and_proof": True,
+            "whole_program_equivalence": False, "original_calling_abi_verified": False,
+            "execution_policy": {"compiler_executed": False, "target_or_candidate_executed": False}}
