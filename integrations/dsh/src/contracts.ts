@@ -13,7 +13,8 @@ export interface WorkPackage {
   task_id: string;
   attempt_id: string;
   role: Role;
-  scope: { function_ids: string[]; region_ids: string[] };
+  /** Absent/empty type_ids preserves the historical canonical WorkPackage. */
+  scope: { function_ids: string[]; region_ids: string[]; type_ids?: string[] };
   input_snapshot_id: string;
   contract_revision: number;
   evidence_manifest_ref: string;

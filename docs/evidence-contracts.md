@@ -70,9 +70,21 @@ arm64-recover --state-dir <state> list-abi-contracts <job_id>
 
 freeze 需要已提交且已确认清理的真实 `type_abi` Attempt。UNKNOWN 原始声明或提议与原始形状不一致时，不发布合同、不推进 revision。成功则原子核验 `expected_revision`，推进全局 revision，并冻结原始输入、证据/CAS 与解析器指纹。当前最多保存 64 个 symbol；合法历史合同可随相同输入的后续 revision 保留。
 
-版本推进时旧 Task epoch 全部失效，非终态任务变为 `SUPERSEDED`，旧验证活动取消，当前候选证明失效；运行中或隔离的 worker/tool 容量保留到真实确认清理。Job 质量重置为 UNKNOWN。历史 receipt、候选和报告仍可读取。新的生成/验证需要在新 revision 下重新规划工包；当前不会自动物化公共头文件或证明候选签名符合约束。
+版本推进时旧 Task epoch 全部失效，非终态任务变为 `SUPERSEDED`，旧验证活动取消，当前候选证明失效；运行中或隔离的 worker/tool 容量保留到真实确认清理。Job 质量重置为 UNKNOWN。历史 receipt、候选和报告仍可读取。新的生成/验证需要在新 revision 下重新规划工包。有限 unsigned 标量已支持实际 Clang 签名核验及工程公共声明；聚合调用 ABI 和工程布局依赖仍未接通。
 
 公开 MCP 新增 `get_abi_contracts`、`list_abi_contracts`、`get_evidence_delivery`、`list_evidence_deliveries` 四个只读工具，读取时不安装宿主可选表、不修改事件。worker `contract_read` 返回两类辅助交付 schema 及当前声明合同。消费、freeze 和质量更新权限均属于可信宿主。
+
+## 原始结构存储声明事务
+
+`inspect-layout-catalog` 从同一原始 ELF 生成有界目录。每个 `dwarf-layout:` 身份绑定输入与 `.debug_info` 摘要、物理 CU/DIE；限定名和父作用域种类另行保留，不作为跨输入主键。结构布局沿受验证的物理引用形成嵌套闭包；缺失调试信息、外部 debug、歧义或不支持形状不能由候选声明补齐。
+
+布局工包使用 `role=type_abi`，专用 `scope.type_ids` 包含 1–16 个唯一根类型，函数和区域作用域为空。它明确授权已有 `candidate_submit` 通道；`constraint_submit` 当前没有独立暂存语义。交付为严格 `original_layout_bundle`：每个 root 只有 `type_id` 和 `expected_declaration_binding_sha256`，不包含质量、假设、编译参数或自报 PASS。完整定义见 `schemas/original-layout-bundle.schema.json`。
+
+可信宿主 `freeze-layout-bundle` 校验实际 Activation、Proposal、回执、原授权根集合、staged CAS、清单与已确认清理，再独立重读原始字节、核对每个根及其派生嵌套类型。整包成功只推进一次全局 revision；任一未知、冲突或发布事件失败，current/history、任务 epoch、revision 与事件全部回滚。最多保留 128 个 current 物理类型，合法独立合同可在相同输入的后续版本继续 current。
+
+`get-layout-contracts` 与 `list-layout-contracts` 是独立的 CLI/MCP 只读入口，不创建可选表或启动编译器。current 不仅检查 CAS 摘要，还重新核对原始事实、真实发布回执、Proposal、作用域、原清单及最新完整 current 映射；删除根/派生映射、越权替换、伪造发布身份和有效 CAS 重封装均不能让缩小的集合变成有效。历史回执精确重放不会再推进版本，也不能跳过当前重验。
+
+合同最高为 A0，缺失原始对齐保持 UNKNOWN，`original_calling_abi_verified=false`。当前尚未把布局合同接到实际候选 TU、工程公共类型、归档及 FINAL 依赖；带 `type_ids` 的源码验证明确拒绝，避免漏检后通过。完整类型求解、聚合调用约定和整库等价继续未知。可复现租约交付样例见 [流水线指南](static-project-pipeline.md#冻结原始布局声明)。
 
 ## 实际静态样例
 

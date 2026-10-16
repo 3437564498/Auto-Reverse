@@ -179,8 +179,8 @@ class AbiContractService:
         frozen, job, _ = self._delivery_authority(connection, execution_key, artifact_ref, candidate["symbol"])
         return candidate, frozen, job
 
-    def _delivery_authority(self, connection: sqlite3.Connection, execution_key: str,
-                            artifact_ref: str, symbol: str) -> tuple[dict[str, Any], sqlite3.Row, dict[str, Any]]:
+    def _committed_delivery_authority(self, connection: sqlite3.Connection, execution_key: str,
+                                      artifact_ref: str) -> tuple[dict[str, Any], sqlite3.Row, dict[str, Any]]:
         receipt_row = self.domain._row(connection, "receipts", "execution_key", execution_key)
         receipt = json.loads(receipt_row["receipt"])
         proposal = self.domain._row(connection, "proposals", "proposal_id", receipt["proposal_id"])
@@ -189,6 +189,8 @@ class AbiContractService:
         work = json.loads(task["data"])
         if work["role"] != "type_abi":
             raise DomainError("ROLE_SCOPE", "Only a type_abi delivery can propose an ABI contract")
+        if "candidate_submit" not in work["allowed_operations"]:
+            raise DomainError("OPERATION_DENIED", "Contract delivery requires the frozen candidate submission permission")
         # Reuse the receipt/epoch/snapshot/contract and staged-CAS authority check;
         # this helper does not compile or evaluate source.
         alias = connection.execute("SELECT * FROM rpc_candidate_aliases WHERE alias=?", (artifact_ref,)).fetchone()
@@ -197,7 +199,7 @@ class AbiContractService:
         metadata = self.objects.get_metadata(alias["artifact_id"])
         if metadata["size"] > 65536:
             raise DomainError("INVALID_ABI_CONSTRAINTS", "ABI constraints exceed the bounded payload size")
-        frozen = self.validation._identity(connection, execution_key, artifact_ref, symbol)
+        frozen = self.validation._delivery_identity(connection, execution_key, artifact_ref)
         if (metadata["sha256"], metadata["size"]) != (frozen["candidate_sha256"], frozen["candidate_size"]):
             raise DomainError("ARTIFACT_HASH_MISMATCH", "Actual staged bytes differ from the receipt")
         if (task["state"] not in {"RESULT_PROPOSED", "CHECKING"}
@@ -221,6 +223,15 @@ class AbiContractService:
         job = self.domain._row(connection, "jobs", "job_id", frozen["job_id"])
         return frozen, job, work
 
+    def _delivery_authority(self, connection: sqlite3.Connection, execution_key: str,
+                            artifact_ref: str, symbol: str) -> tuple[dict[str, Any], sqlite3.Row, dict[str, Any]]:
+        frozen, job, work = self._committed_delivery_authority(connection, execution_key, artifact_ref)
+        if symbol not in work["scope"]["function_ids"]:
+            raise DomainError("FUNCTION_SCOPE", "Symbol is outside the frozen function scope")
+        if work["scope"].get("type_ids"):
+            raise DomainError("TYPE_SCOPE_NOT_IMPLEMENTED", "Scalar ABI contracts cannot consume aggregate type dependencies")
+        return frozen, job, work
+
     def _active_tool_checks(self, connection: sqlite3.Connection, job_id: str) -> list[tuple[str, sqlite3.Row]]:
         return [(table, row) for table in self.domain._tool_activity_tables(connection)
                 for row in connection.execute(
@@ -230,10 +241,11 @@ class AbiContractService:
     def _advance_revision(self, connection: sqlite3.Connection, job: sqlite3.Row,
                           frozen: dict[str, Any], expected_revision: int, contract_id: str,
                           tasks: list[sqlite3.Row], invalidated_tasks: list[str],
-                          active_checks: list[tuple[str, sqlite3.Row]]) -> None:
+                          active_checks: list[tuple[str, sqlite3.Row]], *,
+                          completion_reason: str = "scalar declaration constraints frozen") -> None:
         if self.domain._row(connection, "tasks", "task_id", frozen["task_id"])["state"] == "RESULT_PROPOSED":
             self.domain._change_task(connection, frozen["task_id"], "CHECKING", "trusted original-DWARF declaration check")
-        self.domain._change_task(connection, frozen["task_id"], "COMPLETED", "scalar declaration constraints frozen")
+        self.domain._change_task(connection, frozen["task_id"], "COMPLETED", completion_reason)
         for task in tasks:
             connection.execute("UPDATE tasks SET epoch=epoch+1,updated_at=? WHERE task_id=?",
                                (time.time(), task["task_id"]))
@@ -276,6 +288,9 @@ class AbiContractService:
                         or expected_revision != result["previous_revision"]):
                     raise DomainError("IDEMPOTENCY_CONFLICT", "This delivery already froze another request")
                 return result
+            if (connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='layout_contract_bundles'").fetchone()
+                    and connection.execute("SELECT 1 FROM layout_contract_bundles WHERE execution_key=?", (execution_key,)).fetchone()):
+                raise DomainError("IDEMPOTENCY_CONFLICT", "This delivery already froze an original layout bundle")
             receipt = self.domain._row(connection, "receipts", "execution_key", execution_key)
             attempt = self.domain._row(connection, "attempts", "attempt_id", receipt["attempt_id"])
             job = self.domain._row(connection, "jobs", "job_id", attempt["job_id"])

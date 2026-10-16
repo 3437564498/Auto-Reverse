@@ -393,6 +393,7 @@ class BackendRPC:
     def _contract_read(self, params: dict) -> dict:
         from .abi_contracts import AbiContractService, ScalarAbiConstraintsEnvelope
         from .evidence_delivery import EvidenceDeliveryEnvelope
+        from .layout_contracts import LayoutBundleEnvelope, LayoutContractService
         from .type_solver import ScalarAbiBundleEnvelope
 
         with self.domain._transaction() as connection:
@@ -405,12 +406,15 @@ class BackendRPC:
                     "evidence_delivery_contract": EvidenceDeliveryEnvelope.model_json_schema(),
                     "scalar_abi_constraints_contract": ScalarAbiConstraintsEnvelope.model_json_schema(),
                     "scalar_abi_bundle_contract": ScalarAbiBundleEnvelope.model_json_schema(),
-                    "allowed_delivery_kinds": ["scalar_abi_constraints", "scalar_abi_bundle"] if work["role"] == "type_abi" else
+                    "original_layout_bundle_contract": LayoutBundleEnvelope.model_json_schema(),
+                    "allowed_delivery_kinds": (["original_layout_bundle"] if work["scope"].get("type_ids") else
+                                               ["scalar_abi_constraints", "scalar_abi_bundle"]) if work["role"] == "type_abi" else
                         (["cpp_source"] if work["role"] in {"recovery", "repair", "integration", "naming"} else ["scoped_evidence", "diagnostic"]),
                     "abi_contracts": AbiContractService.read_current(connection, job["job_id"], self.objects),
+                    "layout_contracts": LayoutContractService.read_current(connection, job["job_id"], self.objects),
                     "expected_delivery_kind": "cpp_source" if work["role"] in {
                         "recovery", "repair", "integration", "naming"
-                    } else ("scalar_abi_constraints" if work["role"] == "type_abi"
+                    } else (("original_layout_bundle" if work["scope"].get("type_ids") else "scalar_abi_constraints") if work["role"] == "type_abi"
                             else "scoped_evidence_or_diagnostic")}
 
     def _attempt_failure(self, params: dict) -> dict:

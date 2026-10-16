@@ -142,6 +142,32 @@ cmake --build work/project-rebuilt
   --ndk-root work/tools/android-ndk-r27c --output work/candidate-layout-sample
 ```
 
+## 冻结原始布局声明
+
+布局目录为每个原始物理类型提供输入绑定的 `dwarf-layout:` 身份，避免把同名、不同输入或不同 CU 的类型混为一个：
+
+```bash
+.venv/bin/arm64-recover inspect-layout-catalog \
+  --binary ./libtarget.so > work/layout-catalog.json
+.venv/bin/arm64-recover --state-dir work/job-state get-layout-contracts JOB_ID
+.venv/bin/arm64-recover --state-dir work/job-state list-layout-contracts JOB_ID --limit 20
+```
+
+可信宿主将 1–16 个根类型放入 `type_abi` 工包的专用 `scope.type_ids`；原始目录经冻结清单供工作者读取。实际 Proposal/回执和工作者清理确认后，宿主 `freeze-layout-bundle` 接收其 `--execution-key`、`--artifact-ref` 与 `--expected-revision`。提交内容只有原始类型身份与声明绑定，不接受自报质量或匹配结论。任一成员未知或冲突时整包不发布；成功时把宿主独立核验的根与嵌套闭包、current/history、事件和 revision 一次提交。旧任务与工具被版本隔离，资源仍由实际清理决定何时释放。
+
+`get-layout-contracts` 每次核对原始字节、解析器、实际发布回执/Proposal、原授权作用域、证据清单及 CAS；失效项明确列出。历史重放不再次推进版本，也不让历史记录获得当前权威。两项公开 MCP 读取不会创建可选表、冻结声明或启动编译器。空 `type_ids` 保留旧版任务的原始规范表示，既有幂等键和回执哈希不改写。
+
+这项事务只冻结原始普通结构存储声明，最高 A0。`recover-project` 的自动 TYPES 阶段仍只处理有限标量；候选实际 TU、工程公共类型与 FINAL 布局依赖需要继续接入，当前带 `type_ids` 的源码候选明确拒绝。聚合传参/返回和完整调用 ABI 继续 UNKNOWN。
+
+可复现真实原库、离线租约交付、两个根与一个嵌套类型、一次版本推进和无副作用历史重放：
+
+```bash
+.venv/bin/python scripts/run_layout_contract_sample.py \
+  --ndk-root work/tools/android-ndk-r27c --output work/layout-contract-sample
+```
+
+该样例只编译用于原始 DWARF 的受控 fixture，事务本身不启动编译器，模型调用数为 0；`state/` 为私有账本，公开证据只取 `layout-contract-sample.json`。
+
 ## 接续与中断
 
 对于相同输入、工具和配置，重复执行原 `recover-project` 命令即可按账本接续。每 Job 使用排他控制器锁；回执、标量 bundle、验证和集成使用幂等身份，已提交结果不重复生成。另一控制器正在推进同一 Job 时返回 `PIPELINE_BUSY`。

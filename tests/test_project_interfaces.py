@@ -64,7 +64,7 @@ def test_actual_mcp_read_surface_has_no_compiler_freezer_or_cleanup_mutation(tmp
     async def exercise():
         server = create_server(state)
         names = {tool.name for tool in await server.list_tools()}
-        assert len(names) == 25
+        assert len(names) == 27
         assert {
             "get_final_delivery", "list_final_deliveries", "read_final_report",
             "list_integrations", "get_integration", "read_integration_report",

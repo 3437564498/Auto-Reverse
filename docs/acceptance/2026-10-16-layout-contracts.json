@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "accepted_on": "2026-10-16",
+  "timezone": "Asia/Singapore",
+  "scope": "bounded physical original DWARF type catalog and atomic A0 layout declaration transactions",
+  "base_commit": "22b33690e98809347e63d14822db697773b5f092",
+  "source_fingerprints": {
+    ".github/workflows/static-acceptance.yml": "548298dba13be72b59bf66be1dd95663328cb1c8962f246ae051b1bc8d0abf41",
+    "integrations/dsh/src/contracts.ts": "ebffbb17a57c4d850407965909bf1e51818bd626f32d867913e2c7bb1ebe735f",
+    "schemas/original-layout-bundle.schema.json": "b6081dd741a6c7ec894f330b89d04c9564c87eccdb51d2d1789eab86874cabff",
+    "schemas/work-package-spec.schema.json": "b62fff06a93eb8467996bd42c5389d0c8b7ccf18715ba20617dc247e59a64c21",
+    "schemas/work-package.schema.json": "48dc7fabd2e83b87e6f323295a05cbe23c42827f7e691cc5430203fea9476428",
+    "scripts/run_layout_contract_sample.py": "53264d95883cd6438b2a92060d51f9d83d3c474114d0a4ccdd0ae198dfaf8186",
+    "src/auto_reverse/abi_contracts.py": "330030cd7b2dab4168c7825d14c8c91dfefe2b4bed557e839da0314b4ee7fb15",
+    "src/auto_reverse/backend_rpc.py": "c2956fef781e0fc32c2e3c3aae6758711b617b58597a05717c04dcd1ac088575",
+    "src/auto_reverse/candidate_validation.py": "062cd659518980907251d8016961f0db1b6b8f13447a1b47aabe649cf9adbb93",
+    "src/auto_reverse/cli.py": "19e4bfaeea9a6bab19520bb0b6d371d96664a9378f361aba29c3771c669a5387",
+    "src/auto_reverse/contracts.py": "e89a7e5593e6b6637c229c2f8f99258bc3696e69fb26e6a04cc542f88b81991d",
+    "src/auto_reverse/domain.py": "83d5a1a6c552a87d9246f796be833ee78e2d320de26dfeea21ce691667e894e5",
+    "src/auto_reverse/layout_contracts.py": "13323667bf421cfda42d1e44149c73b06f3840e92fef3b382c246256ee54a4fd",
+    "src/auto_reverse/mcp_server.py": "25aef5c01ac8e07152f455e45294c6c3e23d8f5a992569d03f2473c656ca9ec8",
+    "src/auto_reverse/service.py": "f0b7ad3f7a979bab33c56d85957180ff8878cbf83c09770b6573805a3e37b992",
+    "src/auto_reverse/type_solver.py": "85b6dba886c4d42206c3e9bfd007c7e77c7871a7760d143ab56490d7765e827e",
+    "tests/test_layout_contract_interfaces.py": "05f5c93ae8d84b9e28b18cc5c361cb595b72097464b2e9f54d914f2a1c86dd39",
+    "tests/test_layout_contracts.py": "a28b11d352a6b34bd90d5f94311d7d31832d7ddd394201968836ae6c3ddec5be",
+    "tests/test_layout_contracts_adversarial.py": "cfae56494cc44749a6e102c0fc6e90fc30f9264e3cb40ba6a54052d0656fb1cb",
+    "tests/test_project_interfaces.py": "030cf0f60adcd587ad823e7dfffaa360e8f9e9f3216875daebd661fef271d114",
+    "tests/test_service.py": "f6865662d0a023e490d7407c810e6522d0cf7e488ef773c5b192c5397a0ef042",
+    "tests/test_type_scope_authority.py": "cf89e5cc2bf3527fa626320f9cc906c61b709a6b2669c2fb8113e0a85f87291a"
+  },
+  "layout_extractor_sha256": "79d240f0c2e4bd474ea41145faf90b96e2634eaba6be6de1652de67d1df0e6f7",
+  "new_tests": {
+    "passed": 99,
+    "skipped": 0,
+    "failed": 0,
+    "primary_layout_transactions": 26,
+    "independent_adversarial": 42,
+    "typed_scope_and_receipt_authority": 26,
+    "public_interfaces": 5
+  },
+  "related_regression": {
+    "core": {
+      "passed": 553,
+      "skipped": 0,
+      "failed": 0,
+      "warnings": 1,
+      "seconds": 80.66
+    },
+    "actual_pipeline_and_independent_failure_review": {
+      "passed": 24,
+      "skipped": 0,
+      "failed": 0,
+      "seconds": 297.01
+    },
+    "total_passed": 577
+  },
+  "interrupted_diagnostic_run": "work/layout-contract-accepted.log had no final summary and is not counted as acceptance",
+  "dsh_offline_bridge": {
+    "passed": 30,
+    "skipped": 0,
+    "model_calls": 0
+  },
+  "branch_cleanup_safeguards": {
+    "passed": 13,
+    "failed": 0
+  },
+  "sdk_preflight": {
+    "sdk_started": true,
+    "model_calls": 0,
+    "m0_r_accepted": false
+  },
+  "ruff": "PASS",
+  "schemas": "regenerated and matched independently installed wheel",
+  "installed_wheel_modules_resources_and_legacy_canonical_scope": "PASS",
+  "independent_review_fixes": [
+    "forged publication identity or unauthorized roots despite valid replacement CAS",
+    "changed evidence manifest reference or bytes",
+    "missing root or nested current map, orphan references and cross-Job maps"
+  ],
+  "sample": {
+    "schema_version": 1,
+    "kind": "original_layout_contract_sample",
+    "status": "PASS",
+    "input_sha256": "33c218ce9b2a09f5d0c1c733f05bec5e899a951980160dd3e7df4508202aaeeb",
+    "catalog_binding_sha256": "2f360871896c21f7cdea927891ab6e99eb3d510797012e1fd32651cd858a626f",
+    "extractor_sha256": "79d240f0c2e4bd474ea41145faf90b96e2634eaba6be6de1652de67d1df0e6f7",
+    "root_type_ids": [
+      "dwarf-layout:3543605375e823908ad4f915e11d10a97826467dacaf00627fb2e1387b6a0c9b",
+      "dwarf-layout:8ec2a49a96111ec6ed6d732f56e532a0763216cfc20a0e28cf39adde91bd7cfb"
+    ],
+    "derived_type_ids": [
+      "dwarf-layout:7e2f7716a6808f080c097b553cdef26138fb5f8eaaf737d34ad7d6fcedb1765b"
+    ],
+    "current_contract_count": 3,
+    "previous_revision": 1,
+    "contract_revision": 2,
+    "revision_advances": 1,
+    "historical_replay_no_new_events": true,
+    "current_valid": true,
+    "occupied_attempts": 0,
+    "actual_host_cli_replay_verified": true,
+    "provider": "offline-leased-static",
+    "model_calls": 0,
+    "artifact_level": "A0",
+    "original_calling_abi_verified": false,
+    "full_type_system_solved": false,
+    "candidate_layout_dependencies_verified": false,
+    "whole_program_equivalence": false,
+    "target_or_candidate_executed": false,
+    "v1_complete": false
+  },
+  "previous_frozen_commit_remote_acceptance": {
+    "commit": "22b33690e98809347e63d14822db697773b5f092",
+    "run_id": 38780336239,
+    "job_id": 116578568187,
+    "passed": 2088,
+    "skipped": 0,
+    "failed": 0,
+    "seconds": 669.74
+  },
+  "remote_verification_for_this_increment": "See the active pull request Checks for the commit containing these source fingerprints; this snapshot records local pre-push acceptance.",
+  "artifact_level": "A0",
+  "model_calls": 0,
+  "target_or_candidate_executed": false,
+  "original_calling_abi_verified": false,
+  "full_type_system_solved": false,
+  "candidate_layout_dependencies_verified": false,
+  "whole_program_equivalence": false,
+  "v1_complete": false,
+  "limitations": [
+    "Original DWARF authenticity and undeclared alignment remain unverified.",
+    "Source candidates with required type_ids are rejected until actual layout dependencies are wired.",
+    "Candidate TUs, shared project types, archives and FINAL layout authority remain a separate development unit.",
+    "No aggregate calling ABI or whole-library semantic proof is established."
+  ]
+}

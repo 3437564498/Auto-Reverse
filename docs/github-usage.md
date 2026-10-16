@@ -2,12 +2,12 @@
 
 日常只需要打开 [待审核更新](https://github.com/3437564498/Auto-Reverse/pulls)，查看唯一活动 PR 和它的 **Checks**。这个入口固定，不需要记住每批 PR 编号。PR 是一批代码更新的审核页面，未合并前的修复继续更新同一个页面，不需要在多个开发分支之间选择。
 
-截至 2026-10-16，PR #6 已进入 `main`，后续开发集中在 `codex/m1-integrated-project` 和 [PR #7](https://github.com/3437564498/Auto-Reverse/pull/7)。未合并前的布局核对等增量继续更新同一页面；远端 Checks 与可审核状态以该页面为准。开发分支出现、PR 建立、Checks 通过和完整 V1 验收是不同状态，不能互相替代。
+截至 2026-10-16，PR #7 已进入 `main`。原始布局声明事务作为下一批更新，仍使用唯一活动分支 `codex/m1-integrated-project`，集中在 [待审核更新](https://github.com/3437564498/Auto-Reverse/pulls) 的活动 PR。未合并前的修复继续更新同一页面；远端 Checks 与可审核状态以该页面为准。开发分支出现、PR 建立、Checks 通过和完整 V1 验收是不同状态，不能互相替代。
 
 | 页面上的名称 | 含义 |
 |---|---|
 | `main` | 已合并的代码；平时从这里查看、下载和使用项目 |
-| `codex/m1-integrated-project` | 当前批次的开发分支，包含尚待合并的工程流水线更新 |
+| `codex/m1-integrated-project` | 唯一活动开发分支，目前包含尚待合并的原始布局声明事务 |
 | `Draft` | 这一批还在开发或验证，暂时不进入合并步骤 |
 | `Ready for review` | 开发者已将这一批标记为可审核；仍需查看测试与验收范围 |
 | `Checks` | GitHub 自动检查；通过表示这些检查成功，跳过的项目仍需另行验证 |

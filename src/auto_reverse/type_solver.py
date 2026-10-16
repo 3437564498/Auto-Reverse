@@ -1,12 +1,14 @@
-"""Atomically freeze a bounded set of original unsigned-scalar declarations.
+"""Atomic scalar bundles and combined finite original declaration views.
 
 This finite declaration component compares a real worker delivery with embedded
 original DWARF. All matching symbols advance one global contract revision. It
-does not solve pointers, layouts, classes, JNI or machine calling conventions.
+does not solve pointers, classes, JNI or machine calling conventions. Original
+structure storage transactions live in layout_contracts and remain A0 evidence.
 """
 
 from __future__ import annotations
 
+from contextlib import closing
 import hashlib
 import json
 from pathlib import Path
@@ -72,6 +74,9 @@ class TypeSolverService:
                 if artifact_ref != previous["artifact_ref"] or expected_revision != result["previous_revision"]:
                     raise DomainError("IDEMPOTENCY_CONFLICT", "This delivery already froze another bundle request")
                 return result
+            if (connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='layout_contract_bundles'").fetchone()
+                    and connection.execute("SELECT 1 FROM layout_contract_bundles WHERE execution_key=?", (execution_key,)).fetchone()):
+                raise DomainError("IDEMPOTENCY_CONFLICT", "This execution key already froze original layout declarations")
             if connection.execute("SELECT 1 FROM scalar_abi_contracts WHERE execution_key=?", (execution_key,)).fetchone():
                 raise DomainError("IDEMPOTENCY_CONFLICT", "This execution key already froze a single declaration")
             receipt = self.domain._row(connection, "receipts", "execution_key", execution_key)
@@ -169,7 +174,16 @@ class TypeSolverService:
             return result
 
     def get_view(self, job_id: str) -> dict[str, Any]:
-        view = self.abi.get_view(job_id)
-        return {**view, "solver_status": "SOLVED_DECLARED_SHAPES" if view["current_valid"] else "UNKNOWN",
+        from .layout_contracts import LayoutContractService
+        job_id = _string(job_id, "job_id")
+        with closing(self.domain._connect()) as connection:
+            connection.execute("BEGIN")
+            view = AbiContractService.read_current(connection, job_id, self.objects)
+            layouts = LayoutContractService.read_current(connection, job_id, self.objects)
+        solved = ((view["current_valid"] or layouts["current_valid"])
+                  and not view["invalid_contracts"] and not layouts["invalid_contracts"])
+        return {**view, "solver_status": "SOLVED_DECLARED_SHAPES" if solved else "UNKNOWN",
                 "solved_scope": {"function_ids": [item["symbol"] for item in view["current_contracts"]], "region_ids": []},
+                "layout_contracts": layouts,
+                "layout_solved_scope": {"type_ids": [item["type_id"] for item in layouts["current_contracts"]]},
                 "full_type_system_solved": False}

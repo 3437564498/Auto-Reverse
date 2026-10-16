@@ -70,6 +70,8 @@ def main(argv=None):
     candidate_layouts.add_argument("--api-level", type=int, default=21)
     candidate_layouts.add_argument("--timeout-seconds", type=float, default=30)
     candidate_layouts.add_argument("--output", required=True)
+    layout_catalog = commands.add_parser("inspect-layout-catalog", help="Read bounded original physical DWARF type identities; A0 only")
+    layout_catalog.add_argument("--binary", required=True)
     consume = commands.add_parser("consume-evidence", help="Trusted host: classify an actual evidence Proposal")
     consume.add_argument("--execution-key", required=True)
     consume.add_argument("--artifact-ref", required=True)
@@ -81,10 +83,17 @@ def main(argv=None):
     bundle.add_argument("--execution-key", required=True)
     bundle.add_argument("--artifact-ref", required=True)
     bundle.add_argument("--expected-revision", type=int, required=True)
+    layout_bundle = commands.add_parser("freeze-layout-bundle", help="Trusted host: atomically freeze original structure storage declarations")
+    layout_bundle.add_argument("--execution-key", required=True)
+    layout_bundle.add_argument("--artifact-ref", required=True)
+    layout_bundle.add_argument("--expected-revision", type=int, required=True)
     current_contracts = commands.add_parser("get-abi-contracts", help="Read current original declaration constraints")
     current_contracts.add_argument("job_id")
+    current_layouts = commands.add_parser("get-layout-contracts", help="Read current original structure declarations without freezing or starting tools")
+    current_layouts.add_argument("job_id")
     for command_name, command_help in (
         ("list-abi-contracts", "Read frozen declaration constraint history"),
+        ("list-layout-contracts", "Read original structure constraint history"),
         ("list-evidence-deliveries", "Read auxiliary evidence/gap delivery history"),
     ):
         reader = commands.add_parser(command_name, help=command_help)
@@ -265,6 +274,13 @@ def main(argv=None):
                                  timeout_seconds=args.timeout_seconds)
             result = inspect_candidate_layouts(source.decode("utf-8"), binary, tuple(args.type_names),
                                                config, Path(args.output))
+        elif args.command == "inspect-layout-catalog":
+            from .layout_contracts import inspect_original_layout_catalog
+            with Path(args.binary).open("rb") as stream:
+                binary = stream.read(64 * 1024 * 1024 + 1)
+            if len(binary) > 64 * 1024 * 1024:
+                raise ValueError("layout catalog input exceeds the bounded 64 MiB profile")
+            result = inspect_original_layout_catalog(binary)
         elif args.command == "consume-evidence":
             from .evidence_delivery import EvidenceDeliveryService
             result = EvidenceDeliveryService(args.state_dir).consume(args.execution_key, args.artifact_ref)
@@ -275,6 +291,10 @@ def main(argv=None):
         elif args.command == "freeze-scalar-abi-bundle":
             from .type_solver import TypeSolverService
             result = TypeSolverService(args.state_dir).freeze_bundle_from_proposal(
+                args.execution_key, args.artifact_ref, expected_revision=args.expected_revision)
+        elif args.command == "freeze-layout-bundle":
+            from .layout_contracts import LayoutContractService
+            result = LayoutContractService(args.state_dir).freeze_bundle_from_proposal(
                 args.execution_key, args.artifact_ref, expected_revision=args.expected_revision)
         elif args.command == "publish-final-report":
             from .final_report import FinalReportService
@@ -409,6 +429,10 @@ def main(argv=None):
                 result = service.get_abi_contracts(args.job_id)
             elif args.command == "list-abi-contracts":
                 result = service.list_abi_contracts(args.job_id, cursor=args.cursor, limit=args.limit)
+            elif args.command == "get-layout-contracts":
+                result = service.get_layout_contracts(args.job_id)
+            elif args.command == "list-layout-contracts":
+                result = service.list_layout_contracts(args.job_id, cursor=args.cursor, limit=args.limit)
             elif args.command == "list-evidence-deliveries":
                 result = service.list_evidence_deliveries(args.job_id, cursor=args.cursor, limit=args.limit)
             elif args.command == "list-validations":

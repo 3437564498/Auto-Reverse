@@ -585,9 +585,9 @@ class DomainStore:
         if data["task_id"] in dependencies:
             raise DomainError("DEPENDENCY_CYCLE", "A task cannot depend on itself")
         scope = data.setdefault("scope", {"function_ids": [], "region_ids": []})
-        if not isinstance(scope, dict) or set(scope) - {"function_ids", "region_ids"}:
+        if not isinstance(scope, dict) or set(scope) - {"function_ids", "region_ids", "type_ids"}:
             raise DomainError("INVALID_CONTRACT", "Invalid work-package scope")
-        for name in ("function_ids", "region_ids"):
+        for name in ("function_ids", "region_ids", "type_ids"):
             _strings(scope.setdefault(name, []), name)
         default_operations = ["evidence_read", "contract_read", "task_report"]
         if data["role"] in {"recovery", "repair", "integration", "naming"}:

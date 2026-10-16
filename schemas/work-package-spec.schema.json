@@ -43,6 +43,18 @@
           },
           "title": "Region Ids",
           "type": "array"
+        },
+        "type_ids": {
+          "items": {
+            "maxLength": 77,
+            "minLength": 77,
+            "pattern": "^dwarf-layout:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 16,
+          "title": "Type Ids",
+          "type": "array",
+          "uniqueItems": true
         }
       },
       "title": "Scope",
