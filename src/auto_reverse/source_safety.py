@@ -19,6 +19,7 @@ from . import recovery
 
 
 SOURCE_SAFETY_VERSION = "generated-unsigned-leaf-defined-behavior-1"
+CFG_SOURCE_SAFETY_VERSION = "generated-unsigned-acyclic-cfg-defined-behavior-1"
 _MAX_SOURCE_BYTES = 1024 * 1024
 _MAX_EXPRESSION_TOKENS = 256
 _MAX_EXPRESSION_DEPTH = 64
@@ -48,11 +49,15 @@ def _json_hash(value: Any) -> str:
 def source_safety_kernel_fingerprint() -> str:
     """Bind both the independent grammar checker and exact source generator."""
     layout_kernel = Path(__file__).with_name("layout_dependencies.py")
+    root = Path(__file__).parent
+    dependencies = ("source_cfg_safety.py", "recovery_cfg.py", "capabilities.py")
     return _json_hash({
         "profile": SOURCE_SAFETY_VERSION,
         "checker_sha256": _hash(Path(__file__).read_bytes()),
         "generator_sha256": _hash(Path(recovery.__file__).read_bytes()),
         "layout_declaration_checker_sha256": _hash(layout_kernel.read_bytes()) if layout_kernel.is_file() else None,
+        "conditional_dependencies": {name: _hash((root / name).read_bytes())
+                                     if (root / name).is_file() else None for name in dependencies},
     })
 
 
@@ -242,6 +247,149 @@ def _check_source_map(lifted: dict[str, Any], original_code: bytes, source: str,
     return _json_hash(mappings)
 
 
+def _forward_word_cfg(original_code: bytes) -> dict[str, Any]:
+    """Independently bind only raw control edges; never import generator CFGs."""
+    if not original_code or len(original_code) % 4 or len(original_code) > 1024:
+        raise _ProfileError("original words exceed the bounded CFG extent")
+    count = len(original_code)
+    leaders, controls = {0}, {}
+    for offset in range(0, count, 4):
+        word = int.from_bytes(original_code[offset:offset + 4], "little")
+        if word == 0xD65F03C0:
+            controls[offset] = []
+            if offset + 4 < count:
+                leaders.add(offset + 4)
+            continue
+        if word & 0xFC000000 == 0x14000000:
+            immediate, bits, conditional = word & 0x3FFFFFF, 26, False
+        elif word & 0x7E000000 == 0x34000000:
+            immediate, bits, conditional = (word >> 5) & 0x7FFFF, 19, True
+        elif word & 0x7E000000 == 0x36000000:
+            immediate, bits, conditional = (word >> 5) & 0x3FFF, 14, True
+        else:
+            continue
+        displacement = immediate - (1 << bits) if immediate & (1 << (bits - 1)) else immediate
+        target = offset + displacement * 4
+        if not offset < target < count or target % 4:
+            raise _ProfileError("actual raw branch leaves the forward aligned function extent")
+        successors = [target]
+        if conditional:
+            if offset + 4 >= count:
+                raise _ProfileError("actual conditional branch falls out of the function")
+            successors.append(offset + 4)
+        controls[offset] = list(dict.fromkeys(successors))
+        leaders.add(target)
+        if offset + 4 < count:
+            leaders.add(offset + 4)
+    starts = sorted(leaders)
+    blocks, edges = [], []
+    for index, start in enumerate(starts):
+        end = starts[index + 1] if index + 1 < len(starts) else count
+        last = end - 4
+        if last in controls:
+            successors = controls[last]
+            scaffold = False
+        elif end < count:
+            successors = [end]
+            scaffold = True
+        else:
+            raise _ProfileError("actual final block lacks an architectural RET X30")
+        blocks.append({"start_offset": start, "end_offset_exclusive": end,
+                       "successors": successors, "fallthrough_scaffold": scaffold})
+        edges.extend({"from_offset": start, "to_offset": target} for target in successors)
+    return {"entry_offset": 0, "blocks": blocks, "edges": edges}
+
+
+def _check_cfg_source_map(lifted: dict[str, Any], original_code: bytes, source: str,
+                          symbol: str, address: int, details: dict[str, Any]) -> str:
+    mappings, instructions = lifted["source_map"], lifted["instructions"]
+    lines = source.splitlines()
+    if (not isinstance(mappings, list) or not isinstance(instructions, list)
+            or len(mappings) != len(original_code) // 4 or len(instructions) != len(mappings)):
+        raise _ProfileError("CFG map does not cover each actual word exactly once")
+    actual_cfg = _forward_word_cfg(original_code)
+    source_blocks = details["cfg"]["blocks"]
+    if len(actual_cfg["blocks"]) != len(source_blocks):
+        raise _ProfileError("source CFG blocks do not correspond to actual word blocks")
+    digest, covered = _hash(original_code), set()
+    for index, mapping in enumerate(mappings):
+        record = instructions[index]
+        offset, raw = index * 4, original_code[index * 4:index * 4 + 4]
+        word = int.from_bytes(raw, "little")
+        conditional_word = word & 0x7E000000 in (0x34000000, 0x36000000)
+        if not isinstance(mapping, dict) or not isinstance(record, dict):
+            raise _ProfileError("CFG map records must be objects")
+        start, end = mapping.get("source_line"), mapping.get("source_line_end")
+        statements = record.get("statements")
+        if (type(start) is not int or type(end) is not int or not 1 <= start <= end <= len(lines)
+                or end - start != int(conditional_word)
+                or _json_hash(mapping.get("source_span")) != _json_hash(
+                    {"start_line": start, "end_line_exclusive": end + 1})
+                or type(mapping.get("function_offset")) is not int
+                or mapping.get("function_offset") != offset or mapping.get("symbol") != symbol
+                or mapping.get("source_profile") != lifted.get("source_profile")
+                or mapping.get("address") != f"0x{address + offset:016x}"
+                or mapping.get("machine_bytes") != raw.hex()
+                or mapping.get("instruction_sha256") != _hash(raw)
+                or mapping.get("original_ref") != f"sha256:{digest}/function-bytes/{offset}"
+                or record.get("recovery_supported") is not True
+                or _json_hash({key: record.get(key) for key in (
+                    "function_offset", "address", "machine_bytes", "instruction_sha256", "original_ref")})
+                != _json_hash({key: mapping.get(key) for key in (
+                    "function_offset", "address", "machine_bytes", "instruction_sha256", "original_ref")})
+                or not isinstance(statements, list) or not statements
+                or any(not isinstance(item, str) or "\n" in item for item in statements)
+                or record.get("statement") != "\n".join(statements)
+                or [line.strip() for line in lines[start - 1:end]] != statements
+                or any(line in covered for line in range(start, end + 1))):
+            raise _ProfileError("CFG word span differs from actual bytes, owned source or statement extent")
+        covered.update(range(start, end + 1))
+    scaffolds = set()
+    for actual, parsed in zip(actual_cfg["blocks"], source_blocks):
+        if (actual["start_offset"] != parsed["start_offset"]
+                or _json_hash(actual["successors"]) != _json_hash(parsed["successors"])):
+            raise _ProfileError("source CFG has different actual branch targets or fallthrough edges")
+        expected_lines = []
+        for offset in range(actual["start_offset"], actual["end_offset_exclusive"], 4):
+            mapping = mappings[offset // 4]
+            expected_lines.extend(range(mapping["source_line"], mapping["source_line_end"] + 1))
+        if actual["fallthrough_scaffold"]:
+            scaffolds.add(parsed["source_line_end"])
+        required = list(range(parsed["source_line"], parsed["source_line_end"] + 1))
+        if actual["fallthrough_scaffold"]:
+            required.pop()
+        if expected_lines != required:
+            raise _ProfileError("CFG word spans overlap, reorder or omit statements of their physical block")
+    if covered | scaffolds != set(details["owned_statement_lines"]) or covered & scaffolds:
+        raise _ProfileError("CFG map does not cover all instruction source outside fixed scaffolding")
+    if _json_hash(actual_cfg["edges"]) != _json_hash(details["cfg"]["edges"]):
+        raise _ProfileError("actual raw CFG edges differ from parsed source")
+    claimed_cfg = lifted.get("cfg")
+    if (not isinstance(claimed_cfg, dict)
+            or _json_hash(claimed_cfg.get("entry_offset")) != _json_hash(0)):
+        raise _ProfileError("generated CFG entry is absent or foreign")
+    claimed_blocks = claimed_cfg.get("blocks")
+    if not isinstance(claimed_blocks, list) or len(claimed_blocks) != len(source_blocks):
+        raise _ProfileError("generated CFG block claim differs from independent source CFG")
+    expected_blocks = []
+    for claimed, actual, parsed in zip(claimed_blocks, actual_cfg["blocks"], source_blocks):
+        expected = {key: parsed[key] for key in ("start_offset", "successors", "source_line",
+                                               "label_line", "source_line_end")}
+        expected["end_offset_exclusive"] = actual["end_offset_exclusive"]
+        expected["fallthrough_scaffold_line"] = parsed["source_line_end"] if actual["fallthrough_scaffold"] else None
+        expected_blocks.append(expected)
+        if not isinstance(claimed, dict) or _json_hash(claimed) != _json_hash(expected):
+            raise _ProfileError("generated CFG geometry differs from independent words and source")
+    expected_cfg = {"entry_offset": 0, "blocks": expected_blocks, "edges": actual_cfg["edges"],
+                    "conditional_branches": details["conditional_branches"], "acyclic": True,
+                    "complete_word_coverage": True}
+    if _json_hash(claimed_cfg) != _json_hash(expected_cfg):
+        raise _ProfileError("generated CFG claim differs from independently checked words and source")
+    if lifted.get("cfg_sha256") != _json_hash(claimed_cfg):
+        raise _ProfileError("generated CFG fingerprint differs from its complete claim")
+    return _json_hash(mappings)
+
+
 def audit_generated_leaf(source: str, *, original_code: bytes | None, symbol: str,
                          parameter_widths: tuple[int, ...] | list[int], return_width: int,
                          address: int = 0x1000, layout_material: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -313,8 +461,16 @@ def audit_generated_leaf(source: str, *, original_code: bytes | None, symbol: st
         if lifted["status"] != "SOURCE_GENERATED":
             return finish("ORIGINAL_MACHINE_PROFILE_UNSUPPORTED", lifted["reason"])
         shape = lifted["scalar_signature"]
+        profile = lifted.get("source_profile")
+        if profile is not None:
+            from .source_cfg_safety import PROFILE
+
+            if profile != PROFILE:
+                raise _ProfileError("generated source has an unknown finite profile")
+            report.update(version=CFG_SOURCE_SAFETY_VERSION, source_profile=profile)
         report["scope"].update(
-            kind="one-exact-generated-leaf-source", complete_source_extent=True,
+            kind="one-exact-generated-acyclic-source" if profile else "one-exact-generated-leaf-source",
+            complete_source_extent=True,
             other_translation_units_covered=False,
             scalar_shape={key: shape[key] for key in ("parameter_widths", "return_width")},
         )
@@ -323,8 +479,17 @@ def audit_generated_leaf(source: str, *, original_code: bytes | None, symbol: st
                                 "generator_version": recovery.RECOVERY_VERSION}
         if audited_source.encode() != lifted["source"].encode():
             return finish("SOURCE_DIFFERS_FROM_REGENERATED_PROFILE")
-        details = _check_source_profile(audited_source, symbol, tuple(parameter_widths), return_width)
-        mapping_hash = _check_source_map(lifted, original_code, audited_source, symbol, address)
+        if profile is None:
+            details = _check_source_profile(audited_source, symbol, tuple(parameter_widths), return_width)
+            mapping_hash = _check_source_map(lifted, original_code, audited_source, symbol, address)
+        else:
+            from .source_cfg_safety import check_source_cfg
+
+            details = check_source_cfg(audited_source, symbol=symbol,
+                                       parameter_widths=parameter_widths, return_width=return_width)
+            mapping_hash = _check_cfg_source_map(lifted, original_code, audited_source, symbol, address, details)
+            report["provenance"].update(regenerated_cfg_sha256=lifted["cfg_sha256"],
+                                         independently_checked_source_cfg_sha256=details["cfg_sha256"])
         if fingerprint != source_safety_kernel_fingerprint():
             return finish("SOURCE_SAFETY_KERNEL_CHANGED")
         report["provenance"]["regenerated_source_map_sha256"] = mapping_hash
@@ -343,12 +508,46 @@ def audit_generated_leaf(source: str, *, original_code: bytes | None, symbol: st
     ]
     if layout_material is not None:
         report["obligations"].append({"name": "literal-record-declarations-have-no-runtime-effect", "status": "PASSED"})
+    if report.get("source_profile") is not None:
+        report["obligations"].extend({"name": name, "status": "PASSED"} for name in (
+            "all-structural-source-paths-terminate", "definitely-initialized-cfg-joins",
+            "captured-condition-defined-on-every-path", "declared-register-upper-bits-available",
+            "unsigned-conditional-arms", "forward-cfg-and-complete-word-span-binding",
+        ))
     report["proof_scope"] = {
-        "profile": SOURCE_SAFETY_VERSION, "source_sha256": report["source"]["sha256"],
+        "profile": report["version"], "source_sha256": report["source"]["sha256"],
         "unsigned_int_bits": 32, "unsigned_long_long_bits": 64,
         "widths_enforced_by_source_static_assert": True,
         "language": "C++17", "all_declared_scalar_argument_bit_patterns": True,
         "caller_uses_matching_declaration_required": True,
         "other_source_or_whole_program_proved": False,
     }
-    return finish("SUPPORTED_UNSIGNED_LEAF_DEFINED_BEHAVIOR")
+    return finish("SUPPORTED_UNSIGNED_ACYCLIC_CFG_DEFINED_BEHAVIOR" if report.get("source_profile")
+                  else "SUPPORTED_UNSIGNED_LEAF_DEFINED_BEHAVIOR")
+
+
+def assert_source_safety_current(report: dict[str, Any], source: str, *,
+                                 original_code: bytes | None, symbol: str,
+                                 parameter_widths: tuple[int, ...] | list[int], return_width: int,
+                                 address: int = 0x1000,
+                                 layout_material: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Purely rederive a complete safety report; a matching UNKNOWN stays UNKNOWN.
+
+    This authenticates no Job by itself. Callers supply the current host-frozen
+    source, original bytes, scalar contract and material, and retain their own
+    CAS/publication/cleanup guards. No compiler or target is invoked.
+    """
+    from .domain import DomainError
+
+    try:
+        actual = audit_generated_leaf(source, original_code=original_code, symbol=symbol,
+                                       parameter_widths=parameter_widths, return_width=return_width,
+                                       address=address, layout_material=layout_material)
+        def canonical(value):
+            return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
+        if not isinstance(report, dict) or canonical(report) != canonical(actual):
+            raise ValueError("complete source safety report differs from its current pure audit")
+        return actual
+    except (OSError, ValueError, TypeError, KeyError, IndexError, RecursionError) as exc:
+        raise DomainError("SOURCE_SAFETY_BINDING_MISMATCH",
+                          "Source safety report does not bind its current source, bytes, declaration and kernel") from exc

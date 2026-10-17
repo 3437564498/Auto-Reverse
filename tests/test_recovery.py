@@ -78,7 +78,7 @@ def test_actual_instruction_encodings_generate_unsigned_register_model(word, fra
     0xF9400000,  # LDR X0, [X0]
     0xF9000000,  # STR X0, [X0]
     0x94000000,  # BL call
-    0x14000001,  # B branch
+    0x17FFFFFF,  # Backward B is outside the acyclic fallback.
     0xD65F0020,  # RET X1
     0xD503245F,  # BTI architectural hint distinct from NOP
     0xD503201E,  # neighboring HINT encoding is not NOP
@@ -173,12 +173,14 @@ def test_shift_logic_and_bitfield_mask_neighbors_fail_closed(word):
 
 
 def test_recovery_capability_version_and_inputs_do_not_claim_original_abi():
-    assert RECOVERY_VERSION == "integer-register-leaf-3"
+    assert RECOVERY_VERSION == "integer-register-acyclic-4"
     matrix = recovery_capabilities()
-    assert matrix["matrix_ref"] == "capability://integer-register-leaf-3"
+    assert matrix["matrix_ref"] == "capability://integer-register-acyclic-4"
     assert {item["opcode"] for item in matrix["operations"]} == {
         "ADD", "SUB", "MOV", "MOVK", "AND", "ORR", "EOR", "LSL", "LSR", "UBFX", "UBFIZ", "NOP", "RET",
     }
+    assert matrix["acyclic_fallback"]["profile"] == "unsigned-acyclic-register-cfg-1"
+    assert matrix["acyclic_fallback"]["strictly_forward_branches"] is True
     model = lift_integer_leaf(words(RET), symbol="identity")["call_model"]
     assert len(model["inputs"]) == 8
     assert model["caller_saved_temporaries"]["registers"] == [f"x{i}" for i in range(8, 18)]

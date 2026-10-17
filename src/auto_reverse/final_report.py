@@ -38,6 +38,7 @@ def _kernel_fingerprint() -> str:
              "project_service.py", "project_build.py", "project_verification.py", "build_gate.py", "domain.py",
              "abi.py", "abi_contracts.py", "scalar_abi.py", "intake.py", "library_inventory.py", "semantics.py", "capabilities.py", "recovery.py")
     names += ("layout_dependencies.py", "layout_contracts.py", "candidate_layout.py", "dwarf_layout.py", "project_archive.py")
+    names += ("source_safety.py", "source_cfg_safety.py", "recovery_cfg.py")
     return _digest({name: hashlib.sha256((root / name).read_bytes()).hexdigest()
                     if (root / name).is_file() else None for name in names})
 

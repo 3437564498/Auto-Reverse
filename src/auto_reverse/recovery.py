@@ -21,7 +21,7 @@ from .intake import ELFIntakeError, extract_function, function_info, inspect_elf
 from .semantics import verify_machine_code
 
 
-RECOVERY_VERSION = "integer-register-leaf-3"
+RECOVERY_VERSION = "integer-register-acyclic-4"
 _MAX_LEAF_BYTES = 1024
 _C_IDENTIFIER = re.compile(r"[A-Za-z][A-Za-z0-9_]*\Z", re.ASCII)
 _KEYWORDS = frozenset("""
@@ -295,6 +295,15 @@ def recovery_capabilities() -> dict[str, Any]:
         },
         "not_recovered": ["original prototypes", "C++ types or classes", "JNI", "calls",
                           "memory", "global data", "original calling ABI", "entry closures"],
+        "acyclic_fallback": {
+            "profile": "unsigned-acyclic-register-cfg-1",
+            "operations": ["CMP", "CSEL", "CSINC", "CINC", "CSET", "B", "CBZ", "CBNZ", "TBZ", "TBNZ"],
+            "conditions": ["EQ", "NE"], "strictly_forward_branches": True,
+            "maximum_bytes": 1024, "maximum_blocks": 16,
+            "maximum_conditional_branches": 6, "maximum_edges": 32,
+            "unreachable_words_supported": False, "all_exits_ret_x30": True,
+            "source_safety_and_actual_compiled_byte_proof_required": True,
+        },
         "lifting_establishes_equivalence": False,
     }
 
@@ -377,6 +386,11 @@ def lift_integer_leaf(code: bytes, *, symbol: str, address: int = 0x1000,
     if result["instructions"][-1].get("opcode") != "RET":
         result["reason"] = result["reason"] or "final_ret_x30_required"
     if result["reason"] is not None:
+        from .recovery_cfg import has_acyclic_features, lift_acyclic
+
+        if has_acyclic_features(code):
+            return lift_acyclic(code, symbol=symbol, address=address, widths=widths,
+                                return_width=return_width, typed=typed, call_model=result["call_model"])
         return result
     types = {32: "unsigned int", 64: "unsigned long long"}
     parameters = ", ".join(f"[[maybe_unused]] {types[width]} ar_a{i}"
@@ -412,6 +426,41 @@ def lift_integer_leaf(code: bytes, *, symbol: str, address: int = 0x1000,
     lines.append("}")
     result.update(status="SOURCE_GENERATED", source="\n".join(lines) + "\n")
     return result
+
+
+def relocate_source_map(mappings: list[dict[str, Any]], *, line_offset: int,
+                        source_file: str, input_sha256: str, file_offset: int,
+                        scope_member_id: str) -> list[dict[str, Any]]:
+    """Relocate owned function maps while retaining original machine offsets.
+
+    Legacy one-line maps remain one-line maps; new CFG spans move together.
+    The input map is not mutated, so its function-local hash retains meaning.
+    """
+    if any(type(value) is not int or value < 0 for value in (line_offset, file_offset)):
+        raise ValueError("source-map offsets must be nonnegative integers")
+    relocated = []
+    for mapping in mappings:
+        start = mapping["source_line"]
+        machine_offset = mapping["function_offset"]
+        if type(start) is not int or start < 1 or type(machine_offset) is not int or machine_offset < 0:
+            raise ValueError("source-map coordinates must be positive lines and nonnegative offsets")
+        item = {**mapping, "source_line": start + line_offset}
+        if "source_line_end" in mapping or "source_span" in mapping:
+            end, span = mapping["source_line_end"], mapping["source_span"]
+            if (type(end) is not int or end < start or not isinstance(span, dict)
+                    or set(span) != {"start_line", "end_line_exclusive"}
+                    or any(type(value) is not int for value in span.values())
+                    or span != {"start_line": start, "end_line_exclusive": end + 1}):
+                raise ValueError("CFG source-map span is inconsistent")
+            item.update(source_line_end=end + line_offset,
+                        source_span={"start_line": start + line_offset,
+                                     "end_line_exclusive": end + line_offset + 1})
+        original_file_offset = file_offset + machine_offset
+        item.update(source_file=source_file, original_file_offset=original_file_offset,
+                    original_ref=f"sha256:{input_sha256}/bytes/{original_file_offset}",
+                    scope_member_id=scope_member_id)
+        relocated.append(item)
+    return relocated
 
 
 def _inventory(report: dict[str, Any]) -> list[dict[str, Any]]:
@@ -609,13 +658,9 @@ def recover_subset(binary: str | Path, output_dir: str | Path, ndk_root: str | P
                     item["instruction_evidence"] = lifted["instructions"]
                     if reason is None:
                         base_line = len(lines)
-                        for mapping in lifted["source_map"]:
-                            mapping["source_line"] += base_line
-                            mapping["source_file"] = "src/recovered.cpp"
-                            mapping["original_file_offset"] = function["file_offset"] + mapping["function_offset"]
-                            mapping["original_ref"] = f"sha256:{intake['sha256']}/bytes/{mapping['original_file_offset']}"
-                            mapping["scope_member_id"] = function["scope_member_id"]
-                            source_map.append(mapping)
+                        source_map.extend(relocate_source_map(lifted["source_map"], line_offset=base_line,
+                            source_file="src/recovered.cpp", input_sha256=intake["sha256"],
+                            file_offset=function["file_offset"], scope_member_id=function["scope_member_id"]))
                         lines.extend(lifted["source"].splitlines())
                         lines.append("")
                         item["recovery_status"] = "SOURCE_GENERATED"

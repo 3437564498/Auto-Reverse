@@ -49,7 +49,9 @@ def _implementation_fingerprint() -> str:
              "intake.py", "semantics.py", "capabilities.py", "recovery.py", "domain.py",
              "source_signature.py", "scalar_abi.py", "abi_contracts.py", "layout_contracts.py",
              "layout_dependencies.py", "candidate_layout.py", "dwarf_layout.py")
-    return _digest({name: _sha((root / name).read_bytes()) for name in names})
+    names += ("recovery_cfg.py",)
+    return _digest({name: _sha((root / name).read_bytes()) if (root / name).is_file() else None
+                    for name in names})
 
 
 def _union_size(ranges: list[tuple[int, int]]) -> int:

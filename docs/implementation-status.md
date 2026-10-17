@@ -1,6 +1,6 @@
 # 实施状态与验收边界
 
-更新：2026-10-17（Asia/Singapore）。设计基线为 [V1 主方案](android-arm64-so-cpp-recovery-V1.md)。`main` 已合并 PR #9（`d0bfb12`），实际编译与归档的布局依赖已进入主分支。下一批有限 CMP/EQ-NE 机器模型在 `codex/m0-eqne-conditionals` 推进，集中在 [待审核更新](https://github.com/3437564498/Auto-Reverse/pulls) 的活动 PR。各验收数字对应下文明确的代码范围，当前 Checks 与可审核状态以活动 PR 页面为准。
+更新：2026-10-18（Asia/Singapore）。设计基线为 [V1 主方案](android-arm64-so-cpp-recovery-V1.md)。`main` 已合并 PR #10（`3a12f5b`），有限 CMP/EQ-NE 机器模型和严格证明绑定已进入主分支。本批实现有限无环条件源码生成、独立 CFG 审计与当前安全证据重验，集中在 [待审核更新](https://github.com/3437564498/Auto-Reverse/pulls) 的活动 PR。各验收数字对应下文明确的代码范围，当前 Checks 与可审核状态以活动 PR 页面为准。
 
 **完整 V1、M0-S、M0-R 和 M1 的完整退出条件尚未全部验收。** 本批将原有单候选验证扩展为可恢复的自动静态工程流水线，最高交付真实编译的局部 A1。用户暂时无法提供真实 DSH 模型环境，该项保留未验收；确定性静态生成、注入 Provider 和 SDK 离线预检均不计作真实模型验收。
 
@@ -16,8 +16,9 @@
 | 原始布局约束事务 | 有界原始物理类型目录、专用 `type_ids` 作用域、真实交付校验、多根及嵌套闭包一次冻结、current/history 与全局 revision 失效 | 仅原始存储声明 A0；完整类型系统和聚合调用 ABI 仍未知，宿主指定的有限候选依赖见下一行 |
 | 实际 TU 布局依赖 | 指定物理类型闭包、宿主生成断言进入实际候选和工程编译、保守跨 TU C++ 类型核对、源码 ZIP 与 FINAL 绑定 | 有限 profile 已完成本地独立验收；函数仍限 unsigned32/64 标量，类型实际使用关系、聚合调用 ABI 与通用对象布局继续未知 |
 | 候选签名 | 由固定 Clang 实际 AST 与类型探针提取候选参数和返回类型，对比当前可信标量约束 | 歧义、扩展类型、未知属性与不支持声明不给匹配通过；候选自报类型无权威 |
-| 受限源码生成 | 有类型整数叶函数生成，参数/返回宽度检查，UBFM/UBFX/UBFIZ 支持；固定生成源码另做安全审计 | 只覆盖受支持的 unsigned 叶函数语法；安全审计不证明任意 C++ 或全库无 UB |
-| 条件机器语义 | 原始编码核验的无移位 CMP、EQ/NE CSEL/CSINC 及反条件 CINC/CSET 别名；路径独立 NZCV、32/64 位回绕与 W 零扩展 | 缺有效 CMP、LT/HI、B.cond、其他 flags 更新仍 UNKNOWN；没有新增条件 C++ 生成，详见[条件机器模型](machine-conditions.md) |
+| 受限源码生成 | 旧有类型整数叶输出保持；新增 CMP/EQ-NE 选择及有限前向 B/CBZ/TBZ CFG，统一 carrier、路径汇合初始化/高位与 flags 检查 | 只覆盖 unsigned32/64 有界 profile；环、调用、内存恢复、其他 flags/条件与通用 C++ 继续未知 |
+| 独立源码安全与 current | 独立解析源码 CFG/类型/初始化及原始高位可用性，重建实际 byte/span/CFG 绑定；工程与 FINAL 纯重验当前 staged source、契约、布局材料和实现 | 匹配 UNKNOWN 仍可局部 A1；审计不自动证明机器等价、原调用 ABI 或全库 UB，详见[无环恢复](acyclic-recovery.md) |
+| 条件机器语义 | 原始编码核验的无移位 CMP、EQ/NE CSEL/CSINC 及反条件 CINC/CSET 别名；路径独立 NZCV、32/64 位回绕与 W 零扩展 | 缺有效 CMP、LT/HI、B.cond、其他 flags 更新仍 UNKNOWN；有限条件生成另见无环恢复，机器范围详见[条件机器模型](machine-conditions.md) |
 | 工程物化 | 当前所选源码分成独立翻译单元，生成受控公共声明，固定 NDK 真实编译与联合链接 | 不复制原机器码、不补空实现；缺少内部实现或声明冲突时保留失败/未知 |
 | 最终产物验证 | 对最终联合 ELF 的实际字节逐个重新做局部 SMT，独立比较原库完整导出与依赖结构 | 不复用单候选证明替代最终证明；局部 EXACT 不提升为整库通过 |
 | 源码工程归档 | 确定性 ZIP 包含实际源码、受控头文件、CMake 和公开报告；可用固定 NDK 重新编译 | ZIP 不包含原库、目标 `.so`、对象文件、私有账本或运行凭据；重建后须重新验证 |
@@ -81,6 +82,10 @@ SQLite/CAS 持有 Job、DAG、租约、Attempt、回执、Outbox、32 个共享 
 有限条件机器模型新增 **210 项测试**（83 项实现、71 项独立机器语义对抗、36 项真实编译、20 项证明绑定），分别通过。真实固定 NDK 重编 20 个 ELF，正例、反转条件和常量变异、32/64 位回绕、LT/O0 与原有观察边界符合预期；缺工具的独立 skip 分支不计作真实编译验收。固定 NDK/Ghidra 静态矩阵扩展到 36 个场景并全部符合预期，其中新增 5 个局部 EXACT、2 个 DIFFERENT、2 个 UNKNOWN。实际布局/候选选择/两 TU 工程/ZIP 新路径重建与新字节两个 EXACT、FINAL current 和资源归零在新模型及严格 JSON 读取器下重新通过。独立安装包核对 39 模块、3 资源、9 Schema，并从安装包静态证明 CMP/CSEL 与 CBZ 参考等价；Ruff、Schema、DSH 离线 30 和分支守卫 13 项通过。边界详见[条件机器模型](machine-conditions.md)。
 
 本地全量遍历为 **2530 passed、2 failed、2 skipped**（709.23 秒，1 条既有警告）：两处失败均为旧静态矩阵断言仍固定 27 场景，已更新为 36 并增加新条件分类检查，整个矩阵测试文件 **14 passed**（24.91 秒）；两处 skip 因隔离树旧测试只识别仓库内工具路径，配置路径后两项真实 NDK/CMake/ZIP 测试 **2 passed**（18.46 秒）。生产模块在遍历与补验期间未改，最终去重覆盖 2534 个用例，新增 210 项已包含，补验中的重复用例不累加；初次失败和 skip 原样保留在[冻结快照](acceptance/2026-10-17-eqne-machine-model.json)。本提交仍需等待新的 GitHub 完整 CI，不用分组结果冒充一次无失败全量运行。
+
+条件机器模型提交 `6216d0c` 的[固定工具完整 CI](https://github.com/3437564498/Auto-Reverse/actions/runs/39002389361) 已实际通过 **2534 passed、0 skipped、0 failed**（933.12 秒，1 条既有警告），36 场景及全部真实样例、证据上传成功；前批 CMake skip 本轮已执行。普通 CI 为 1887 passed、647 个工具缺失 skip，DSH 离线 30 和分支守卫 13 项通过。PR #10 已合并，完整 V1 仍未完成。
+
+本批有限无环条件恢复新增 **355 项测试**，分别通过：61 恢复核心、49 独立源码 checker、170 raw/source/map 攻击、41 真实编译、20 工程/current/FINAL 和 14 无形状契约的独立工程攻击。生产源码冻结后的本地固定 NDK/Ghidra/JDK/CMake 完整回归为 **2889 passed、0 skipped、0 failed**（854.09 秒，1 条既有警告），新增 355 项已包含其中。独立编译实际产生 38 个新 ELF，六个自然 O2 和七个独立 raw CFG 完成恢复/安全审计/签名/新字节 EXACT，实际条件及常量变异得到 DIFFERENT；LT/TST/O0 等仍 UNKNOWN。条件源码携带布局 guard 的两 TU 工程及 ZIP 新路径重建、新字节证明、当前源码审计、FINAL 和资源归零通过，自动控制器恢复及禁工具续跑通过。独立安装 wheel 的 41 模块、3 资源和 9 Schema 字节一致；聚合 `recover-leaf` 的实际编译与映射跨度、DSH 离线 30 项和分支清理 13 项通过。实际输入、实现指纹与分母见[本批冻结验收](acceptance/2026-10-18-acyclic-recovery.json)。这些是本地实际结果，本批新的 GitHub CI 仍须核对当前提交的日志。
 
 真实 CLI 样例保留 5 个原始导出、11 个已发现函数范围和 216 字节可执行分母，恢复并集成 2 个 unsigned32/64 函数；浮点、访存、全局量、初始化继续形成缺口。Ghidra 导出 54 条指令并独立核对原始字节，同目录恢复无新增任务、事件或工具活动，所有资源清理确认。源码 ZIP 解包后 CMake 重建，再对新构建绑定下的 2 个函数重新证明 EXACT，未复用历史证明。详细记录见 [工程流水线样例](acceptance/2026-10-15-project-pipeline.json)。
 

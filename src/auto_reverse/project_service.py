@@ -26,7 +26,7 @@ from .host_reconcile import HostReconciliationService
 from .library_inventory import inspect_library_inventory
 from .layout_contracts import LayoutContractService
 from .layout_dependencies import (assert_layout_authority_current, assert_layout_tu_consistency,
-                                  strip_layout_declarations_for_audit, verify_layout_material)
+                                  verify_layout_material)
 
 
 def _hash(value: bytes) -> str:
@@ -44,7 +44,9 @@ def integration_kernel_fingerprint() -> str:
              "candidate_selection.py", "candidate_validation.py", "abi_contracts.py", "scalar_abi.py",
              "semantics.py", "capabilities.py", "recovery.py", "domain.py", "host_reconcile.py")
     names += ("layout_dependencies.py", "layout_contracts.py", "candidate_layout.py", "dwarf_layout.py")
-    return _digest({name: _hash((root / name).read_bytes()) for name in names})
+    names += ("recovery_cfg.py", "source_cfg_safety.py")
+    return _digest({name: _hash((root / name).read_bytes()) if (root / name).is_file() else None
+                    for name in names})
 
 
 class ProjectIntegrationService:
@@ -306,12 +308,67 @@ class ProjectIntegrationService:
                 "scalar_contract_ref": contract["contract_ref"] if contract else None})
         return sources, shapes, bindings
 
-    def run_next(self, worker_id="trusted-project-host", *, activity_id=None):
+    def _source_safety_reports(self, frozen, sources, shapes, built, *, published=None):
+        """Audit actual staged sources, or purely revalidate published audits.
+
+        The selected-source order and the current scalar contract are owned by
+        the host. Matching UNKNOWN reports are valid evidence of an unproved
+        obligation; their presence never prevents a partial compiled A1.
+        """
         from .intake import extract_function, function_info
+        from .source_safety import audit_generated_leaf, assert_source_safety_current
+
+        selected = frozen["selected_candidates"]
+        if (len(sources) != len(selected)
+                or published is not None and (type(published) is not list or len(published) != len(selected))):
+            raise DomainError("SOURCE_SAFETY_BINDING_MISMATCH", "Source audit inventory changed")
+        original = self.objects.resolve_input(frozen["input_ref"])
+        reports = []
+        for index, candidate in enumerate(selected):
+            symbol = candidate["symbol"]
+            name = f"unit_{index:03}_{_hash(symbol.encode())[:12]}.cpp"
+            if name not in sources or _hash(sources[name].encode()) != candidate["source_sha256"]:
+                raise DomainError("SOURCE_SAFETY_BINDING_MISMATCH", "Audit source differs from selected bytes")
+            shape = shapes.get(symbol)
+            if shape is None:
+                audit = {"symbol": symbol, "status": "UNKNOWN", "reason_code": "ORIGINAL_SCALAR_SHAPE_UNKNOWN"}
+                if published is not None and _json(published[index]) != _json(audit):
+                    raise DomainError("SOURCE_SAFETY_BINDING_MISMATCH", "Unknown scalar audit changed")
+            else:
+                info = function_info(original, symbol)
+                material = built.get("layout_dependencies", {}).get(name, {}).get("material")
+                arguments = {"original_code": extract_function(original, symbol), "symbol": symbol,
+                    "address": int(info["address"], 16), "parameter_widths": shape["parameter_widths"],
+                    "return_width": shape["return_width"], "layout_material": material}
+                if published is None:
+                    audit = audit_generated_leaf(sources[name], **arguments)
+                else:
+                    audit = assert_source_safety_current(published[index], sources[name], **arguments)
+            reports.append(audit)
+        return reports
+
+    @staticmethod
+    def _source_safety_summary(frozen, reports):
+        contracts = {item["symbol"]: item for item in frozen["abi_contracts"]["current_contracts"]}
+        bindings = [{"symbol": candidate["symbol"], "source_ref": candidate["source_ref"],
+            "source_sha256": candidate["source_sha256"],
+            "scalar_contract_ref": contracts.get(candidate["symbol"], {}).get("contract_ref"),
+            "status": audit["status"], "safety_binding_sha256": audit.get("safety_binding_sha256"),
+            "profile": audit.get("proof_scope", {}).get("profile")}
+            for candidate, audit in zip(frozen["selected_candidates"], reports, strict=True)]
+        passed = sum(item["status"] == "PASS" for item in bindings)
+        return {"scope": "selected_sources_only", "source_count": len(bindings),
+            "passed_source_count": passed, "unknown_source_count": len(bindings) - passed,
+            "all_selected_source_obligations_passed": bool(bindings) and passed == len(bindings),
+            "source_bindings": bindings, "whole_library_cpp_ub_proof": False,
+            "machine_equivalence_verified": False, "original_calling_abi_verified": False,
+            "execution_policy": {"source_auditor_compiler_executed": False,
+                                 "target_or_candidate_executed": False}}
+
+    def run_next(self, worker_id="trusted-project-host", *, activity_id=None):
         from .project_archive import pack_project
         from .project_build import build_project
         from .project_verification import verify_project
-        from .source_safety import audit_generated_leaf
 
         record = self.claim_next(worker_id, activity_id=activity_id)
         if record is None:
@@ -374,23 +431,7 @@ class ProjectIntegrationService:
                                                build_binding_sha256=built["build_binding_sha256"])
                 verified_record = self.objects.put_json(verification, kind="integrated_machine_verification")
                 artifacts.append(verified_record)
-                safety = []
-                for index, candidate_binding in enumerate(frozen["selected_candidates"]):
-                    symbol = candidate_binding["symbol"]
-                    shape = shapes.get(symbol)
-                    if shape:
-                        info = function_info(original, symbol)
-                        source_name = list(sources)[index]
-                        source = sources[source_name]
-                        if source_name in built.get("layout_dependencies", {}):
-                            source = strip_layout_declarations_for_audit(source,
-                                built["layout_dependencies"][source_name]["material"])
-                        safety.append(audit_generated_leaf(source,
-                            original_code=extract_function(original, symbol), symbol=symbol,
-                            address=int(info["address"], 16), parameter_widths=shape["parameter_widths"],
-                            return_width=shape["return_width"]))
-                    else:
-                        safety.append({"symbol": symbol, "status": "UNKNOWN", "reason_code": "ORIGINAL_SCALAR_SHAPE_UNKNOWN"})
+                safety = self._source_safety_reports(frozen, sources, shapes, built)
                 packed = pack_project(output, built, verification)
                 archive = self.objects.put_bytes(packed["bytes"], kind="project_archive", media_type="application/zip")
                 if (archive["sha256"], archive["size"]) != (packed["sha256"], packed["size"]):
@@ -401,6 +442,7 @@ class ProjectIntegrationService:
                     project_archive_ref=archive["artifact_id"], verification_ref=verified_record["artifact_id"],
                     build_binding_sha256=built["build_binding_sha256"], abi=verification["abi"],
                     local_semantic=verification["selected_semantic"], source_safety=safety,
+                    source_safety_summary=self._source_safety_summary(frozen, safety),
                     module_bindings=bindings, coverage=inventory["coverage"], denominators=inventory["denominators"],
                     gaps=inventory["gaps"], source_refs=[item["source_ref"] for item in frozen["selected_candidates"]])
             if self._configuration(config) != frozen["build_config"] or integration_kernel_fingerprint() != frozen["implementation_sha256"]:
@@ -497,7 +539,7 @@ class ProjectIntegrationService:
                        or command.get("returncode") != 0 or command.get("timed_out")
                        or command.get("output_limit_exceeded") for command in gate["commands"])):
             raise DomainError("BUILD_BINDING_MISMATCH", "Integrated build/source/profile/cleanup binding changed")
-        sources, _, bindings = self._sources(frozen)
+        sources, shapes, bindings = self._sources(frozen)
         modules = gate["source_modules"]
         if len(modules) != len(sources) or {module["name"] for module in modules} != set(sources):
             raise DomainError("SOURCE_BINDING_MISMATCH", "Integrated source inventory differs from selected sources")
@@ -543,6 +585,11 @@ class ProjectIntegrationService:
                     raise DomainError("LAYOUT_MATERIAL_UNVERIFIED", "Guarded TU did not produce the linked object")
         if checked_layouts and gate.get("layout_tu_consistency") != assert_layout_tu_consistency(checked_layouts):
             raise DomainError("LAYOUT_TU_CONFLICT", "Project cross-translation-unit layout identity changed")
+        if type(report.get("source_safety")) is not list:
+            raise DomainError("SOURCE_SAFETY_BINDING_MISMATCH", "Published source audits are absent")
+        safety = self._source_safety_reports(frozen, sources, shapes, gate, published=report["source_safety"])
+        if _json(report.get("source_safety_summary")) != _json(self._source_safety_summary(frozen, safety)):
+            raise DomainError("SOURCE_SAFETY_BINDING_MISMATCH", "Published source audit scope changed")
         candidate_metadata = self.objects.get_metadata(row["candidate_elf_ref"])
         library = [artifact for artifact in gate["artifacts"] if artifact["kind"] == "shared_library"]
         if len(library) != 1 or any(library[0][key] != candidate_metadata[key] for key in ("sha256", "size")):
@@ -582,6 +629,8 @@ class ProjectIntegrationService:
                 or report.get("gaps") != inventory["gaps"]
                 or report.get("source_refs") != [item["source_ref"] for item in frozen["selected_candidates"]]):
             raise DomainError("INVENTORY_CHANGED", "Integration altered the original denominator or source scope")
+        if integration_kernel_fingerprint() != frozen["implementation_sha256"]:
+            raise DomainError("INTEGRATION_BINDING_MISMATCH", "Integration kernel changed during read verification")
         return report
 
     def freeze_material(self, connection, job_row, activity_id=None):
@@ -604,6 +653,7 @@ class ProjectIntegrationService:
             "implementation_sha256": None, "artifact_level": "A0", "build": {"status": "UNKNOWN"},
             "abi": {"status": "UNKNOWN"}, "local_semantic": {"status": "UNKNOWN"}, "coverage": {}, "gaps": [],
             "whole_program_equivalence": False, "original_calling_abi_verified": False}
+        material.update(source_safety=[], source_safety_summary=None, source_safety_current_verified=False)
         try:
             report = self._published(connection, row)
             material.update({key: report[key] for key in ("source_refs", "candidate_elf_ref", "project_archive_ref",
@@ -611,6 +661,8 @@ class ProjectIntegrationService:
                 "abi", "local_semantic", "coverage", "gaps")}, current_valid=True, actual_compiled=True)
             if "layout_dependencies" in report:
                 material["layout_dependencies"] = report["layout_dependencies"]
+            material.update(source_safety=report["source_safety"],
+                source_safety_summary=report["source_safety_summary"], source_safety_current_verified=True)
         except (DomainError, ValueError, OSError, KeyError, TypeError, RecursionError) as exc:
             material["reason_code"] = getattr(exc, "code", "INTEGRATION_UNVERIFIED")
         return material
