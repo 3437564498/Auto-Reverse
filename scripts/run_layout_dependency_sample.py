@@ -42,14 +42,25 @@ extern "C" __attribute__((visibility("default")))
 unsigned long long add_nine(unsigned long long x) { return x + 9ULL; }
 '''
 SYMBOLS = ("add_nine", "add_seven")
+CONDITIONAL_SYMBOLS = ("increment_zero", "select_zero")
+CONDITIONAL_ORIGINAL = DECLARATIONS + '''sample::Record retain_debug_type;
+extern "C" __attribute__((visibility("default")))
+unsigned long long increment_zero(unsigned long long x, unsigned long long y) {
+    return x == 0ULL ? y + 1ULL : y;
+}
+extern "C" __attribute__((visibility("default")))
+unsigned long long select_zero(unsigned long long x, unsigned long long a, unsigned long long b) {
+    return x == 0ULL ? a : b;
+}
+'''
 
 
 def _digest(data):
     return hashlib.sha256(data).hexdigest()
 
 
-def _compile_original(output, config):
-    baseline = build_candidate(ORIGINAL, output / "base", config)
+def _compile_original(output, config, original_source=ORIGINAL):
+    baseline = build_candidate(original_source, output / "base", config)
     if baseline["status"] != "PASS":
         raise ValueError("trusted layout fixture baseline compile failed")
     debug = output / "debug"
@@ -115,10 +126,13 @@ def _deliver(backend, job, *, task_id, role, envelope, symbols=(), type_ids=(), 
     return receipt, staged["artifact_ref"]
 
 
-def run_sample(output, ndk_root):
+def run_sample(output, ndk_root, *, conditional=False):
+    if type(conditional) is not bool:
+        raise ValueError("conditional fixture selection must be a literal boolean")
     output = _safe_new_directory(output)
-    config = BuildConfig(Path(ndk_root).absolute(), soname="liblayoutdependency.so", expected_exports=SYMBOLS)
-    original = _compile_original(output / "fixture", config)
+    symbols = CONDITIONAL_SYMBOLS if conditional else SYMBOLS
+    config = BuildConfig(Path(ndk_root).absolute(), soname="liblayoutdependency.so", expected_exports=symbols)
+    original = _compile_original(output / "fixture", config, CONDITIONAL_ORIGINAL if conditional else ORIGINAL)
     original_bytes = original.read_bytes()
     catalog = inspect_original_layout_catalog(original_bytes)
     root = next(entry for entry in catalog["entries"] if entry["qualified_name"] == "sample::Record")
@@ -137,7 +151,7 @@ def run_sample(output, ndk_root):
         type_ids=[root["type_id"]], evidence=[evidence["artifact_id"]])
     layout = LayoutContractService(state).freeze_bundle_from_proposal(
         receipt["execution_key"], artifact, expected_revision=job["contract_revision"])
-    for symbol in SYMBOLS:
+    for symbol in symbols:
         job = backend.domain.get_job(job["job_id"])
         shape = extract_scalar_abi(original_bytes, symbol=symbol)
         if shape["status"] != "DECLARED_DEBUG_SHAPE":
@@ -150,12 +164,16 @@ def run_sample(output, ndk_root):
                                                       expected_revision=job["contract_revision"])
     job = backend.domain.get_job(job["job_id"])
     validation_reports = []
-    for symbol in SYMBOLS:
+    generation_profiles = []
+    for symbol in symbols:
         shape = extract_scalar_abi(original_bytes, symbol=symbol)
         lifted = lift_integer_leaf(extract_function(original, symbol), symbol=symbol,
                                    parameter_widths=shape["parameter_widths"], return_width=shape["return_width"])
         if lifted["status"] != "SOURCE_GENERATED":
             raise ValueError("fixture outside supported scalar leaf profile")
+        generation_profiles.append(lifted.get("source_profile", "sequential-unsigned-leaf"))
+        if conditional and generation_profiles[-1] != "unsigned-acyclic-register-cfg-1":
+            raise ValueError("conditional fixture did not use the actual acyclic generator")
         receipt, artifact = _deliver(backend, job, task_id=job["job_id"] + "/recovery/" + symbol,
             role="recovery", symbols=[symbol], type_ids=[root["type_id"]],
             evidence=[evidence["artifact_id"]],
@@ -197,6 +215,11 @@ def run_sample(output, ndk_root):
     final = FinalReportService(state).publish(job["job_id"], expected_revision=job["contract_revision"],
         integration_activity_id=integrated["activity_id"], idempotency_key="final-layout-dependency")
     current = FinalReportService(state).get_view(job["job_id"])
+    source_safety = current.get("integration", {}).get("source_safety_summary")
+    if (not current.get("integration", {}).get("source_safety_current_verified")
+            or not source_safety or source_safety["passed_source_count"] != len(symbols)
+            or source_safety["all_selected_source_obligations_passed"] is not True):
+        raise ValueError("actual guarded sources lack current independent source-safety audits")
     with closing(backend.domain._connect()) as connection:
         occupied = sum(connection.execute(f"SELECT COUNT(*) FROM {table} WHERE job_id=? AND occupied=1",
                          (job["job_id"],)).fetchone()[0]
@@ -206,6 +229,9 @@ def run_sample(output, ndk_root):
               and original.read_bytes() == original_bytes)
     summary = {"schema_version": 1, "kind": "actual_tu_layout_dependency_sample", "sample_passed": passed,
         "provider": "offline-leased-static", "model_calls": 0,
+        "fixture_profile": "acyclic-conditional" if conditional else "sequential-unsigned-leaf",
+        "generation_profiles": generation_profiles, "source_safety_summary": source_safety,
+        "source_safety_current_verified": True,
         "original_input_sha256": registered["sha256"], "contract_revision": job["contract_revision"],
         "root_type_ids": layout["root_type_ids"], "derived_type_ids": layout["derived_type_ids"],
         "selected_symbols": sorted(item["symbol"] for item in selected["selected_candidates"]),
@@ -227,8 +253,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--ndk-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--conditional", action="store_true", help="Use the fixed CMP/select recovery fixture")
     args = parser.parse_args()
-    result = run_sample(args.output, args.ndk_root)
+    result = run_sample(args.output, args.ndk_root, conditional=args.conditional)
     print(json.dumps({"sample_passed": result["sample_passed"], "model_calls": 0,
                       "target_or_candidate_executed": False}, indent=2))
     raise SystemExit(0 if result["sample_passed"] else 1)

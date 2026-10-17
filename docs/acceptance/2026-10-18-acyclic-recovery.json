@@ -1,0 +1,345 @@
+{
+  "schema_version": 1,
+  "accepted_on": "2026-10-18",
+  "timezone": "Asia/Singapore",
+  "scope": "bounded unsigned acyclic recovery, independent source CFG safety and pure current engineering revalidation",
+  "base_commit": "3a12f5b9dbc76421390b50dc639167d9e15a651d",
+  "source_profile": "unsigned-acyclic-register-cfg-1",
+  "source_fingerprints": {
+    ".github/workflows/static-acceptance.yml": "93257ad56445bb133483ecf158dcda95f84660358ba9626c551fcd5ab3a202c9",
+    "scripts/run_layout_dependency_sample.py": "21cc77c4ad06c9dfff68f9e6b45e1f692e501a09f7dd08e74fd168b95a315f14",
+    "tests/test_recovery.py": "049a15712fc4c53fb8e81f8dbc6832f1ecaa3da29baa4949c71f9c38ca00723e",
+    "src/auto_reverse/recovery.py": "46b84e2fe2a36274e64dd05b799d02db095ef0f056e630b850f610e318e8293b",
+    "src/auto_reverse/recovery_cfg.py": "fbcb59cd392326fe8a7ed55aa36419c71f4a97da972f2885593417993e8b9691",
+    "src/auto_reverse/source_safety.py": "efd7856a7f4eab7f8120bd6cc71bf785232a5503ca29f05607f518adadeb2e13",
+    "src/auto_reverse/source_cfg_safety.py": "c2ba52bcc0a30fec98a1c904a435d7985b9f44bce5b28dab76c137a83312325e",
+    "src/auto_reverse/project_service.py": "8620254894f88cf56087d1fd49416c2a6d598d3a6fbc7d85b7b1b2d38e6d2e61",
+    "src/auto_reverse/candidate_selection.py": "f47eeaa512a60752a39e12c171eace6d093061a56e54ada4495ffccc8fd97d0f",
+    "src/auto_reverse/final_report.py": "e7dfd9ca3e9c6e401116e25b7f991440aa3914ef6c105f2753c4331256b9e35a",
+    "src/auto_reverse/service.py": "0db5c9ac06dbbbaedd361e0152b174b00b1d960200a01447b0098d11a4fbdde8",
+    "tests/test_acyclic_recovery.py": "df559819565e1c8d8eed623ece87392832e6fdfff5eccbbeaaf52ce6dd2706e0",
+    "tests/test_source_cfg_safety.py": "6b23ca18b92fe86687e258ca5ee0ec15db64480b8950bdeb9c1ad664e619753d",
+    "tests/test_acyclic_adversarial.py": "5f0b3b0ef78caaa31a7b6c69e23c961447f0ffd01a44676e9d923ed90ffe8e7d",
+    "tests/test_acyclic_compiler_acceptance.py": "925acd22f613aa51888e0380f898e4741cca6bd0c460fb4c98f44b55fbfa8d96",
+    "tests/test_acyclic_project_safety.py": "a309f7d153ebad664d7977e1ee7d81e23597bc572aea739ad5e717c0a3e4914e",
+    "tests/test_acyclic_project_adversarial.py": "c38e07ce3a74f925045c6d06a699ecc3464614a62dea2de4ffeb57a164574bd8"
+  },
+  "kernel_fingerprints": {
+    "source_safety_sha256": "747fdd17e944f4d2b276127855e267971a3e38ffa32d7af09311b31a19c212ad",
+    "selection_sha256": "8c9e17868e77c9f0bd2b73aa906842c73ae7d565897b43216e09a9b6c38caa61",
+    "integration_sha256": "442b5f8626ad77d10a2a8f84f32c402f199dcd04af96f2177af5000a0b588c0e",
+    "pipeline_sha256": "fc0e68bc5ee8eaa87ca2f6731098ad8f150b41be042098f7685d87bf8ebcbafd",
+    "final_sha256": "f878d953f98dbdf7621b7b25b1a3bc11a66c330581abc156fdb85220eb2b9c4d"
+  },
+  "new_tests": {
+    "passed": 355,
+    "skipped": 0,
+    "failed": 0,
+    "by_file": {
+      "tests/test_acyclic_adversarial.py": 170,
+      "tests/test_acyclic_compiler_acceptance.py": 41,
+      "tests/test_acyclic_project_adversarial.py": 14,
+      "tests/test_acyclic_project_safety.py": 20,
+      "tests/test_acyclic_recovery.py": 61,
+      "tests/test_source_cfg_safety.py": 49
+    },
+    "already_included_in_full_regression": true
+  },
+  "fixed_tool_local_full_regression": {
+    "passed": 2889,
+    "skipped": 0,
+    "failed": 0,
+    "warning": 1,
+    "seconds": 854.09,
+    "log_sha256": "83623f3577b4001b02c910e5d5d910e1fe7adabc5b21e38723e4f7f76a36fdc0"
+  },
+  "affected_project_and_legacy_recovery_group": {
+    "passed": 185,
+    "skipped": 0,
+    "failed": 0,
+    "warning": 0,
+    "seconds": 86.04,
+    "log_sha256": "c6263aaaad4d8b9f687a925f5731af957522d7455f5315a98a2e2de1207c99c8"
+  },
+  "independent_attack_group": {
+    "passed": 184,
+    "skipped": 0,
+    "failed": 0,
+    "warning": 0,
+    "seconds": 16.12,
+    "log_sha256": "a9d3996ff821c343b7927c24b164d3f5b6ff5651ede2a98543dc8ae9f11bcdfc"
+  },
+  "compiler_acceptance": {
+    "passed": 41,
+    "skipped": 0,
+    "failed": 0,
+    "warning": 0,
+    "seconds": 17.29,
+    "log_sha256": "ee56602357a2c3814b760a536c23b2938f5928f9544c7008a89cd78a1418f835",
+    "build_gate_elf_count": 32,
+    "extra_debug_elf_count": 6,
+    "new_elf_count": 38,
+    "recovered_source_audit_signature_fresh_byte_proof_chains": 13,
+    "natural_o2_recovery_chains": 6,
+    "independently_authored_raw_cfg_chains": 7,
+    "actual_condition_mutations_different": 6,
+    "actual_arm_or_constant_mutations_different": 3,
+    "all_compiler_cleanup_confirmed": true,
+    "bindings_sha256": "cf322e24856c81d66dbc9267c0eea43a7df8fe40d03acb81a3d4a4b1d8ccb701",
+    "unsupported_lt_tst_o0_remain_unknown": true,
+    "target_or_candidate_executed": false
+  },
+  "actual_conditional_layout_project_archive_and_final": {
+    "summary_sha256": "6b3156a1dd1899f6ff9d4b5d028e785764c1512a9b8c34a102b2354bf75ce474",
+    "schema_version": 1,
+    "kind": "actual_tu_layout_dependency_sample",
+    "sample_passed": true,
+    "provider": "offline-leased-static",
+    "model_calls": 0,
+    "fixture_profile": "acyclic-conditional",
+    "generation_profiles": [
+      "unsigned-acyclic-register-cfg-1",
+      "unsigned-acyclic-register-cfg-1"
+    ],
+    "source_safety_summary": {
+      "all_selected_source_obligations_passed": true,
+      "execution_policy": {
+        "source_auditor_compiler_executed": false,
+        "target_or_candidate_executed": false
+      },
+      "machine_equivalence_verified": false,
+      "original_calling_abi_verified": false,
+      "passed_source_count": 2,
+      "scope": "selected_sources_only",
+      "source_bindings": [
+        {
+          "profile": "generated-unsigned-acyclic-cfg-defined-behavior-1",
+          "safety_binding_sha256": "9b37d6a23915c45aad905d541a6f8f43e1e00293abdfab49eaf7420006d71aed",
+          "scalar_contract_ref": "sha256:86d00228756cddf538c590d152fef56ca8a2c5e1c76159a97008c45bf2777351",
+          "source_ref": "sha256:0a999e48873b2ac32e2d786b22b6f20bc1261c76c40cf568ddf0a785fde443fc",
+          "source_sha256": "0a999e48873b2ac32e2d786b22b6f20bc1261c76c40cf568ddf0a785fde443fc",
+          "status": "PASS",
+          "symbol": "increment_zero"
+        },
+        {
+          "profile": "generated-unsigned-acyclic-cfg-defined-behavior-1",
+          "safety_binding_sha256": "22c27e6e7edd33f59a323cb0ae8ae28ac6de99a590eedd491f57087d2f3c2082",
+          "scalar_contract_ref": "sha256:251ed0dab2677c108b490f18c22df02b9a17ef705f419345a0af25ff80a5298c",
+          "source_ref": "sha256:4df86c9bdc5121fd3b53a1afa3dba49f33c5ed7d9ac6431f41c8d5b29953d586",
+          "source_sha256": "4df86c9bdc5121fd3b53a1afa3dba49f33c5ed7d9ac6431f41c8d5b29953d586",
+          "status": "PASS",
+          "symbol": "select_zero"
+        }
+      ],
+      "source_count": 2,
+      "unknown_source_count": 0,
+      "whole_library_cpp_ub_proof": false
+    },
+    "source_safety_current_verified": true,
+    "original_input_sha256": "2e958a3021afe213d62ab3b8ee26445bbf384696c27a5a56313d399758d93a9e",
+    "contract_revision": 4,
+    "root_type_ids": [
+      "dwarf-layout:80f5698565dcc3a89fec2129f4594769cb28bd9cb1c17375386db2a2a190b031"
+    ],
+    "derived_type_ids": [
+      "dwarf-layout:5be2fa3a91e34d2670e48b4948e51312717648d730032e0260c4a20a5b4ebca2"
+    ],
+    "selected_symbols": [
+      "increment_zero",
+      "select_zero"
+    ],
+    "candidate_actual_tu_guards_verified": 2,
+    "archived_guarded_source_count": 2,
+    "archive_sha256": "f1427e1fca9d0d5e1914e21e0ca823e8c4732299a9fce548e4de5c07cb23e7ab",
+    "archive_rebuild": {
+      "archive_sha256": "f1427e1fca9d0d5e1914e21e0ca823e8c4732299a9fce548e4de5c07cb23e7ab",
+      "candidate_sha256": "42115fbecafc55a33d9ca3d28af827f687e22fd2f3a1737b941b24b72e4b8b74",
+      "candidate_size": 5496,
+      "new_build_binding_sha256": "694bf1087c439d7690cd2f0efffb721da502dd829b791cb604dccd4e426a8579",
+      "historical_proof_reused": false,
+      "build_binding_changed": true,
+      "source_module_count": 2,
+      "fresh_selected_semantic": {
+        "status": "EXACT_EQUIVALENT",
+        "scope": "selected_module_functions_only",
+        "selected_function_count": 2,
+        "exact_function_count": 2,
+        "different_function_count": 0,
+        "unknown_function_count": 0
+      },
+      "whole_library_semantic": {
+        "status": "UNKNOWN",
+        "whole_program_equivalence": false,
+        "reason": "selected function proofs cannot establish whole-library behavior"
+      },
+      "original_calling_abi": "UNKNOWN",
+      "original_denominators": {
+        "original_dynamic_export_count": 2,
+        "original_dynamic_import_count": 2,
+        "original_defined_function_symbol_count": 7,
+        "discovered_function_extent_count": 7,
+        "original_executable_bytes": 168,
+        "actual_function_count": null
+      },
+      "target_or_candidate_executed": false,
+      "layout_dependencies": {
+        "schema_version": 1,
+        "kind": "archived_layout_binding_check",
+        "status": "PASS",
+        "manifest_sha256": "d611782293051207fb57de88feb7f1ad5c94b92dfb24868de402b799eaede390",
+        "checked_module_names": [
+          "unit_000_252b15d902f4.cpp",
+          "unit_001_2b76cb9c4b13.cpp"
+        ],
+        "original_current_status": "UNAVAILABLE_OFFLINE",
+        "artifact_level": "A0",
+        "reconstruction_requires_new_provenance_and_proof": true,
+        "whole_program_equivalence": false,
+        "original_calling_abi_verified": false,
+        "execution_policy": {
+          "compiler_executed": false,
+          "target_or_candidate_executed": false
+        }
+      },
+      "new_build_guarded_translation_units_verified": true
+    },
+    "final_current_valid": true,
+    "delivery_status": "FINAL",
+    "quality": {
+      "artifact_level": "A1",
+      "maximum_artifact_level": "A1",
+      "build": {
+        "status": "PASS",
+        "scope": "partial_project",
+        "whole_library_build_status": "UNKNOWN"
+      },
+      "abi": {
+        "status": "UNKNOWN",
+        "reason_code": "WHOLE_LIBRARY_OBLIGATIONS_OPEN"
+      },
+      "semantic": {
+        "status": "UNKNOWN",
+        "reason_code": "WHOLE_LIBRARY_OBLIGATIONS_OPEN"
+      },
+      "completeness": {
+        "status": "UNKNOWN",
+        "reason_code": "WHOLE_LIBRARY_OBLIGATIONS_OPEN"
+      },
+      "whole_program_equivalence": false,
+      "original_calling_abi_verified": false,
+      "artifact_scope": "partial_project"
+    },
+    "occupied_resources": 0,
+    "layout_artifact_level": "A0",
+    "original_contract_current_offline": "UNAVAILABLE_OFFLINE",
+    "aggregate_function_abi_verified": false,
+    "full_type_system_solved": false,
+    "original_calling_abi_verified": false,
+    "whole_program_equivalence": false,
+    "dsh_model_acceptance_verified": false,
+    "v1_complete": false,
+    "target_or_candidate_executed": false
+  },
+  "automatic_controller": {
+    "conditional_functions_recovered": [
+      "increment_zero",
+      "select_zero"
+    ],
+    "source_safety_current_verified": true,
+    "completed_resume_starts_no_tools": true,
+    "completed_resume_adds_no_tasks_events_or_activities": true,
+    "accepted_within_project_test_group_and_full_regression": true,
+    "model_calls": 0
+  },
+  "installed_wheel": {
+    "status": "PASS",
+    "installed_modules": 41,
+    "resource_files": 3,
+    "generated_schemas": 9,
+    "module_resource_schema_bytes_match_frozen_checkout": true,
+    "legacy_scope_canonical": true,
+    "four_field_source_contract": true,
+    "recovery_version": "integer-register-acyclic-4",
+    "installed_cfg_source_smoke": "PASS",
+    "source_profile": "unsigned-acyclic-register-cfg-1",
+    "original_code_sha256": "6a8d51b628f37df4cfd032a0fbdd4967a67c605348c31f006a17adb35c138f90",
+    "generated_source_sha256": "b4d7d60053a78f325c0bee153e6af3e12614587241a8319bac1ceb9836680c45",
+    "source_safety_sha256": "747fdd17e944f4d2b276127855e267971a3e38ffa32d7af09311b31a19c212ad",
+    "selection_sha256": "8c9e17868e77c9f0bd2b73aa906842c73ae7d565897b43216e09a9b6c38caa61",
+    "integration_sha256": "442b5f8626ad77d10a2a8f84f32c402f199dcd04af96f2177af5000a0b588c0e",
+    "final_sha256": "f878d953f98dbdf7621b7b25b1a3bc11a66c330581abc156fdb85220eb2b9c4d",
+    "pipeline_sha256": "fc0e68bc5ee8eaa87ca2f6731098ad8f150b41be042098f7685d87bf8ebcbafd",
+    "compiler_executed": false,
+    "target_or_candidate_executed": false
+  },
+  "aggregate_recover_leaf_cli": {
+    "status": "PASS",
+    "command": "recover-leaf",
+    "artifact_grade": "A1",
+    "generated_and_machine_verified_functions": 2,
+    "relocated_word_spans": 6,
+    "aggregate_source_sha256": "05bc462d24d1547abad2b2e72381bbb6bff703905f1382d1fb0d5cb979c62d0c",
+    "source_map_sha256": "b860f9dff1cc14e69c4f3b7f81923e43989234e7c0b1baa3093c1af09ae40939",
+    "coverage": {
+      "discovered_function_denominator": 9,
+      "entry_closure_status": "UNKNOWN",
+      "executable_byte_denominator": 168,
+      "function_discovery_complete": false,
+      "global_closure_status": "UNKNOWN",
+      "machine_verified_functions": 2,
+      "scope_fingerprint": "e62125b71033ab44e6fad1038225e7165de172ab65017812101abbe3f1bf9ab8",
+      "source_generated_byte_fraction": 0.14285714285714285,
+      "source_generated_bytes": 24,
+      "source_generated_function_fraction": 0.2222222222222222,
+      "source_generated_functions": 2,
+      "unknown_or_unrecovered_executable_bytes": 144,
+      "unsupported_functions": 7,
+      "whole_library_complete": false
+    },
+    "report_sha256": "02a297d0dc87fd47bd7a9e58f13461154a8e69c6b4468391c29a248388f8056e",
+    "original_calling_abi_verified": false,
+    "whole_library_complete": false,
+    "target_or_candidate_executed": false
+  },
+  "ruff": "PASS",
+  "schema_check": "9 unchanged schemas; exact match from installed wheel",
+  "workflow_check": "all steps have run xor uses; fixed conditional guarded-TU archive sample enabled",
+  "dsh_offline_bridge": {
+    "passed": 30,
+    "failed": 0,
+    "model_calls": 0,
+    "log_sha256": "3e3b68ee15e974a102dd960871ff1973b10c616a86aa3a1d95279a30102e4be1"
+  },
+  "branch_cleanup_guards": {
+    "passed": 13,
+    "failed": 0,
+    "log_sha256": "b1b297a1cd1415a899c1676004fdcee81442188a0ce3b451f195c9f370f70fba"
+  },
+  "prior_machine_model_remote_ci": {
+    "implementation_commit": "6216d0cbc2b8e5566208c654555790498ba67c1b",
+    "run_url": "https://github.com/3437564498/Auto-Reverse/actions/runs/39002389361",
+    "passed": 2534,
+    "skipped": 0,
+    "failed": 0,
+    "seconds": 933.12,
+    "not_acceptance_of_current_unit": true
+  },
+  "current_remote_ci": "PENDING: verify actual new PR logs; do not substitute local or earlier-commit results",
+  "boundaries": {
+    "maximum_function_bytes": 1024,
+    "maximum_blocks": 16,
+    "maximum_conditional_branches": 6,
+    "maximum_edges": 32,
+    "other_flags_or_conditions_added_to_machine_model": false,
+    "whole_library_cpp_ub_proof": false,
+    "original_calling_abi_verified": false,
+    "whole_program_equivalence": false,
+    "full_type_system_solved": false,
+    "full_m0_s_exit_satisfied": false,
+    "real_dsh_acceptance_verified": false,
+    "v1_complete": false,
+    "target_or_candidate_executed": false,
+    "matching_unknown_source_audits_may_still_have_partial_a1": true,
+    "original_layout_contract_current_offline": "UNAVAILABLE_OFFLINE"
+  }
+}

@@ -1,6 +1,6 @@
 # 有限 CMP 与 EQ/NE 条件选择机器模型
 
-这项能力用于比较真实 AArch64 字节，处理固定 NDK O2 常见的 CMP、CSEL、CINC 和 CSET。它没有增加条件 C++ 源码生成，也不证明完整调用 ABI、全库语义或 M0-S 的全部退出条件。
+这项能力用于比较真实 AArch64 字节，处理固定 NDK O2 常见的 CMP、CSEL、CINC 和 CSET。机器模型与源码恢复分别验收；有限条件 C++ 生成见[无环源码恢复](acyclic-recovery.md)。本模型不证明完整调用 ABI、全库语义或 M0-S 的全部退出条件。
 
 ## 支持的编码
 
@@ -41,4 +41,4 @@ export JAVA_HOME="$PWD/work/tools/jdk-21.0.8+9"
   --output work/eqne-matrix-new
 ```
 
-全部检查只运行编译器、静态解析器和 Solver。真实 DSH 模型验收仍未完成；后续无环条件源码生成与独立 CFG 定义行为审计需要另行实现和验收。
+全部检查只运行编译器、静态解析器和 Solver。真实 DSH 模型验收仍未完成；有限无环条件源码生成与独立 CFG 定义行为审计见[单独实现与边界](acyclic-recovery.md)，不由本机器模型的 EXACT 自动成立。

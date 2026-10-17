@@ -63,6 +63,12 @@ jobs:
           python scripts/run_layout_dependency_sample.py
           --ndk-root work/tools/android-ndk-r27c
           --output work/layout-dependency-acceptance
+      # Owned CFG source must survive actual guards and fresh archive builds.
+      - name: Recover conditional sources through actual layout-guarded TUs and archive reconstruction
+        run: >-
+          python scripts/run_layout_dependency_sample.py --conditional
+          --ndk-root work/tools/android-ndk-r27c
+          --output work/acyclic-recovery-acceptance
       - name: Test durable tool activities, current authority and failure windows with real tools
         env:
           AUTO_REVERSE_TEST_NDK_ROOT: ${{ github.workspace }}/work/tools/android-ndk-r27c
@@ -87,4 +93,6 @@ jobs:
             work/layout-contract-acceptance/layout-contract-sample.json
             work/layout-dependency-acceptance/layout-dependency-sample.json
             work/layout-dependency-acceptance/project.zip
+            work/acyclic-recovery-acceptance/layout-dependency-sample.json
+            work/acyclic-recovery-acceptance/project.zip
           if-no-files-found: warn
