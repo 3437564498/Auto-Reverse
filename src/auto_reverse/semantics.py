@@ -20,8 +20,9 @@ import z3
 from capstone import arm64
 
 from .capabilities import (
-    CAPABILITY_MATRIX_REF, CAPABILITY_VERSION, CAPSTONE_PACKAGE_VERSION, INTEGER_OPS, MEMORY_OPS,
-    PINNED_CAPSTONE_VERSION, instruction_capability, register_width, unsigned_bitfield_encoding,
+    CAPABILITY_MATRIX_REF, CAPABILITY_VERSION, CAPSTONE_PACKAGE_VERSION, CONDITIONAL_OPS,
+    INTEGER_OPS, MEMORY_OPS, PINNED_CAPSTONE_VERSION, eqne_instruction_encoding,
+    instruction_capability, register_width, unsigned_bitfield_encoding,
 )
 
 PINNED_Z3_VERSION = "4.15.4"
@@ -146,6 +147,41 @@ def _control_flow(instruction) -> dict:
     return {"kind": "fallthrough", "successors": [fallthrough]}
 
 
+def _encoding_register_name(index: int, width: int) -> str:
+    return ("x" if width == 64 else "w") + ("zr" if index == 31 else str(index))
+
+
+def _register_effect(name: str) -> dict:
+    if name == "nzcv":
+        return {"register": name, "width": 4, "kind": "processor_state"}
+    return {"register": name, "width": register_width(name), "kind": "integer_register"}
+
+
+def _instruction_effects(instruction, capability: dict) -> tuple[list, list]:
+    encoding = capability.get("eqne_conditionals")
+    if encoding is not None:
+        # Capstone 5.0.9 incorrectly marks CMP's first source as written.
+        # Reviewed raw fields, rather than that implicit-access list, define
+        # the actual effects of this newly modeled family.
+        width = encoding["width"]
+        if encoding["raw_opcode"] == "CMP":
+            inputs = [_encoding_register_name(encoding["left_index"], width)]
+            if "right_index" in encoding:
+                inputs.append(_encoding_register_name(encoding["right_index"], width))
+            outputs = ["nzcv"]
+        else:
+            inputs = ["nzcv", _encoding_register_name(encoding["true_index"], width),
+                      _encoding_register_name(encoding["false_index"], width)]
+            outputs = [_encoding_register_name(encoding["destination_index"], width)]
+        return ([_register_effect(name) for name in dict.fromkeys(inputs)],
+                [_register_effect(name) for name in outputs if name not in {"xzr", "wzr"}])
+    reads, writes = instruction.regs_access()
+    if instruction.mnemonic == "ret" and not instruction.operands:
+        reads = [*reads, arm64.ARM64_REG_LR]
+    return ([_register_effect(instruction.reg_name(reg)) for reg in reads],
+            [_register_effect(instruction.reg_name(reg)) for reg in writes])
+
+
 def _decode(code: bytes, address: int, side: str):
     decoder = capstone.Cs(capstone.CS_ARCH_ARM64, capstone.CS_MODE_LITTLE_ENDIAN)
     decoder.detail = True
@@ -168,15 +204,13 @@ def _decode(code: bytes, address: int, side: str):
             instruction = decoded[0]
             instructions[location] = instruction
             capability = instruction_capability(instruction)
-            reads, writes = instruction.regs_access()
-            if instruction.mnemonic == "ret" and not instruction.operands:
-                reads = [*reads, arm64.ARM64_REG_LR]
+            inputs, outputs = _instruction_effects(instruction, capability)
             record = {
                 "address": _hex(location), "bytes": raw.hex(), "raw_opcode": "0x" + raw[::-1].hex(),
                 "opcode": instruction.mnemonic.upper(), "capstone_opcode_id": instruction.id,
                 "operands": [_structured_operand(instruction, op) for op in instruction.operands],
-                "inputs": [{"register": instruction.reg_name(reg), "width": register_width(instruction.reg_name(reg))} for reg in reads],
-                "outputs": [{"register": instruction.reg_name(reg), "width": register_width(instruction.reg_name(reg))} for reg in writes],
+                "inputs": inputs,
+                "outputs": outputs,
                 "source_ref": f"{side}://bytes/{offset}", "basic_block": f"{side}://block/{_hex(location)}",
                 "address_space": "code", "tool": {"name": "capstone", "version": CAPSTONE_PACKAGE_VERSION,
                     "binding_version": capstone.__version__},
@@ -362,6 +396,37 @@ class _Path:
     registers: dict
     memory: Any
     steps: int = 0
+    nzcv: dict | None = None
+
+
+def _conditional(instruction, state: _Path):
+    encoding = eqne_instruction_encoding(instruction)
+    if encoding is None:
+        raise _Incomplete("eqne_raw_encoding_or_decoding_invalid")
+    width = encoding["width"]
+
+    def read(index):
+        return _read(state.registers, _encoding_register_name(index, width))
+
+    if encoding["raw_opcode"] == "CMP":
+        left = read(encoding["left_index"])
+        right = (read(encoding["right_index"]) if "right_index" in encoding
+                 else z3.BitVecVal(encoding["right_immediate"], width))
+        result = left - right
+        left_sign, right_sign = z3.Extract(width - 1, width - 1, left), z3.Extract(width - 1, width - 1, right)
+        result_sign = z3.Extract(width - 1, width - 1, result)
+        state.nzcv = {"N": result_sign == 1, "Z": result == 0,
+                      "C": z3.UGE(left, right),
+                      "V": z3.And(left_sign != right_sign, result_sign != left_sign)}
+        return
+    if state.nzcv is None:
+        raise _Incomplete("nzcv_read_before_supported_compare")
+    condition = state.nzcv["Z"] if encoding["condition_code"] == 0 else z3.Not(state.nzcv["Z"])
+    true_value, false_value = read(encoding["true_index"]), read(encoding["false_index"])
+    if encoding["raw_opcode"] == "CSINC":
+        false_value = false_value + z3.BitVecVal(1, width)
+    _write(state.registers, _encoding_register_name(encoding["destination_index"], width),
+           z3.If(condition, true_value, false_value))
 
 
 def _lower_paths(instructions, entry, initial, initial_memory, precondition, regions, code_ranges, max_steps, max_paths, timeout):
@@ -410,9 +475,12 @@ def _lower_paths(instructions, entry, initial, initial_memory, precondition, reg
                     paths_created += 1
                     if paths_created > max_paths:
                         raise _Incomplete("path_budget_exhausted_unclosed_path", bound_exhausted=True)
-                    pending.append(_Path(pc, cond, dict(state.registers), state.memory, state.steps))
+                    pending.append(_Path(pc, cond, dict(state.registers), state.memory, state.steps,
+                        dict(state.nzcv) if state.nzcv is not None else None))
                 break
-            if mnemonic in INTEGER_OPS:
+            if mnemonic in CONDITIONAL_OPS:
+                _conditional(instruction, state)
+            elif mnemonic in INTEGER_OPS:
                 _integer(instruction, state.registers)
             elif mnemonic in MEMORY_OPS:
                 _memory_access(instruction, state, regions, timeout)
@@ -470,8 +538,12 @@ def verify_machine_code(
         "bound_exhausted": False, "precondition_satisfiable": None,
         "path_coverage_complete_within_bound": False, "assumptions": [
             {"kind": "machine_model", "architecture": "aarch64-little-endian", "integer_widths": [32, 64],
-                "unmodeled_processor_state_not_observed": ["NZCV", "FPCR", "FPSR"],
+                "unmodeled_processor_state_not_observed": ["FPCR", "FPSR"],
                 "external_calls": "unsupported", "target_execution": False},
+            {"kind": "internal_condition_state", "modeled_bits": ["N", "Z", "C", "V"],
+                "definition": "reviewed unshifted CMP only", "consumers": ["EQ", "NE"],
+                "entry_flags": "undefined; a read before a supported CMP on any feasible path is UNKNOWN",
+                "boundary_flags_not_observed": True, "scope_limitation": True},
             {"kind": "observation_contract", "registers": list(observed_registers),
                 "return_target": True, "memory": "all-modeled-bytes", "unobserved_registers_are_outside_scope": True,
                 "termination_boundary": "proved external RET event; continuation effects outside scope"},

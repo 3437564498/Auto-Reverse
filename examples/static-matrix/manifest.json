@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "matrix_id": "ndk-r27c-aarch64-m0-static-1",
+  "matrix_id": "ndk-r27c-aarch64-m0-static-eqne-2",
   "scope": "supplied micro-function entry pairs, declared register/byte-memory observations and external RET boundary",
   "full_m0_s_exit_satisfied": false,
   "source_kind": "versioned trusted assembler fixtures; no candidate/model-supplied build options",
@@ -22,11 +22,11 @@
   "sources": {
     "original": {
       "file": "original.S",
-      "sha256": "91493cee71931f7cf175ef575a6d55788e67b4c89912fca1121a637565c96483"
+      "sha256": "7aabe928aa6fdc0e3d35a52d87f79f7f746eb3f54e7c6b9da8b4f561a538afcc"
     },
     "candidate": {
       "file": "candidate.S",
-      "sha256": "d81244ad9b8b2e1de1c038c343b3b7ba513282aa49eb2dd44b92337e279f8c08"
+      "sha256": "dc72701210639ac2c489dc1b14b0784a0e1b000c4b413557eef57585d44ecc95"
     }
   },
   "cases": [
@@ -420,6 +420,78 @@
       "expected_status": "UNKNOWN",
       "contract": {},
       "expected_reason": "original_or_candidate_has_unsupported_opcode"
+    },
+    {
+      "id": "eqne_select64",
+      "symbol": "eqne_select64",
+      "category": "eqne-conditional",
+      "expected_status": "EXACT_EQUIVALENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "eqne_select32",
+      "symbol": "eqne_select32",
+      "category": "eqne-conditional",
+      "expected_status": "EXACT_EQUIVALENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "eqne_csinc32",
+      "symbol": "eqne_csinc32",
+      "category": "eqne-conditional",
+      "expected_status": "EXACT_EQUIVALENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "eqne_cinc_wrap64",
+      "symbol": "eqne_cinc_wrap64",
+      "category": "eqne-conditional",
+      "expected_status": "EXACT_EQUIVALENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "eqne_cset32",
+      "symbol": "eqne_cset32",
+      "category": "eqne-conditional",
+      "expected_status": "EXACT_EQUIVALENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "eqne_condition_changed",
+      "symbol": "eqne_condition_changed",
+      "category": "eqne-conditional",
+      "expected_status": "DIFFERENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "eqne_cset_changed",
+      "symbol": "eqne_cset_changed",
+      "category": "eqne-conditional",
+      "expected_status": "DIFFERENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "eqne_undefined_flags",
+      "symbol": "eqne_undefined_flags",
+      "category": "eqne-conditional",
+      "expected_status": "UNKNOWN",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "eqne_unsupported_lt",
+      "symbol": "eqne_unsupported_lt",
+      "category": "eqne-conditional",
+      "expected_status": "UNKNOWN",
+      "contract": {},
+      "expected_reason": null
     }
   ]
 }

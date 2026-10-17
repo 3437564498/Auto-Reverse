@@ -31,7 +31,7 @@ either supplied code range are rejected, so code-byte reads, modification and
 code/data aliases cannot be silently modeled as unconstrained normal data.
 
 Each original and candidate opcode is checked, including unreachable words.
-NZCV updates/conditions, calls, unresolved jumps, floating point, NEON,
+Unshifted raw-checked CMP and EQ/NE CSEL/CSINC (including inverse-condition CINC/CSET aliases) now have path-local flags formulas. A feasible read before a supported CMP remains UNKNOWN; flags are not observed at the function boundary. Other NZCV updates/conditions, B.cond, calls, unresolved jumps, floating point, NEON,
 exclusives, atomics, barriers, PAC/BTI/MTE, writeback/literal/indexed memory and
 unclosed paths remain UNKNOWN. A budget limits formula construction, not the
 observed behavior: exhausted paths never produce an equivalence result.

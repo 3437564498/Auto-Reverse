@@ -1,0 +1,365 @@
+{
+  "schema_version": 1,
+  "accepted_on": "2026-10-17",
+  "timezone": "Asia/Singapore",
+  "scope": "raw-checked CMP/EQ-NE conditional machine semantics and strict JSON proof bindings",
+  "base_commit": "d0bfb126534f3afdf589a41a3461f85e9f86cdc9",
+  "machine_profile": "arm64-m0-integer-memory-eqne-3",
+  "source_fingerprints": {
+    ".github/workflows/static-acceptance.yml": "4a831b65c6a2cb005491ca8a3a15342a301b29bd2b1a2e655e18f3ef5b68673a",
+    "scripts/run_static_acceptance.py": "79feec34dfec2d605e2b48e6364505a8d95d7394f0005a2eb20b1e36cd940051",
+    "src/auto_reverse/capabilities.py": "fa5d346d3fe0ccc55b022427a6945f225c66d1a9366d5eb4b0976b39faf35a69",
+    "src/auto_reverse/semantics.py": "2eb71de26bae2f81dfcccb6543ce881fd667e56e87ee959ee1836bf742f996cf",
+    "src/auto_reverse/candidate_selection.py": "096ee13837ed34dffb0cfe3e75c9ccd2d80dda7644695f24c2671a8d5e46f6e0",
+    "src/auto_reverse/service.py": "2f52c158bd39e7f2b7c46d1cd13aecc6334751937e1c10e1e303eb5225e4824b",
+    "tests/test_eqne_conditionals.py": "4ec9767b3c046f980e397166c652c53d6459d8ea94bcba64a3246c5cdd9aed8d",
+    "tests/test_eqne_conditionals_adversarial.py": "23d5c8c3c149da11ca742f90841cf3f665ecce02e7429074f809167a80b04e36",
+    "tests/test_eqne_compiler_acceptance.py": "ea24885cbd408c41718bbc0b000950720420bb729e9b94f1aab4d6410a8e7c72",
+    "tests/test_eqne_proof_boundary.py": "00c55d6828647dece4b45dca2dedb2b898c9f185d08397035799aac4290bbce7",
+    "examples/static-matrix/original.S": "7aabe928aa6fdc0e3d35a52d87f79f7f746eb3f54e7c6b9da8b4f561a538afcc",
+    "examples/static-matrix/candidate.S": "dc72701210639ac2c489dc1b14b0784a0e1b000c4b413557eef57585d44ecc95",
+    "examples/static-matrix/manifest.json": "68b91ff236d302345b45e8232d9d618905cd1479ed46f0ae62bb5520d39e4ca4",
+    "tests/test_static_acceptance.py": "e845aab8a53abaf93603f121e959680e84dc67c8ba4dc5527b7680ac0453a4bf",
+    "examples/static-matrix/README.md": "0c9f7a8aac054f5e7cdb6e2a059652b1213173ae36ad0430e612cab7a2958047"
+  },
+  "kernel_fingerprints": {
+    "selection_sha256": "3b539e58f6bbdf06ca282e8ee9dc0d6f2c7bec4687aee9d057388fbc441ab8ed",
+    "integration_sha256": "58c05a26034aec94185253a27c04baccdd7da0c866263b89040f01a927755e21",
+    "final_sha256": "5eae546d330707ede81c476fb8bb6f3a0465968a108c53b07bbb2cf73bb4bbf0"
+  },
+  "new_tests": {
+    "passed": 210,
+    "skipped": 0,
+    "failed": 0,
+    "by_file": {
+      "tests/test_eqne_conditionals.py": 83,
+      "tests/test_eqne_conditionals_adversarial.py": 71,
+      "tests/test_eqne_compiler_acceptance.py": 36,
+      "tests/test_eqne_proof_boundary.py": 20
+    },
+    "already_included_in_full_regression": true
+  },
+  "local_full_regression": {
+    "initial_complete_run": {
+      "passed": 2530,
+      "skipped": 2,
+      "failed": 2,
+      "warnings": 1,
+      "seconds": 709.23,
+      "log_sha256": "55532cbbdf08275a9590e6c820683f448ab693dbb658ad44eac03951a5bcce1e"
+    },
+    "initial_failure_cases": [
+      "tests/test_static_acceptance.py::test_real_ndk_matrix_classifies_all_positive_negative_and_unknown_samples",
+      "tests/test_static_acceptance.py::test_real_ghidra_matrix_retains_lossy_pac_and_exclusive_original_opcodes"
+    ],
+    "initial_failure_cause": "Two legacy matrix assertions still expected 27 cases after fixtures expanded to 36; actual matrix status was PASS. Final tests require all 36 and explicit new condition classifications.",
+    "corrected_static_matrix_file_followup": {
+      "passed": 14,
+      "skipped": 0,
+      "failed": 0,
+      "warnings": 0,
+      "seconds": 24.91,
+      "log_sha256": "9cb5b6d8383bc214ab43d71040279894ae9d5302d91d06ad6453bc33878580a4"
+    },
+    "skipped_cases": [
+      "tests/test_integration_review.py::test_review_real_ndk_leaf_writes_zero_extend_and_smt_finds_bad_recovery",
+      "tests/test_static_pipeline.py::test_actual_source_zip_rebuild_sample_publishes_fresh_proof_and_no_private_fields"
+    ],
+    "skip_reason": "legacy tests recognize checkout/work/tools NDK or checkout/.venv CMake rather than explicit tool environment variables; isolated checkout initially had no local tool links",
+    "real_ndk_followup": {
+      "passed": 2,
+      "skipped": 0,
+      "failed": 0,
+      "warnings": 0,
+      "seconds": 18.46,
+      "log_sha256": "4a1bb2b713633a3237d8b7642150e41ffccc7b78129e612529a61a02c807deea"
+    },
+    "unique_cases_actually_passed_across_runs": 2534,
+    "unresolved_failures": 0,
+    "production_modules_unchanged_across_initial_and_affected_followups": true,
+    "note": "The initial failures and skips are retained. Corrected matrix tests and both exact skipped genuine-tool tests passed separately. Other matrix file repeats are not added. No partial interrupted run is accepted or added. A fresh complete remote run remains required."
+  },
+  "compiler_acceptance": {
+    "passed": 36,
+    "skipped": 0,
+    "failed": 0,
+    "warnings": 0,
+    "seconds": 8.47,
+    "log_sha256": "8f8d53bca74573742da6d389febe54bd5bb9aa7e56f540668a9490ef6938471a",
+    "new_elf_count": 20,
+    "bindings_sha256": "c0ef14a8d1f8017e88e0e8689336919967a62ca6f62138378a619deb0c1ef156",
+    "all_compiler_process_groups_stopped_confirmed": true,
+    "missing_ndk_skip_branch_is_not_real_compiler_acceptance": true
+  },
+  "fixed_static_matrix": {
+    "status": "PASS",
+    "report_sha256": "044097b0f43391ea620112bdb64414c48cbfb317726794b041376f944e2618ea",
+    "manifest_sha256": "68b91ff236d302345b45e8232d9d618905cd1479ed46f0ae62bb5520d39e4ca4",
+    "case_count": 36,
+    "completeness": {
+      "expected_cases": 36,
+      "classified_cases": 36,
+      "matched_cases": 36,
+      "both_fixture_inventories_matched": true,
+      "classified_fixture_bytes": {
+        "original": 336,
+        "candidate": 384
+      },
+      "ghidra_requested": true,
+      "global_function_discovery_complete": false
+    },
+    "new_case_results": [
+      {
+        "id": "eqne_select64",
+        "actual_status": "EXACT_EQUIVALENT",
+        "actual_reason": "all_declared_paths_and_observations_closed",
+        "expectation_matched": true
+      },
+      {
+        "id": "eqne_select32",
+        "actual_status": "EXACT_EQUIVALENT",
+        "actual_reason": "all_declared_paths_and_observations_closed",
+        "expectation_matched": true
+      },
+      {
+        "id": "eqne_csinc32",
+        "actual_status": "EXACT_EQUIVALENT",
+        "actual_reason": "all_declared_paths_and_observations_closed",
+        "expectation_matched": true
+      },
+      {
+        "id": "eqne_cinc_wrap64",
+        "actual_status": "EXACT_EQUIVALENT",
+        "actual_reason": "all_declared_paths_and_observations_closed",
+        "expectation_matched": true
+      },
+      {
+        "id": "eqne_cset32",
+        "actual_status": "EXACT_EQUIVALENT",
+        "actual_reason": "all_declared_paths_and_observations_closed",
+        "expectation_matched": true
+      },
+      {
+        "id": "eqne_condition_changed",
+        "actual_status": "DIFFERENT",
+        "actual_reason": "exact_bitvector_model_counterexample",
+        "expectation_matched": true
+      },
+      {
+        "id": "eqne_cset_changed",
+        "actual_status": "DIFFERENT",
+        "actual_reason": "exact_bitvector_model_counterexample",
+        "expectation_matched": true
+      },
+      {
+        "id": "eqne_undefined_flags",
+        "actual_status": "UNKNOWN",
+        "actual_reason": "nzcv_read_before_supported_compare",
+        "expectation_matched": true
+      },
+      {
+        "id": "eqne_unsupported_lt",
+        "actual_status": "UNKNOWN",
+        "actual_reason": "original_or_candidate_has_unsupported_opcode",
+        "expectation_matched": true
+      }
+    ],
+    "ghidra_exports": {
+      "original": {
+        "status": "exported",
+        "artifacts": [
+          {
+            "kind": "ghidra_original_export",
+            "sha256": "39788fb11790e9af55ddf9d431bf260cabb08d504042ade6e235da22dc572a8a",
+            "size_bytes": 455698
+          },
+          {
+            "kind": "validated_raw_ir",
+            "sha256": "79c91c01e28a2c329fde440a18e2a5a97103f0820d29f7d27f836b03275ed2fd",
+            "size_bytes": 527275
+          }
+        ]
+      },
+      "candidate": {
+        "status": "exported",
+        "artifacts": [
+          {
+            "kind": "ghidra_original_export",
+            "sha256": "03bf146dcffebbc27deba3677d76d971c8b348cdceae718cf5f526d1adba5e8c",
+            "size_bytes": 454194
+          },
+          {
+            "kind": "validated_raw_ir",
+            "sha256": "cb23ba2a8bc225baf577ce38d9c348358521ec07c67eea9711a9c49d48c9ad77",
+            "size_bytes": 533557
+          }
+        ]
+      }
+    },
+    "execution_policy": {
+      "target_or_candidate_executed": false,
+      "target_dynamically_loaded": false,
+      "emulator_used": false,
+      "compiler_and_static_analysis_tools_executed": true
+    }
+  },
+  "actual_layout_project_and_archive_followup": {
+    "summary_sha256": "5afcfdca19d74331e766c3bae1b7237d724180da48c62ad78ca4068697aa9730",
+    "schema_version": 1,
+    "kind": "actual_tu_layout_dependency_sample",
+    "sample_passed": true,
+    "provider": "offline-leased-static",
+    "model_calls": 0,
+    "original_input_sha256": "aa4d8f1ea6d01b31b673573a79a52e4274b7be6f55c4a33b04fad45bebb0e084",
+    "contract_revision": 4,
+    "root_type_ids": [
+      "dwarf-layout:ed0aa6eed3a917c353698f4dc9c3901e713761195a97d65153805371276a87b7"
+    ],
+    "derived_type_ids": [
+      "dwarf-layout:b08470507594a47cb8eb62f3e6fc8bcd19075938648d40ef990ce0c4ccc0b251"
+    ],
+    "selected_symbols": [
+      "add_nine",
+      "add_seven"
+    ],
+    "candidate_actual_tu_guards_verified": 2,
+    "archived_guarded_source_count": 2,
+    "archive_sha256": "6a62788d4ee35fe45acd768f0e842e201b8a523eacc79fe1453a1f53b82ad6c6",
+    "archive_rebuild": {
+      "archive_sha256": "6a62788d4ee35fe45acd768f0e842e201b8a523eacc79fe1453a1f53b82ad6c6",
+      "candidate_sha256": "22c3ec9466b6c4ffa2239b07391158b6747dd35e84e30e87939140a2377839c9",
+      "candidate_size": 5472,
+      "new_build_binding_sha256": "c0d1fcedfe0593b1f8df17c4a4ad58b152ac88094738c8bdc2e5b36041bdee89",
+      "historical_proof_reused": false,
+      "build_binding_changed": true,
+      "source_module_count": 2,
+      "fresh_selected_semantic": {
+        "status": "EXACT_EQUIVALENT",
+        "scope": "selected_module_functions_only",
+        "selected_function_count": 2,
+        "exact_function_count": 2,
+        "different_function_count": 0,
+        "unknown_function_count": 0
+      },
+      "whole_library_semantic": {
+        "status": "UNKNOWN",
+        "whole_program_equivalence": false,
+        "reason": "selected function proofs cannot establish whole-library behavior"
+      },
+      "original_calling_abi": "UNKNOWN",
+      "original_denominators": {
+        "original_dynamic_export_count": 2,
+        "original_dynamic_import_count": 2,
+        "original_defined_function_symbol_count": 7,
+        "discovered_function_extent_count": 7,
+        "original_executable_bytes": 160,
+        "actual_function_count": null
+      },
+      "target_or_candidate_executed": false,
+      "layout_dependencies": {
+        "schema_version": 1,
+        "kind": "archived_layout_binding_check",
+        "status": "PASS",
+        "manifest_sha256": "726191baafb03729bd4d40077f8450d58180fb71ad45a68610138378e87ad69a",
+        "checked_module_names": [
+          "unit_000_39a1f713a727.cpp",
+          "unit_001_db72699c3bf5.cpp"
+        ],
+        "original_current_status": "UNAVAILABLE_OFFLINE",
+        "artifact_level": "A0",
+        "reconstruction_requires_new_provenance_and_proof": true,
+        "whole_program_equivalence": false,
+        "original_calling_abi_verified": false,
+        "execution_policy": {
+          "compiler_executed": false,
+          "target_or_candidate_executed": false
+        }
+      },
+      "new_build_guarded_translation_units_verified": true
+    },
+    "final_current_valid": true,
+    "delivery_status": "FINAL",
+    "quality": {
+      "artifact_level": "A1",
+      "maximum_artifact_level": "A1",
+      "build": {
+        "status": "PASS",
+        "scope": "partial_project",
+        "whole_library_build_status": "UNKNOWN"
+      },
+      "abi": {
+        "status": "UNKNOWN",
+        "reason_code": "WHOLE_LIBRARY_OBLIGATIONS_OPEN"
+      },
+      "semantic": {
+        "status": "UNKNOWN",
+        "reason_code": "WHOLE_LIBRARY_OBLIGATIONS_OPEN"
+      },
+      "completeness": {
+        "status": "UNKNOWN",
+        "reason_code": "WHOLE_LIBRARY_OBLIGATIONS_OPEN"
+      },
+      "whole_program_equivalence": false,
+      "original_calling_abi_verified": false,
+      "artifact_scope": "partial_project"
+    },
+    "occupied_resources": 0,
+    "layout_artifact_level": "A0",
+    "original_contract_current_offline": "UNAVAILABLE_OFFLINE",
+    "aggregate_function_abi_verified": false,
+    "full_type_system_solved": false,
+    "original_calling_abi_verified": false,
+    "whole_program_equivalence": false,
+    "dsh_model_acceptance_verified": false,
+    "v1_complete": false,
+    "target_or_candidate_executed": false
+  },
+  "installed_wheel": {
+    "status": "PASS",
+    "installed_modules": 39,
+    "resource_files": 3,
+    "generated_schemas": 9,
+    "legacy_scope_canonical": true,
+    "four_field_source_contract": true,
+    "production_layout_gate": true,
+    "layout_dependency_kernel_sha256": "07b6a00d3e8a1550e316f6fedc5b8919b40887e59107d3e51deaf750bc73af4e",
+    "integration_kernel_sha256": "58c05a26034aec94185253a27c04baccdd7da0c866263b89040f01a927755e21",
+    "final_kernel_sha256": "5eae546d330707ede81c476fb8bb6f3a0465968a108c53b07bbb2cf73bb4bbf0",
+    "machine_capability": "arm64-m0-integer-memory-eqne-3",
+    "installed_eqne_static_smoke": "EXACT_EQUIVALENT"
+  },
+  "ruff": "PASS",
+  "schemas": "9 regenerated schemas unchanged and independently matched installed wheel",
+  "offline_dsh_bridge": {
+    "passed": 30,
+    "model_calls": 0,
+    "log_sha256": "1e052107d0241712ab8e05f517c56bbb64614728a6fa04702a03573dbab79109"
+  },
+  "branch_cleanup_guards": {
+    "passed": 13,
+    "failed": 0,
+    "log_sha256": "4672690018b50e3180a8fa736f1008af5eaf705df494f07ebe15b8cd183e18b5"
+  },
+  "prior_remote_layout_acceptance": {
+    "implementation_commit": "4f43eb6d9a4f855f812b59252d03085e01cecd8a",
+    "run_url": "https://github.com/3437564498/Auto-Reverse/actions/runs/39000590490",
+    "passed": 2322,
+    "skipped": 2,
+    "failed": 0,
+    "seconds": 888.81,
+    "skip_reason": "CI CMake path not provided to two legacy archive attack checks; this unit exports the actual pip-installed CMake path",
+    "not_acceptance_of_current_model": true
+  },
+  "current_remote_ci": "PENDING: record actual results on the new PR; do not substitute local or prior-commit totals",
+  "boundaries": {
+    "conditional_cpp_source_generation_implemented": false,
+    "other_conditions_and_flag_updates_supported": false,
+    "boundary_nzcv_observed": false,
+    "original_calling_abi_verified": false,
+    "whole_program_equivalence": false,
+    "full_m0_s_exit_satisfied": false,
+    "real_dsh_model_acceptance_verified": false,
+    "v1_complete": false,
+    "target_or_candidate_executed": false
+  }
+}
