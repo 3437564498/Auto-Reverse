@@ -25,6 +25,7 @@ from .candidate_validation import CandidateValidationService
 from .domain import DomainError, DomainStore, TERMINAL_TASKS, _integer, _json, _string
 from .intake import inspect_elf
 from .library_inventory import inspect_library_inventory
+from .layout_contracts import LayoutContractService
 
 
 def _digest(value: Any) -> str:
@@ -36,6 +37,7 @@ def _kernel_fingerprint() -> str:
     names = ("final_report.py", "candidate_selection.py", "candidate_validation.py", "source_signature.py",
              "project_service.py", "project_build.py", "project_verification.py", "build_gate.py", "domain.py",
              "abi.py", "abi_contracts.py", "scalar_abi.py", "intake.py", "library_inventory.py", "semantics.py", "capabilities.py", "recovery.py")
+    names += ("layout_dependencies.py", "layout_contracts.py", "candidate_layout.py", "dwarf_layout.py", "project_archive.py")
     return _digest({name: hashlib.sha256((root / name).read_bytes()).hexdigest()
                     if (root / name).is_file() else None for name in names})
 
@@ -236,6 +238,7 @@ class FinalReportService:
                 "implementation_sha256": _kernel_fingerprint(), "inventory": self._inventory(job),
                 "selection": self._selection(connection, job),
                 "contracts": AbiContractService.read_current(connection, job["job_id"], self.objects),
+                "layout_contracts": LayoutContractService.read_current(connection, job["job_id"], self.objects),
                 "integration": self._integration(connection, job, integration_activity_id),
                 "audit": self._audit(connection, job)}
         refs = {"sha256:" + material["inventory"]["input_sha256"]} if material["inventory"]["input_sha256"] else set()
@@ -245,8 +248,12 @@ class FinalReportService:
         for candidate in selection["selected_candidates"]:
             refs.update(candidate[key] for key in ("source_ref", "candidate_elf_ref", "report_ref",
                                                    "verification_ref", "build_manifest_ref", "abi_report_ref"))
+            refs.update(candidate[key] for key in ("layout_material_ref", "compiled_source_ref", "layout_guard_ref")
+                        if candidate.get(key))
         for contract in material["contracts"]["current_contracts"]:
             refs.update(contract[key] for key in ("contract_ref", "evidence_ref"))
+        for contract in material["layout_contracts"]["current_contracts"]:
+            refs.update(contract[key] for key in ("contract_ref", "evidence_ref", "catalog_ref", "evidence_manifest_ref"))
         for tool in material["audit"]["tool_activities"]:
             refs.update(tool[key] for key in ("report_ref", "raw_ir_ref") if tool.get(key))
         integration = material["integration"]
@@ -254,6 +261,8 @@ class FinalReportService:
             refs.update(integration.get("source_refs", []))
             refs.update(integration[key] for key in ("candidate_elf_ref", "project_archive_ref", "report_ref")
                         if integration.get(key))
+            for item in integration.get("layout_dependencies", []):
+                refs.update(item[key] for key in ("layout_material_ref", "compiled_source_ref", "layout_guard_ref"))
         material["artifact_manifest"] = [{"artifact_ref": ref, **self.objects.get_metadata(ref),
                                           "scope": "original_input" if ref.startswith("sha256:") and ref.endswith(material["inventory"]["input_sha256"] or "-") else "partial_source_or_static_report"}
                                          for ref in sorted(refs)]
@@ -334,6 +343,8 @@ class FinalReportService:
             gaps.append({"code": "plan_classification_pending"})
         gaps.extend({"code": "invalid_scalar_contract", **contract}
                     for contract in material["contracts"]["invalid_contracts"])
+        gaps.extend({"code": "invalid_layout_contract", **contract}
+                    for contract in material["layout_contracts"]["invalid_contracts"])
         return gaps
 
     def _payload(self, material: dict[str, Any], execution_state: str, *, final: bool) -> dict[str, Any]:
@@ -347,6 +358,8 @@ class FinalReportService:
                 "gaps": self._gaps(material, coverage), "original_inventory": material["inventory"],
                 "selected_candidates": material["selection"]["selected_candidates"],
                 "integration": material["integration"], "scalar_contracts": material["contracts"],
+                "layout_contracts": material["layout_contracts"], "full_type_system_solved": False,
+                "type_usage_verified": False,
                 "auxiliary_evidence_authority": "UNTRUSTED", "whole_program_equivalence": False,
                 "original_calling_abi_verified": False, "release_selected": False,
                 "execution_policy": {"mode": "pure_static", "target_or_candidate_executed": False},

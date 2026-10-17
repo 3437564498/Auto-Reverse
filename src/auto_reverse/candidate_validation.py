@@ -33,6 +33,7 @@ from .source_signature import inspect_source_signature, signature_kernel_fingerp
 
 _SYMBOL = re.compile(r"[A-Za-z_][A-Za-z_0-9]{0,255}\Z")
 _SOURCE_FIELDS = {"schema_version", "kind", "symbol", "source"}
+_LAYOUT_DEPENDENCIES_ENABLED = True
 
 
 def _hash(data: bytes) -> str:
@@ -159,6 +160,94 @@ class CandidateValidationService:
         return {"kernel_sha256": signature_kernel_fingerprint(),
                 "contract": matching[0] if matching else None}
 
+    def _layout_authority(self, connection: sqlite3.Connection, job_id: str,
+                          task_id: str) -> dict[str, Any] | None:
+        task = self.domain._row(connection, "tasks", "task_id", task_id)
+        if task["job_id"] != job_id:
+            raise DomainError("LAYOUT_AUTHORITY_CHANGED", "Type dependencies belong to another Job")
+        roots = json.loads(task["data"])["scope"].get("type_ids", [])
+        if not roots:
+            return None
+        from .layout_dependencies import freeze_layout_authority
+
+        return freeze_layout_authority(connection, job_id, roots, self.objects)
+
+    def _assert_layout_current(self, connection: sqlite3.Connection, frozen: dict[str, Any]) -> None:
+        actual = self._layout_authority(connection, frozen["job_id"], frozen["task_id"])
+        if (actual != frozen.get("layout_authority")
+                or actual is not None and actual["authority_sha256"] != frozen.get("layout_authority_sha256")):
+            raise DomainError("LAYOUT_AUTHORITY_CHANGED", "Frozen physical type dependencies or current contracts changed")
+
+    def _verified_layout_material(self, connection: sqlite3.Connection, frozen: dict[str, Any],
+                                  report: dict[str, Any], *,
+                                  require_actual_tu_guard: bool = True) -> dict[str, Any] | None:
+        """Recheck immutable source/guard material without starting a compiler."""
+        if type(require_actual_tu_guard) is not bool:
+            raise TypeError("require_actual_tu_guard must be a literal boolean")
+        self._assert_layout_current(connection, frozen)
+        authority = frozen.get("layout_authority")
+        if authority is None:
+            if report.get("layout_material_ref") is not None:
+                raise DomainError("LAYOUT_BINDING_MISMATCH", "Unscoped source cannot claim checked type dependencies")
+            return None
+        from .layout_dependencies import verify_layout_material
+
+        source = self.objects.resolve_artifact(frozen["source_ref"]).read_bytes()
+        material_ref = report["layout_material_ref"]
+        metadata = self.objects.get_metadata(material_ref)
+        encoded_material = self.objects.resolve_artifact(material_ref).read_bytes()
+        if (_hash(encoded_material), len(encoded_material)) != (metadata["sha256"], metadata["size"]):
+            raise DomainError("ARTIFACT_HASH_MISMATCH", "Layout material changed while reading its immutable CAS")
+        material = json.loads(encoded_material)
+        verify_layout_material(source.decode(), authority, material)
+        self._verify_layout_matcher(frozen, material)
+        verified_match = {"status": "PASS", "actual_tu_guard_verified": True,
+                          "reason_code": "ACTUAL_GUARDED_TU_COMPILED"}
+        prepared_match = {"status": "PASS", "actual_tu_guard_verified": False,
+                          "reason_code": material["reason_code"]}
+        allowed_matches = [verified_match] if require_actual_tu_guard else [verified_match, prepared_match]
+        layout_match = report.get("layout_match")
+        if (material["status"] != "PASS" or metadata["sha256"] != report["layout_material_sha256"]
+                or report.get("layout_authority_sha256") != frozen["layout_authority_sha256"]
+                or not isinstance(layout_match, dict)
+                or type(layout_match.get("actual_tu_guard_verified")) is not bool
+                or layout_match not in allowed_matches):
+            raise DomainError("LAYOUT_BINDING_MISMATCH", "Layout material was not bound to an actual guarded build")
+        for prefix, text in (("compiled_source", material["guarded_source"]), ("layout_guard", material["guard_text"])):
+            encoded = text.encode()
+            metadata = self.objects.get_metadata(report[prefix + "_ref"])
+            if (metadata["sha256"] != report[prefix + "_sha256"]
+                    or metadata["size"] != report[prefix + "_size"]
+                    or self.objects.resolve_artifact(report[prefix + "_ref"]).read_bytes() != encoded):
+                raise DomainError("LAYOUT_BINDING_MISMATCH", "Compiled source or host guard CAS changed")
+        if (report["compiled_source_sha256"] != material["compiled_source_sha256"]
+                or report["compiled_source_size"] != material["compiled_source_size"]
+                or report["layout_guard_sha256"] != material["guard_sha256"]
+                or report["layout_guard_size"] != material["guard_size"]
+                or material["source_sha256"] != frozen["source_sha256"]
+                or material["source_size"] != frozen["source_size"]):
+            raise DomainError("LAYOUT_BINDING_MISMATCH", "Original and compiled source hashes were interchanged")
+        return material
+
+    @staticmethod
+    def _verify_layout_matcher(frozen: dict[str, Any], material: dict[str, Any]) -> None:
+        matcher = material["matcher_report"]
+        provenance, config = matcher.get("provenance", {}), frozen["build_config"]
+        if (matcher.get("status") != "PASS" or matcher.get("cleanup_confirmed") is not True
+                or matcher.get("parameters") != config["parameters"]
+                or provenance.get("toolchain_files") != config["toolchain_files"]
+                or provenance.get("helper_sha256") != config["helper_sha256"]
+                or provenance.get("kernel_sha256") != frozen["layout_authority"]["matcher_kernel_sha256"]
+                or matcher.get("execution_policy", {}).get("compiler_executed") is not True
+                or matcher.get("execution_policy", {}).get("target_or_candidate_executed") is not False
+                or not matcher.get("commands")
+                or any(command.get("returncode") != 0 or command.get("timed_out")
+                       or command.get("output_limit_exceeded")
+                       or command.get("cleanup", {}).get("compiler_reaped") is not True
+                       or command.get("cleanup", {}).get("process_group_stopped_confirmed") is not True
+                       for command in matcher["commands"])):
+            raise DomainError("LAYOUT_BINDING_MISMATCH", "Layout checker did not use the frozen source toolchain and cleanup boundary")
+
     @staticmethod
     def _record(row: sqlite3.Row) -> dict[str, Any]:
         frozen = json.loads(row["frozen"])
@@ -254,10 +343,15 @@ class CandidateValidationService:
                   candidate_ref: str, symbol: str) -> dict[str, Any]:
         frozen = self._delivery_identity(connection, execution_key, candidate_ref)
         task = self.domain._row(connection, "tasks", "task_id", frozen["task_id"])
-        scope = json.loads(task["data"])["scope"]
+        work = json.loads(task["data"])
+        scope = work["scope"]
+        if work["role"] not in {"recovery", "repair", "integration", "naming"}:
+            raise DomainError("ROLE_SCOPE", "Only source-recovery roles can submit a C++ candidate")
+        if "candidate_submit" not in work["allowed_operations"]:
+            raise DomainError("OPERATION_DENIED", "Candidate validation requires the frozen source submission permission")
         if symbol not in scope["function_ids"]:
             raise DomainError("FUNCTION_SCOPE", "Symbol is outside the frozen function scope")
-        if scope.get("type_ids"):
+        if scope.get("type_ids") and not _LAYOUT_DEPENDENCIES_ENABLED:
             raise DomainError("TYPE_SCOPE_NOT_IMPLEMENTED", "Candidate validation does not yet verify frozen type dependencies")
         return frozen
 
@@ -314,6 +408,10 @@ class CandidateValidationService:
                           original_function=original_info, call_model=register_call_model())
             frozen["source_signature_authority"] = self._signature_authority(connection, frozen["job_id"], symbol)
             frozen["source_signature_authority_sha256"] = _json_hash(frozen["source_signature_authority"])
+            layout_authority = self._layout_authority(connection, frozen["job_id"], frozen["task_id"])
+            if layout_authority is not None:
+                frozen.update(layout_authority=layout_authority,
+                              layout_authority_sha256=layout_authority["authority_sha256"])
             now, activity_id = time.time(), "vact-" + uuid.uuid4().hex
             connection.execute("""
                 INSERT INTO validation_activities(activity_id,execution_key,candidate_ref,symbol,
@@ -341,6 +439,7 @@ class CandidateValidationService:
         if (current_signature != frozen.get("source_signature_authority")
                 or _json_hash(current_signature) != frozen.get("source_signature_authority_sha256")):
             raise DomainError("SOURCE_SIGNATURE_AUTHORITY_CHANGED", "Original scalar constraints or signature parser changed")
+        self._assert_layout_current(connection, frozen)
 
     def claim_next(self, worker_id: str = "trusted-validation-host", *, activity_id: str | None = None) -> dict[str, Any] | None:
         config = self._config()
@@ -437,6 +536,9 @@ class CandidateValidationService:
         if (frozen.get("source_signature_authority", {}).get("kernel_sha256") != signature_kernel_fingerprint()
                 or _json_hash(frozen.get("source_signature_authority")) != frozen.get("source_signature_authority_sha256")):
             raise DomainError("SOURCE_SIGNATURE_AUTHORITY_CHANGED", "Frozen signature parser or authority changed")
+        with closing(self.domain._connect()) as connection:
+            connection.execute("BEGIN")
+            self._assert_layout_current(connection, frozen)
         for prefix, ref in (("candidate", frozen["candidate_cas_ref"]),
                             ("source", frozen["source_ref"]), ("input", frozen["input_cas_ref"])):
             meta = self.objects.get_metadata(ref)
@@ -461,6 +563,7 @@ class CandidateValidationService:
         # Activity IDs/run numbers are host generated. A prior directory is never reused.
         contract = frozen["source_signature_authority"]["contract"]
         signature_cleanup = True
+        compiled_source = source
         if contract is not None:
             report["cleanup_confirmed"] = False
             signature = inspect_source_signature(source, record["symbol"], self.build_config,
@@ -483,11 +586,48 @@ class CandidateValidationService:
             if not signature_cleanup:
                 report["status"] = "FAILED"
                 return
+        layout_material = None
+        layout_cleanup = True
+        if frozen.get("layout_authority") is not None:
+            from .layout_dependencies import prepare_layout_tu, verify_layout_material
+
+            report["cleanup_confirmed"] = False
+            layout_material = prepare_layout_tu(source, original.read_bytes(), frozen["layout_authority"],
+                                                self.build_config, output / "layout")
+            layout_cleanup = layout_material.get("cleanup_confirmed") is True
+            matcher = layout_material.get("matcher_report")
+            if isinstance(matcher, dict):
+                layout_cleanup = layout_cleanup and matcher.get("cleanup_confirmed") is True and all(
+                    command.get("cleanup", {}).get("compiler_reaped") is True
+                    and command.get("cleanup", {}).get("process_group_stopped_confirmed") is True
+                    for command in matcher.get("commands", []))
+                if matcher.get("execution_policy", {}).get("compiler_executed") and not matcher.get("commands"):
+                    layout_cleanup = False
+            report["cleanup_confirmed"] = signature_cleanup and layout_cleanup
+            material_record = self.objects.put_json(layout_material, kind="candidate_layout_material")
+            artifacts.append(material_record)
+            report.update(layout_material_ref=material_record["artifact_id"],
+                          layout_material_sha256=material_record["sha256"],
+                          layout_authority_sha256=frozen["layout_authority_sha256"],
+                          layout_match={"status": layout_material["status"], "actual_tu_guard_verified": False,
+                                        "reason_code": layout_material["reason_code"]})
+            if layout_material["status"] != "PASS" or not layout_cleanup:
+                report["status"] = "FAILED"
+                return
+            verify_layout_material(source, frozen["layout_authority"], layout_material)
+            self._verify_layout_matcher(frozen, layout_material)
+            compiled_source = layout_material["guarded_source"]
+            for prefix, text, kind in (("compiled_source", compiled_source, "validation_compiled_source"),
+                                       ("layout_guard", layout_material["guard_text"], "validation_layout_guard")):
+                artifact = self.objects.put_bytes(text.encode(), kind=kind, media_type="text/x-c++src")
+                artifacts.append(artifact)
+                report.update({prefix + "_ref": artifact["artifact_id"], prefix + "_sha256": artifact["sha256"],
+                               prefix + "_size": artifact["size"]})
         report["cleanup_confirmed"] = False
-        gate = build_candidate(source, output / "build", self.build_config)
+        gate = build_candidate(compiled_source, output / "build", self.build_config)
         report["build"] = gate["build"]
         report["candidate_structural_checks"] = gate["abi"]
-        report["cleanup_confirmed"] = signature_cleanup and all(command.get("cleanup", {}).get("compiler_reaped") is True
+        report["cleanup_confirmed"] = signature_cleanup and layout_cleanup and all(command.get("cleanup", {}).get("compiler_reaped") is True
                                           and command.get("cleanup", {}).get("process_group_stopped_confirmed") is True
                                           for command in gate["commands"])
         if gate["execution_policy"]["compiler_executed"] and not gate["commands"]:
@@ -505,7 +645,8 @@ class CandidateValidationService:
                     or gate.get("toolchain", {}).get("helper", {}).get("sha256")
                     != frozen["build_config"]["helper_sha256"]):
                 raise DomainError("BUILD_BINDING_MISMATCH", "Compiler manifest differs from frozen toolchain files")
-        if gate.get("source", {}).get("sha256") != frozen["source_sha256"]:
+        compiled_sha256 = _hash(compiled_source.encode())
+        if gate.get("source", {}).get("sha256") != compiled_sha256:
             raise DomainError("BUILD_BINDING_MISMATCH", "Build source differs from frozen staged source")
         if gate["build"]["status"] != "PASS":
             report["status"] = "FAILED"
@@ -514,7 +655,7 @@ class CandidateValidationService:
         compiled_source = [artifact for artifact in gate["artifacts"]
                            if artifact["kind"] == "source" and Path(artifact["path"]).name == "candidate.cpp"]
         if (len(shared) != 1 or len(compiled_source) != 1
-                or compiled_source[0]["sha256"] != frozen["source_sha256"]):
+                or compiled_source[0]["sha256"] != compiled_sha256):
             raise DomainError("BUILD_BINDING_MISMATCH", "Build has no uniquely bound candidate source/ELF")
         for artifact in (*shared, *compiled_source):
             path = Path(artifact["path"])
@@ -525,6 +666,9 @@ class CandidateValidationService:
             raise DomainError("BUILD_BINDING_MISMATCH", "ELF changed while publishing immutable CAS")
         artifacts.append(candidate)
         report.update(status="COMPLETED", artifact_grade="A1", candidate_elf_ref=candidate["artifact_id"])
+        if layout_material is not None:
+            report["layout_match"] = {"status": "PASS", "actual_tu_guard_verified": True,
+                                       "reason_code": "ACTUAL_GUARDED_TU_COMPILED"}
         candidate_path = self.objects.resolve_artifact(candidate["artifact_id"])
         abi = _compare_abi(original, candidate_path, record["symbol"])
         abi_record = self.objects.put_json(abi, kind="candidate_abi_comparison")
@@ -548,9 +692,13 @@ class CandidateValidationService:
             "proposal_id": frozen["proposal_id"], "symbol": record["symbol"],
             "input_snapshot_id": frozen["input_snapshot_id"], "contract_revision": frozen["contract_revision"],
             "original_binary_sha256": frozen["input_sha256"], "candidate_binary_sha256": candidate["sha256"],
-            "staged_envelope_sha256": frozen["candidate_sha256"], "compiled_source_sha256": frozen["source_sha256"],
+            "staged_envelope_sha256": frozen["candidate_sha256"], "compiled_source_sha256": compiled_sha256,
             "original_code_sha256": _hash(original_bytes), "candidate_code_sha256": _hash(candidate_bytes),
             "build_binding_sha256": gate["build_binding_sha256"], "call_model_ref": frozen["call_model"]["id"]}
+        if layout_material is not None:
+            verification["validation_binding"].update(
+                staged_source_sha256=frozen["source_sha256"], layout_material_sha256=report["layout_material_sha256"],
+                layout_authority_sha256=frozen["layout_authority_sha256"], layout_guard_sha256=report["layout_guard_sha256"])
         verification_record = self.objects.put_json(verification, kind="candidate_machine_verification")
         artifacts.append(verification_record)
         report.update(local_semantic=verification["semantic"], verification_ref=verification_record["artifact_id"],
@@ -618,6 +766,8 @@ class CandidateValidationService:
                     if self._config() != frozen["build_config"]:
                         raise DomainError("HOST_CONFIGURATION_MISMATCH", "Frozen host toolchain changed before publication")
                     self._verified_inputs(frozen, record["symbol"])
+                    if frozen.get("layout_authority") is not None and report.get("status") == "COMPLETED":
+                        self._verified_layout_material(connection, frozen, report)
                     for artifact in artifacts:
                         self.objects.get_metadata(artifact["artifact_id"])
                 except Exception as exc:

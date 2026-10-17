@@ -47,10 +47,12 @@ def _json_hash(value: Any) -> str:
 
 def source_safety_kernel_fingerprint() -> str:
     """Bind both the independent grammar checker and exact source generator."""
+    layout_kernel = Path(__file__).with_name("layout_dependencies.py")
     return _json_hash({
         "profile": SOURCE_SAFETY_VERSION,
         "checker_sha256": _hash(Path(__file__).read_bytes()),
         "generator_sha256": _hash(Path(recovery.__file__).read_bytes()),
+        "layout_declaration_checker_sha256": _hash(layout_kernel.read_bytes()) if layout_kernel.is_file() else None,
     })
 
 
@@ -242,7 +244,7 @@ def _check_source_map(lifted: dict[str, Any], original_code: bytes, source: str,
 
 def audit_generated_leaf(source: str, *, original_code: bytes | None, symbol: str,
                          parameter_widths: tuple[int, ...] | list[int], return_width: int,
-                         address: int = 0x1000) -> dict[str, Any]:
+                         address: int = 0x1000, layout_material: dict[str, Any] | None = None) -> dict[str, Any]:
     """Prove the supported generated-source obligations, or retain UNKNOWN.
 
     ``original_code`` and the declaration must come from the trusted host's
@@ -289,6 +291,22 @@ def audit_generated_leaf(source: str, *, original_code: bytes | None, symbol: st
                                        "address": address}
     try:
         fingerprint = source_safety_kernel_fingerprint()
+        audited_source = source
+        if layout_material is not None:
+            from .layout_dependencies import strip_layout_declarations_for_audit
+
+            stripped = strip_layout_declarations_for_audit(source, layout_material)
+            # Boundary whitespace has no C++ effect; every remaining token must
+            # still match the exact deterministic leaf, including its body.
+            audited_source = stripped.strip(" \t\r\n") + "\n"
+            report["layout_declaration_audit"] = {
+                "material_sha256": layout_material["material_sha256"],
+                "declaration_ranges": layout_material["declaration_ranges"],
+                "namespace_ranges": layout_material["namespace_ranges"],
+                "audited_source": {"sha256": _hash(audited_source.encode()), "size": len(audited_source.encode())},
+                "boundary_whitespace_normalized": True,
+                "runtime_declarations_or_statements_removed": False,
+            }
         lifted = recovery.lift_integer_leaf(original_code, symbol=symbol, address=address,
                                             parameter_widths=parameter_widths,
                                             return_width=return_width)
@@ -303,10 +321,10 @@ def audit_generated_leaf(source: str, *, original_code: bytes | None, symbol: st
         report["provenance"] = {"kernel_sha256": fingerprint,
                                 "deterministic_source_sha256": _hash(lifted["source"].encode()),
                                 "generator_version": recovery.RECOVERY_VERSION}
-        if source_bytes != lifted["source"].encode():
+        if audited_source.encode() != lifted["source"].encode():
             return finish("SOURCE_DIFFERS_FROM_REGENERATED_PROFILE")
-        details = _check_source_profile(source, symbol, tuple(parameter_widths), return_width)
-        mapping_hash = _check_source_map(lifted, original_code, source, symbol, address)
+        details = _check_source_profile(audited_source, symbol, tuple(parameter_widths), return_width)
+        mapping_hash = _check_source_map(lifted, original_code, audited_source, symbol, address)
         if fingerprint != source_safety_kernel_fingerprint():
             return finish("SOURCE_SAFETY_KERNEL_CHANGED")
         report["provenance"]["regenerated_source_map_sha256"] = mapping_hash
@@ -323,6 +341,8 @@ def audit_generated_leaf(source: str, *, original_code: bytes | None, symbol: st
             "no-division-or-foreign-calls", "complete-source-and-input-byte-binding",
         )
     ]
+    if layout_material is not None:
+        report["obligations"].append({"name": "literal-record-declarations-have-no-runtime-effect", "status": "PASSED"})
     report["proof_scope"] = {
         "profile": SOURCE_SAFETY_VERSION, "source_sha256": report["source"]["sha256"],
         "unsigned_int_bits": 32, "unsigned_long_long_bits": 64,

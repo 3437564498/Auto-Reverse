@@ -117,7 +117,9 @@ def _scalar_header(scalar_shapes: Any, expected_exports: tuple[str, ...] | None
 
 
 def build_project(sources: dict[str, str], output: str | Path, config: gate.BuildConfig,
-                  *, scalar_shapes: dict[str, dict[str, Any]] | None = None
+                  *, scalar_shapes: dict[str, dict[str, Any]] | None = None,
+                  layout_authorities: dict[str, dict[str, Any]] | None = None,
+                  original_binary: bytes | None = None
                   ) -> dict[str, Any]:
     """Compile and link real isolated translation units under the pinned NDK.
 
@@ -143,11 +145,18 @@ def build_project(sources: dict[str, str], output: str | Path, config: gate.Buil
         "source_modules": [], "kernel_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "implementation_fingerprints": {
             name: hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
-            for name in ("project_build.py", "build_gate.py", "intake.py")},
+            for name in ("project_build.py", "build_gate.py", "intake.py", "layout_dependencies.py",
+                         "layout_contracts.py", "candidate_layout.py", "dwarf_layout.py", "scalar_abi.py")},
     }
     try:
         sources, report["source_modules"] = _source_set(sources)
         header, report["scalar_declarations"] = _scalar_header(scalar_shapes, config.expected_exports)
+        if (layout_authorities is not None and (not isinstance(layout_authorities, dict)
+                or not set(layout_authorities) <= set(sources)
+                or any(not isinstance(value, dict) for value in layout_authorities.values()))):
+            raise ValueError("layout authorities must be host-frozen mappings for actual project sources")
+        if layout_authorities and not isinstance(original_binary, bytes):
+            raise ValueError("typed translation units require the immutable original bytes")
     except (TypeError, ValueError) as exc:
         report["status"] = "FAIL"
         report["build"] = {"status": "FAIL", "reason_code": "PROJECT_POLICY_REJECTED",
@@ -180,7 +189,7 @@ def build_project(sources: dict[str, str], output: str | Path, config: gate.Buil
         report["artifact_level"] = (
             "A1" if report["build"]["status"] == "PASS" and report["cleanup_confirmed"] else None)
         report["parameters_sha256"] = gate._canonical_hash(report["parameters"])
-        report["build_binding_sha256"] = gate._canonical_hash({
+        binding = {
             "kernel_sha256": report["kernel_sha256"],
             "implementation_fingerprints": report["implementation_fingerprints"],
             "source_modules": report["source_modules"], "parameters": report["parameters"],
@@ -188,7 +197,10 @@ def build_project(sources: dict[str, str], output: str | Path, config: gate.Buil
             "toolchain": report.get("toolchain"), "artifacts": report["artifacts"],
             "commands": [command["argv"] for command in report["commands"]],
             "cleanup_status": report["cleanup_status"],
-        })
+        }
+        if "layout_dependencies" in report:
+            binding["layout_dependencies"] = report["layout_dependencies"]
+        report["build_binding_sha256"] = gate._canonical_hash(binding)
         (output / "build-manifest.json").write_text(
             json.dumps(report, sort_keys=True, indent=2) + "\n", encoding="utf-8")
         return report
@@ -219,9 +231,40 @@ def build_project(sources: dict[str, str], output: str | Path, config: gate.Buil
     for path, kind in ((helper_path, "helper_header"), (header_path, "project_header"),
                        (helper_check, "helper_probe")):
         report["artifacts"].append({"kind": kind, **gate._fingerprint(path)})
+    compiled_sources = dict(sources)
+    if layout_authorities:
+        from .layout_dependencies import (assert_layout_tu_consistency, prepare_layout_tu,
+                                          verify_layout_material)
+        report["layout_dependencies"] = {}
+        try:
+            for name, authority in sorted(layout_authorities.items()):
+                material = prepare_layout_tu(sources[name], original_binary, authority, config,
+                                             output / "layout-checks" / name[:-4])
+                report["layout_dependencies"][name] = {"authority": authority, "material": material}
+                report["commands"].extend((material.get("matcher_report") or {}).get("commands", []))
+                report["execution_policy"]["compiler_executed"] = bool(report["commands"])
+                if material.get("status") != "PASS":
+                    report["status"] = "FAIL" if material.get("status") == "FAIL" else "UNKNOWN"
+                    report["build"] = {"status": report["status"], "reason_code": material.get("reason_code", "LAYOUT_NOT_VERIFIED")}
+                    return finish()
+                verify_layout_material(sources[name], authority, material)
+                compiled_sources[name] = material["guarded_source"]
+                module = next(item for item in report["source_modules"] if item["name"] == name)
+                module.update(compiled_source=_bytes_binding(material["guarded_source"].encode()),
+                              layout_guard=_bytes_binding(material["guard_text"].encode()),
+                              layout_material_sha256=material["material_sha256"],
+                              layout_authority_sha256=authority["authority_sha256"],
+                              layout_tu_guard_verified=False)
+            report["layout_tu_consistency"] = assert_layout_tu_consistency(
+                [item["material"] for item in report["layout_dependencies"].values()])
+        except (ValueError, TypeError, KeyError, RuntimeError) as exc:
+            report["status"] = "FAIL"
+            report["build"] = {"status": "FAIL", "reason_code": getattr(exc, "code", "LAYOUT_PROJECT_REJECTED"),
+                               "diagnostic": str(exc)}
+            return finish()
     for module in report["source_modules"]:
         source_path = output / "src" / module["name"]
-        source_path.write_text(sources[module["name"]], encoding="utf-8")
+        source_path.write_text(compiled_sources[module["name"]], encoding="utf-8")
         report["artifacts"].append({"kind": "source", "name": module["name"],
                                     **gate._fingerprint(source_path)})
 
@@ -285,6 +328,8 @@ def build_project(sources: dict[str, str], output: str | Path, config: gate.Buil
                                "source_name": module["name"]}
             return finish()
         module["object"] = gate._fingerprint(object_path)
+        if module["name"] in (layout_authorities or {}):
+            module["layout_tu_guard_verified"] = True
         report["artifacts"].append({"kind": "object", "name": module["name"],
                                     **module["object"]})
         objects.append(object_path)

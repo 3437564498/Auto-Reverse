@@ -8,7 +8,7 @@
 
 流水线使用确定性静态生成器，模型调用数为零。DSH 账本、插件和 SDK 离线接线已实现；用户暂时无法提供真实 DSH 模型环境，该项保持未验收。当前进度与 V1 剩余范围见 [实施记录](docs/implementation-status.md)。
 
-[PR #7](https://github.com/3437564498/Auto-Reverse/pull/7) 已合并到 `main`，其中候选结构布局增量 `22b3369` 的 GitHub 真实固定 NDK/Ghidra 完整回归为 **2088 passed、0 skipped**。下一批原始布局声明事务集中在 [待审核更新](https://github.com/3437564498/Auto-Reverse/pulls)，等级保持 A0。各增量的来源、验收和限制见 [实施记录](docs/implementation-status.md)，当前远端 Checks 与可审核状态以活动 PR 为准。
+[PR #8](https://github.com/3437564498/Auto-Reverse/pull/8) 已合并到 `main`，原始布局声明事务的 GitHub 真实固定 NDK/Ghidra 完整回归为 **2187 passed、0 skipped、0 failed**。下一批把冻结布局约束接入实际候选、工程翻译单元及归档重建，集中在 [待审核更新](https://github.com/3437564498/Auto-Reverse/pulls)；布局声明本身等级保持 A0。各增量的来源、验收和限制见 [实施记录](docs/implementation-status.md)，当前远端 Checks 与可审核状态以活动 PR 为准。
 
 ## 开发与运行
 
@@ -67,6 +67,8 @@ npm run preflight
   --ndk-root work/tools/android-ndk-r27c --output work/evidence-contract-new
 .venv/bin/python scripts/run_project_pipeline_sample.py \
   --ndk-root work/tools/android-ndk-r27c --output work/project-pipeline-new
+.venv/bin/python scripts/run_layout_dependency_sample.py \
+  --ndk-root work/tools/android-ndk-r27c --output work/layout-dependency-new
 ```
 
 候选回执只表示 RECORDED；可信后处理另行选择 `BEST_AVAILABLE`。最终报告可将真实编译的局部源码集合或局部工程记为 A1，并明确 `artifact_scope`；整库构建、ABI、语义、完整性仍分别保留 UNKNOWN。`FINAL`/`COMPLETED` 表示本次任务与资源已收尾，不表示完整 V1 或整库等价通过。宿主排队、反馈和公开读取见 [候选提交与持久独立验收](docs/candidate-validation.md)。
@@ -80,6 +82,7 @@ npm run preflight
 | [V1 主方案](docs/android-arm64-so-cpp-recovery-V1.md) | 47 节统一需求、架构、DSH/插件、契约、实施与验收 |
 | [DSH 专项调研](docs/main-child-agent-DSH-RESEARCH.md) | 固定源码能力、32 路联动配置、插件扩展和生命周期 |
 | [证据与声明契约](docs/evidence-contracts.md) | 辅助交付消费、原始 DWARF 核验、版本冻结与当前限制 |
+| [实际编译的布局依赖](docs/layout-dependencies.md) | 类型作用域、宿主编译期断言、跨 TU 一致性及源码归档重建 |
 | [自动静态工程流水线](docs/static-project-pipeline.md) | 输入 `.so`、持久接续、多模块工程、最终字节验证与交付读取 |
 | [已确认范围](docs/confirmed-scope.md) | 用户确认的目标、静态约束、多 Agent、32 路与插件方向 |
 | [0.2 初稿快照](docs/snapshots/android-arm64-so-cpp-recovery-0.2-DRAFT-2026-10-13.md) | 本轮优化前的 66 节工作稿，原文保存 |

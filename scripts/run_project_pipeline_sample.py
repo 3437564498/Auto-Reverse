@@ -138,6 +138,13 @@ def rebuild_archive(archive_path, original, ndk_root, output):
         archive.extractall(extracted)
     prior = json.loads((extracted / "reports/project-verification.json").read_text())["report"]
     recorded = json.loads((extracted / "reports/project-build.json").read_text())["report"]
+    layout_manifest = extracted / "reports/layout-dependencies.json"
+    layout_check = None
+    if layout_manifest.exists():
+        from auto_reverse.project_archive import verify_archived_layouts
+
+        layout_manifest_sha256 = _digest(layout_manifest.read_bytes())
+        layout_check = verify_archived_layouts(extracted, expected_manifest_sha256=layout_manifest_sha256)
     parameters = recorded["parameters"]
     cmake = Path(os.environ.get("AUTO_REVERSE_TEST_CMAKE",
                                Path(__file__).resolve().parents[1] / ".venv/bin/cmake"))
@@ -162,18 +169,29 @@ def rebuild_archive(archive_path, original, ndk_root, output):
                                   timeout=90, check=False)
         if compiled.returncode != 0:
             raise ValueError("archived source CMake compile or link failed")
+    compile_commands = json.loads((reconstructed / "compile_commands.json").read_text())
+    if layout_check is not None:
+        if verify_archived_layouts(extracted, expected_manifest_sha256=layout_manifest_sha256) != layout_check:
+            raise ValueError("archive layout source or manifest changed during the new build")
+        # The fixed CMake source list must actually participate in this build.
+        compiled_files = {Path(item["file"]).resolve() for item in compile_commands}
+        if not {path.resolve() for path in (extracted / "src").glob("*.cpp")} <= compiled_files:
+            raise ValueError("an archived guarded translation unit did not participate in the new build")
     candidate = reconstructed / "lib" / parameters["soname"]
     source_files = [{"path": str(path.relative_to(extracted)), "sha256": _digest(path.read_bytes())}
                     for path in sorted(extracted.rglob("*")) if path.suffix in {".cpp", ".hpp"}]
     provenance = {"commands": commands, "candidate_sha256": _digest(candidate.read_bytes()),
-                  "compile_commands": json.loads((reconstructed / "compile_commands.json").read_text()),
+                  "compile_commands": compile_commands,
                   "sources": source_files}
+    if layout_check is not None:
+        provenance["layout_manifest_sha256"] = layout_manifest_sha256
+        provenance["layout_dependencies"] = layout_check
     binding = _digest(json.dumps(provenance, sort_keys=True).encode())
     bindings = [{key: item["binding"][key] for key in (
         "symbol", "source_sha256", "activity_id", "scalar_contract_ref") if key in item["binding"]}
         for item in prior["module_reports"]]
     fresh = verify_project(original, candidate, module_bindings=bindings, build_binding_sha256=binding)
-    return {"archive_sha256": _digest(Path(archive_path).read_bytes()),
+    result = {"archive_sha256": _digest(Path(archive_path).read_bytes()),
             "candidate_sha256": _digest(candidate.read_bytes()), "candidate_size": candidate.stat().st_size,
             "new_build_binding_sha256": binding,
             "historical_proof_reused": fresh["prior_candidate_proofs_consumed"],
@@ -184,6 +202,9 @@ def rebuild_archive(archive_path, original, ndk_root, output):
             "original_calling_abi": fresh["abi"]["original_calling_abi"],
             "original_denominators": fresh["original_inventory"]["denominators"],
             "target_or_candidate_executed": False}
+    if layout_check is not None:
+        result.update(layout_dependencies=layout_check, new_build_guarded_translation_units_verified=True)
+    return result
 
 
 def summarize_pipeline(pipeline, recovered, fixture, rebuild):

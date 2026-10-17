@@ -1,0 +1,271 @@
+{
+  "schema_version": 1,
+  "accepted_on": "2026-10-16",
+  "timezone": "Asia/Singapore",
+  "scope": "host-scoped original layout dependencies in actual guarded candidate/project TUs, repair/evidence lineage, closed source archive reconstruction and FINAL current authority",
+  "base_commit": "cd771ce32a137ae729a88285246a1be89451da7a",
+  "source_fingerprints": {
+    ".github/workflows/static-acceptance.yml": "f48f46a41aacb4037ab90aac4495a470ae88f1a4c5df3390c21fc62d6b34faea",
+    "scripts/run_layout_dependency_sample.py": "cd473d2be3186ac063b7444a3ccbd9d7b358035e95d5f39b7a0335618bdf8321",
+    "scripts/run_project_pipeline_sample.py": "dd54a35f69ce965e84a59f77a47fdafcf2db17a6d813bbd58d23ad38c797d31c",
+    "src/auto_reverse/backend_rpc.py": "e83a50a7eac5c28e690c5336069eb3f3da86c5b54166e7cdb5f309a8718b1dac",
+    "src/auto_reverse/candidate_selection.py": "62ae6a2630b3f6d034dd6a4ff77491844109d905ccde208a464f683d3a3a4bf7",
+    "src/auto_reverse/candidate_validation.py": "a1383ca1bf97666756a15abe8e0f2c5bb5a3df433cae5610e90e4b7500ae30fc",
+    "src/auto_reverse/evidence_delivery.py": "a69e5cae1c2491fa89d5be7f6edb98e35fff810f7dc23811525c5176faa6e96e",
+    "src/auto_reverse/final_report.py": "e58ca25a6b2c602a47147b4bd5752e1ffe245ce8ccbad2ad7a4851d5d4827415",
+    "src/auto_reverse/layout_dependencies.py": "350168a8edb9dd6395ed1586a407f1449a9b5c43ce2a956a56a14e092638a579",
+    "src/auto_reverse/project_archive.py": "65d83d99c4db561153410835af1abfed51dd940e4d064003e9341d7bda75d143",
+    "src/auto_reverse/project_build.py": "8eb5e7d057e2f1e7a2c4f55fe5e0ca9beca89b80e7ffeacb90cf85544d724dce",
+    "src/auto_reverse/project_service.py": "413c838b9b4a35a3af4f7e74b87aa4a06d68b30a1fdb5e28a687db74155c0d9f",
+    "src/auto_reverse/repair_feedback.py": "eddc8d955fad564d38678d468644fb416d2bafeaa62650e73ecdbf42a5d5dd7b",
+    "src/auto_reverse/service.py": "f8b3a12e4941fc84497517b9392e90ab005ccb96bc77bc6d33cbdf59b462b791",
+    "src/auto_reverse/source_safety.py": "86266b8db00e1fd14a554d4fe4d20e6488a0fa0d79c37f40c2c72305b53f329a",
+    "tests/test_candidate_layout_dependencies.py": "4d6ada5e6da3b98e161e2ed00b257a7afe1454535e7cfd239d88f127c0ff33f0",
+    "tests/test_layout_dependencies.py": "4b125ad3c666fe00475c1a05f57a2df4afd18d55cb37a9ef792b9bebaf471477",
+    "tests/test_layout_dependency_adversarial.py": "39d6d36ada1cfe91a24c0569701931f310b7ced9dca5b1870f9b412fb0f5224c",
+    "tests/test_layout_dependency_feedback.py": "62085cc054b35f062e918d8e1e22f6050a8402d837522bb9ece147f547c4fb1f",
+    "tests/test_layout_dependency_interfaces.py": "0e525e35b39a859c06cbd6863d8124e60e238fbc1d7d23715378cd2fbad045d7",
+    "tests/test_project_layout_dependencies.py": "9347017ffbb5b262aed098fc49ac3c2af9303bac56a94154f9e1adebd6238c39",
+    "tests/test_type_scope_authority.py": "da48cf05d306b7e6dc3d903e4a8a18bd95874deae228ef926ee03080d1d41107"
+  },
+  "kernel_fingerprints": {
+    "layout_dependency_sha256": "07b6a00d3e8a1550e316f6fedc5b8919b40887e59107d3e51deaf750bc73af4e",
+    "integration_sha256": "c31112ebcae834067af8ccefef49b8e79f6c0fc9e6c04afff55fc74e72fc891d",
+    "final_sha256": "125bdfc5ac14063650dfe74ac269c655a6405a4b69594b1b882a33ed714c4dcf",
+    "selection_sha256": "e9c95788dbc438e905660c7ce2b223d7d840515522147c22c03132b82d2c2976"
+  },
+  "new_tests": {
+    "passed": 137,
+    "skipped": 0,
+    "failed": 0,
+    "by_file": {
+      "tests/test_candidate_layout_dependencies.py": 15,
+      "tests/test_layout_dependencies.py": 23,
+      "tests/test_layout_dependency_adversarial.py": 62,
+      "tests/test_layout_dependency_feedback.py": 9,
+      "tests/test_layout_dependency_interfaces.py": 10,
+      "tests/test_project_layout_dependencies.py": 18
+    }
+  },
+  "local_related_regression": {
+    "unique_cases_passed": 682,
+    "new_cases_already_included": 137,
+    "skipped": 0,
+    "failed": 0,
+    "groups_and_affected_followups": {
+      "core": {
+        "passed": 597,
+        "skipped": 0,
+        "failed": 0,
+        "warnings": 1,
+        "seconds": 204.41,
+        "log_sha256": "5bf8aa5b1dc319c628a61ad9f874a400be2971a3d66e94f1c5f78a8507e1261f"
+      },
+      "project_and_final_legacy": {
+        "passed": 67,
+        "skipped": 0,
+        "failed": 0,
+        "warnings": 0,
+        "seconds": 60.59,
+        "log_sha256": "6ae3ad8b6602084b718f50a9659528d5e083b043bb97c577275fdfded3f4eee5"
+      },
+      "project_with_closed_archive": {
+        "passed": 18,
+        "skipped": 0,
+        "failed": 0,
+        "warnings": 0,
+        "seconds": 38.1,
+        "log_sha256": "e86a4f2043845d065fe22a24cbed4336421adb753c541373560549d1aecf823f"
+      },
+      "closed_archive_independent_recheck": {
+        "passed": 62,
+        "skipped": 0,
+        "failed": 0,
+        "warnings": 0,
+        "seconds": 80.21,
+        "log_sha256": "722771ef10ed2a35e1c10f90a083103d3cef807d89901c2004092a2158840a94"
+      },
+      "archive_build_legacy_recheck": {
+        "passed": 137,
+        "skipped": 0,
+        "failed": 0,
+        "warnings": 0,
+        "seconds": 28.98,
+        "log_sha256": "f04cf739efbab9ebaa72414a97928c98bb100b3f1dc2965104733f8c6a62ae95"
+      }
+    },
+    "note": "Core 597 and legacy service/FINAL 67 were followed by the final archive-boundary 18 project cases, 62 independent cases and 137 build/archive repeats; repeats are not added to unique counts."
+  },
+  "dsh_offline_bridge": {
+    "passed": 30,
+    "model_calls": 0
+  },
+  "branch_cleanup_safeguards": {
+    "passed": 13,
+    "failed": 0
+  },
+  "sdk_preflight": {
+    "sdk_started": true,
+    "model_calls": 0,
+    "m0_r_accepted": false
+  },
+  "ruff": "PASS",
+  "schemas": "regenerated unchanged; all 9 independently matched installed wheel",
+  "installed_wheel": {
+    "status": "PASS",
+    "installed_modules": 39,
+    "resource_files": 3,
+    "generated_schemas": 9,
+    "legacy_scope_canonical": true,
+    "four_field_source_contract": true,
+    "production_layout_gate": true,
+    "layout_dependency_kernel_sha256": "07b6a00d3e8a1550e316f6fedc5b8919b40887e59107d3e51deaf750bc73af4e",
+    "integration_kernel_sha256": "c31112ebcae834067af8ccefef49b8e79f6c0fc9e6c04afff55fc74e72fc891d",
+    "final_kernel_sha256": "125bdfc5ac14063650dfe74ac269c655a6405a4b69594b1b882a33ed714c4dcf"
+  },
+  "sample": {
+    "schema_version": 1,
+    "kind": "actual_tu_layout_dependency_sample",
+    "sample_passed": true,
+    "provider": "offline-leased-static",
+    "model_calls": 0,
+    "original_input_sha256": "0e56570e22103169eaaaaa6a423ed45d413fe674847f8fdb2997dd89f3a89206",
+    "contract_revision": 4,
+    "root_type_ids": [
+      "dwarf-layout:9820465fc6b0643fe42060f80f021caf063b2453438b4ef61154660a98b2708b"
+    ],
+    "derived_type_ids": [
+      "dwarf-layout:044df71c0fef56e3ffa9865ef7ede355a445608e8e21e1c0618612deffa2f23d"
+    ],
+    "selected_symbols": [
+      "add_nine",
+      "add_seven"
+    ],
+    "candidate_actual_tu_guards_verified": 2,
+    "archived_guarded_source_count": 2,
+    "archive_sha256": "9d2ea5f6e89fdce80f3046d35a64442ec36d4c417da5e1f46a20190fa7a8e0a6",
+    "archive_rebuild": {
+      "archive_sha256": "9d2ea5f6e89fdce80f3046d35a64442ec36d4c417da5e1f46a20190fa7a8e0a6",
+      "candidate_sha256": "22c3ec9466b6c4ffa2239b07391158b6747dd35e84e30e87939140a2377839c9",
+      "candidate_size": 5472,
+      "new_build_binding_sha256": "90a1af203bd7d5de68866c3898117cbda52bf92dd21c4125dc6823b837151471",
+      "historical_proof_reused": false,
+      "build_binding_changed": true,
+      "source_module_count": 2,
+      "fresh_selected_semantic": {
+        "status": "EXACT_EQUIVALENT",
+        "scope": "selected_module_functions_only",
+        "selected_function_count": 2,
+        "exact_function_count": 2,
+        "different_function_count": 0,
+        "unknown_function_count": 0
+      },
+      "whole_library_semantic": {
+        "status": "UNKNOWN",
+        "whole_program_equivalence": false,
+        "reason": "selected function proofs cannot establish whole-library behavior"
+      },
+      "original_calling_abi": "UNKNOWN",
+      "original_denominators": {
+        "original_dynamic_export_count": 2,
+        "original_dynamic_import_count": 2,
+        "original_defined_function_symbol_count": 7,
+        "discovered_function_extent_count": 7,
+        "original_executable_bytes": 160,
+        "actual_function_count": null
+      },
+      "target_or_candidate_executed": false,
+      "layout_dependencies": {
+        "schema_version": 1,
+        "kind": "archived_layout_binding_check",
+        "status": "PASS",
+        "manifest_sha256": "23bab06e8204a0fb81a0de684d39283bf8554b1dce1f9660c7f0060a52930101",
+        "checked_module_names": [
+          "unit_000_39a1f713a727.cpp",
+          "unit_001_db72699c3bf5.cpp"
+        ],
+        "original_current_status": "UNAVAILABLE_OFFLINE",
+        "artifact_level": "A0",
+        "reconstruction_requires_new_provenance_and_proof": true,
+        "whole_program_equivalence": false,
+        "original_calling_abi_verified": false,
+        "execution_policy": {
+          "compiler_executed": false,
+          "target_or_candidate_executed": false
+        }
+      },
+      "new_build_guarded_translation_units_verified": true
+    },
+    "final_current_valid": true,
+    "delivery_status": "FINAL",
+    "quality": {
+      "artifact_level": "A1",
+      "maximum_artifact_level": "A1",
+      "build": {
+        "status": "PASS",
+        "scope": "partial_project",
+        "whole_library_build_status": "UNKNOWN"
+      },
+      "abi": {
+        "status": "UNKNOWN",
+        "reason_code": "WHOLE_LIBRARY_OBLIGATIONS_OPEN"
+      },
+      "semantic": {
+        "status": "UNKNOWN",
+        "reason_code": "WHOLE_LIBRARY_OBLIGATIONS_OPEN"
+      },
+      "completeness": {
+        "status": "UNKNOWN",
+        "reason_code": "WHOLE_LIBRARY_OBLIGATIONS_OPEN"
+      },
+      "whole_program_equivalence": false,
+      "original_calling_abi_verified": false,
+      "artifact_scope": "partial_project"
+    },
+    "occupied_resources": 0,
+    "layout_artifact_level": "A0",
+    "original_contract_current_offline": "UNAVAILABLE_OFFLINE",
+    "aggregate_function_abi_verified": false,
+    "full_type_system_solved": false,
+    "original_calling_abi_verified": false,
+    "whole_program_equivalence": false,
+    "dsh_model_acceptance_verified": false,
+    "v1_complete": false,
+    "target_or_candidate_executed": false
+  },
+  "independent_review_fixes": [
+    "source-role and candidate_submit enforcement while auxiliary evidence uses neutral delivery authority",
+    "feedback binds staged source separately from actual guarded source and retains type scope through repair/evidence lineage",
+    "same C++ qualified name cannot evade cross-TU checks by relabeling physical IDs",
+    "typed module dependencies cannot be removed from packing metadata or moved to nonparticipating TUs",
+    "public guards independently rederived from finite source/type geometry",
+    "forced scalar header, packaged helper and probe are regenerated or exactly matched even if self-reported hashes change",
+    "include/src search paths reject shadow headers, extra files/directories, PCH/GCH and symlinks"
+  ],
+  "previous_frozen_commit_remote_acceptance": {
+    "commit": "b2024d82aa35abb5f60a24115a5b28fca954eafe",
+    "run_id": 38853739218,
+    "passed": 2187,
+    "skipped": 0,
+    "failed": 0,
+    "seconds": 645.68
+  },
+  "remote_verification_for_this_increment": "See the active pull request Checks for the commit containing these source fingerprints; this snapshot records local pre-push acceptance.",
+  "maximum_project_artifact_level": "A1",
+  "layout_artifact_level": "A0",
+  "model_calls": 0,
+  "target_or_candidate_executed": false,
+  "aggregate_function_abi_verified": false,
+  "original_calling_abi_verified": false,
+  "type_usage_verified": false,
+  "full_type_system_solved": false,
+  "whole_program_equivalence": false,
+  "v1_complete": false,
+  "limitations": [
+    "Function ABI remains unsigned32/64 scalar only; no aggregate parameter/return or actual aggregate-use proof.",
+    "Original DWARF authenticity and undeclared alignment remain unverified.",
+    "Offline archives report original contract current as UNAVAILABLE_OFFLINE.",
+    "Automatic recover-project still generates scalar leaves and does not infer arbitrary function/type dependencies.",
+    "Real DSH model acceptance, full type/ABI solving and whole-library semantics remain unverified."
+  ]
+}
