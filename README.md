@@ -8,7 +8,7 @@
 
 流水线使用确定性静态生成器，模型调用数为零。DSH 账本、插件和 SDK 离线接线已实现；用户暂时无法提供真实 DSH 模型环境，该项保持未验收。当前进度与 V1 剩余范围见 [实施记录](docs/implementation-status.md)。
 
-[PR #8](https://github.com/3437564498/Auto-Reverse/pull/8) 已合并到 `main`，原始布局声明事务的 GitHub 真实固定 NDK/Ghidra 完整回归为 **2187 passed、0 skipped、0 failed**。下一批把冻结布局约束接入实际候选、工程翻译单元及归档重建，集中在 [待审核更新](https://github.com/3437564498/Auto-Reverse/pulls)；布局声明本身等级保持 A0。各增量的来源、验收和限制见 [实施记录](docs/implementation-status.md)，当前远端 Checks 与可审核状态以活动 PR 为准。
+[PR #9](https://github.com/3437564498/Auto-Reverse/pull/9) 已合并到 `main`，冻结布局依赖已接入实际候选、工程 TU 与归档重建。该提交的 GitHub 固定工具 CI 为 **2322 passed、2 skipped、0 failed**，两个 CMake 路径 skip 在下一批补齐。下一批增加有限 CMP/EQ-NE 机器语义和严格证明绑定，集中在 [待审核更新](https://github.com/3437564498/Auto-Reverse/pulls)；尚未增加条件 C++ 源码生成。各增量的来源、验收和限制见 [实施记录](docs/implementation-status.md)，当前远端 Checks 与可审核状态以活动 PR 为准。
 
 ## 开发与运行
 
@@ -82,6 +82,7 @@ npm run preflight
 | [V1 主方案](docs/android-arm64-so-cpp-recovery-V1.md) | 47 节统一需求、架构、DSH/插件、契约、实施与验收 |
 | [DSH 专项调研](docs/main-child-agent-DSH-RESEARCH.md) | 固定源码能力、32 路联动配置、插件扩展和生命周期 |
 | [证据与声明契约](docs/evidence-contracts.md) | 辅助交付消费、原始 DWARF 核验、版本冻结与当前限制 |
+| [有限条件机器模型](docs/machine-conditions.md) | CMP、EQ/NE 条件选择、原始编码核验及观察边界 |
 | [实际编译的布局依赖](docs/layout-dependencies.md) | 类型作用域、宿主编译期断言、跨 TU 一致性及源码归档重建 |
 | [自动静态工程流水线](docs/static-project-pipeline.md) | 输入 `.so`、持久接续、多模块工程、最终字节验证与交付读取 |
 | [已确认范围](docs/confirmed-scope.md) | 用户确认的目标、静态约束、多 Agent、32 路与插件方向 |

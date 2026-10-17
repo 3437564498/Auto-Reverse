@@ -425,8 +425,12 @@ class CandidateSelectionService:
                   (int(candidate_info["address"], 16), len(candidate_bytes))]
         expected_assumptions = [
             {"kind": "machine_model", "architecture": "aarch64-little-endian", "integer_widths": [32, 64],
-             "unmodeled_processor_state_not_observed": ["NZCV", "FPCR", "FPSR"],
+             "unmodeled_processor_state_not_observed": ["FPCR", "FPSR"],
              "external_calls": "unsupported", "target_execution": False},
+            {"kind": "internal_condition_state", "modeled_bits": ["N", "Z", "C", "V"],
+             "definition": "reviewed unshifted CMP only", "consumers": ["EQ", "NE"],
+             "entry_flags": "undefined; a read before a supported CMP on any feasible path is UNKNOWN",
+             "boundary_flags_not_observed": True, "scope_limitation": True},
             {"kind": "observation_contract", "registers": list(semantics.DEFAULT_OBSERVED_REGISTERS),
              "return_target": True, "memory": "all-modeled-bytes", "unobserved_registers_are_outside_scope": True,
              "termination_boundary": "proved external RET event; continuation effects outside scope"},
@@ -439,15 +443,19 @@ class CandidateSelectionService:
         identity = json.dumps({"evidence": evidence, "semantic": semantic, "tools": expected_tools}, sort_keys=True).encode()
         scope = json.dumps({"evidence": evidence, "observations": list(semantics.DEFAULT_OBSERVED_REGISTERS),
                             "assumptions": expected_assumptions, "bounds": expected_bounds}, sort_keys=True).encode()
-        if (original_info != frozen["original_function"] or proof.get("validation_binding") != binding
-                or report.get("hash_binding") != binding or proof["semantic"] != report["local_semantic"]
-                or proof.get("tools") != expected_tools or proof.get("evidence") != evidence
+        if (_json(original_info) != _json(frozen["original_function"])
+                or _json(proof.get("validation_binding")) != _json(binding)
+                or _json(report.get("hash_binding")) != _json(binding)
+                or _json(proof["semantic"]) != _json(report["local_semantic"])
+                or _json(proof.get("tools")) != _json(expected_tools)
+                or _json(proof.get("evidence")) != _json(evidence)
                 or proof["semantic"].get("whole_program_equivalence") is not False
                 or proof["semantic"].get("capability_matrix_ref") != capabilities.CAPABILITY_MATRIX_REF
                 or semantic.get("scope_ref") != "scope://supplied-entry-pair-external-return-boundary"
                 or semantic.get("input_contract_ref") != "contract://integer-memory-external-lr-1"
-                or semantic.get("analysis_mode") != "exact" or semantic.get("bounds") != expected_bounds
-                or semantic.get("assumptions") != expected_assumptions
+                or semantic.get("analysis_mode") != "exact"
+                or _json(semantic.get("bounds")) != _json(expected_bounds)
+                or _json(semantic.get("assumptions")) != _json(expected_assumptions)
                 or proof.get("verification_id") != "verify-" + _sha(identity)
                 or proof.get("scope_fingerprint") != "sha256:" + _sha(scope)
                 or ("solver_query" in proof and proof.get("solver_query_fingerprint")

@@ -12,7 +12,7 @@ from importlib.metadata import version
 import capstone
 from capstone import arm64
 
-CAPABILITY_VERSION = "arm64-m0-integer-memory-2"
+CAPABILITY_VERSION = "arm64-m0-integer-memory-eqne-3"
 CAPABILITY_MATRIX_REF = f"capability://{CAPABILITY_VERSION}"
 PINNED_CAPSTONE_VERSION = "5.0.9"
 CAPSTONE_PACKAGE_VERSION = version("capstone")
@@ -27,7 +27,8 @@ BRANCH_OPS = frozenset({"b", "cbz", "cbnz", "tbz", "tbnz", "ret"})
 MEMORY_OPS = frozenset({
     "ldr", "str", "ldrb", "ldrh", "strb", "strh", "ldrsb", "ldrsh", "ldrsw",
 })
-SUPPORTED_OPS = INTEGER_OPS | BRANCH_OPS | MEMORY_OPS | {"nop"}
+CONDITIONAL_OPS = frozenset({"cmp", "csel", "csinc", "cinc", "cset"})
+SUPPORTED_OPS = INTEGER_OPS | BRANCH_OPS | MEMORY_OPS | CONDITIONAL_OPS | {"nop"}
 _UNSIGNED_BITFIELD_OPS = frozenset({"ubfm", "ubfx", "ubfiz", "lsl", "lsr", "uxtb", "uxth", "uxtw"})
 
 
@@ -62,6 +63,83 @@ def _bitfield_register_index(name: str, width: int) -> int | None:
         return 31
     match = re.fullmatch(prefix + r"([0-9]|[12][0-9]|30)", name)
     return int(match[1]) if match is not None else None
+
+
+def eqne_instruction_encoding(instruction) -> dict | None:
+    """Cross-check a bounded CMP/EQ-NE select against the actual ISA word.
+
+    CMP is SUBS with a zero-register destination, an unshifted immediate or
+    unshifted same-width register.  Select aliases retain the *raw* condition;
+    CINC/CSET spell its inverse.  This does not accept conditional branches.
+    """
+    raw = bytes(instruction.bytes)
+    if len(raw) != 4 or instruction.writeback:
+        return None
+    word = int.from_bytes(raw, "little")
+    width = 64 if word & (1 << 31) else 32
+    operands, mnemonic = instruction.operands, instruction.mnemonic.lower()
+    if any(op.shift.type != arm64.ARM64_SFT_INVALID or op.shift.value != 0
+           or op.ext != arm64.ARM64_EXT_INVALID for op in operands):
+        return None
+
+    def registers_match(indices) -> bool:
+        return len(operands) == len(indices) and all(
+            op.type == arm64.ARM64_OP_REG
+            and _bitfield_register_index(instruction.reg_name(op.reg), width) == index
+            for op, index in zip(operands, indices, strict=True))
+
+    immediate = word & 0x7FC0001F == 0x7100001F
+    register = word & 0x7FE0FC1F == 0x6B00001F
+    if immediate or register:
+        if (mnemonic != "cmp" or not instruction.update_flags
+                or instruction.cc != arm64.ARM64_CC_INVALID or len(operands) != 2):
+            return None
+        left = (word >> 5) & 31
+        if (operands[0].type != arm64.ARM64_OP_REG
+                or _bitfield_register_index(instruction.reg_name(operands[0].reg), width) != left):
+            return None
+        encoding = {"raw_opcode": "CMP", "width": width, "left_index": left,
+                    "decoded_alias": "cmp"}
+        if immediate:
+            # In this encoding register 31 means SP/WSP, not a zero register.
+            value = (word >> 10) & 4095
+            if left == 31 or operands[1].type != arm64.ARM64_OP_IMM or operands[1].imm != value:
+                return None
+            encoding["right_immediate"] = value
+        else:
+            right = (word >> 16) & 31
+            if (operands[1].type != arm64.ARM64_OP_REG
+                    or _bitfield_register_index(instruction.reg_name(operands[1].reg), width) != right):
+                return None
+            encoding["right_index"] = right
+        return encoding
+
+    if word & 0x7FE00800 != 0x1A800000 or instruction.update_flags:
+        return None
+    condition = (word >> 12) & 15
+    if condition not in (0, 1):
+        return None
+    increment = bool(word & (1 << 10))
+    destination, left, right = word & 31, (word >> 5) & 31, (word >> 16) & 31
+    inverted = mnemonic in {"cinc", "cset"}
+    if instruction.cc != (condition ^ int(inverted)) + 1:
+        return None
+    if mnemonic == "csel":
+        valid = not increment and registers_match([destination, left, right])
+    elif mnemonic == "csinc":
+        valid = increment and registers_match([destination, left, right])
+    elif mnemonic == "cinc":
+        valid = increment and left == right and registers_match([destination, left])
+    elif mnemonic == "cset":
+        valid = increment and left == right == 31 and registers_match([destination])
+    else:
+        return None
+    if not valid:
+        return None
+    return {"raw_opcode": "CSINC" if increment else "CSEL", "width": width,
+            "destination_index": destination, "true_index": left, "false_index": right,
+            "condition": "EQ" if condition == 0 else "NE", "condition_code": condition,
+            "decoded_alias": mnemonic, "alias_condition_inverted": inverted}
 
 
 def _bitfield_decode_matches(instruction, encoding: dict) -> bool:
@@ -115,16 +193,24 @@ def instruction_capability(instruction) -> dict:
     mnemonic = instruction.mnemonic.lower()
     reason = None
     bitfield = None
+    conditional = None
+    raw = bytes(instruction.bytes)
+    word = int.from_bytes(raw, "little") if len(raw) == 4 else -1
+    conditional_family = word >= 0 and (
+        word & 0x7F00001F in {0x7100001F, 0x6B00001F}
+        or word & 0x1FE00000 == 0x1A800000)
     if mnemonic not in SUPPORTED_OPS:
         reason = "opcode_not_in_exact_subset"
+    elif mnemonic in CONDITIONAL_OPS or conditional_family:
+        conditional = eqne_instruction_encoding(instruction)
+        if conditional is None:
+            reason = "eqne_raw_encoding_or_decoding_mismatch"
     elif instruction.update_flags or instruction.cc not in (arm64.ARM64_CC_INVALID, arm64.ARM64_CC_AL):
         reason = "nzcv_state_not_modeled"
     elif instruction.writeback:
         reason = "memory_writeback_not_modeled"
     elif mnemonic == "nop" and instruction.bytes != bytes.fromhex("1f2003d5"):
         reason = "only_architectural_nop_encoding_supported"
-    raw = bytes(instruction.bytes)
-    word = int.from_bytes(raw, "little") if len(raw) == 4 else -1
     if word >= 0 and word & 0x7F800000 == 0x53000000:
         bitfield = unsigned_bitfield_encoding(word)
         if bitfield is None:
@@ -169,6 +255,7 @@ def instruction_capability(instruction) -> dict:
         "semantic_capability_id": f"{CAPABILITY_VERSION}/{mnemonic if supported else 'unsupported/' + mnemonic}",
         "reason": reason,
         "unsigned_bitfield": bitfield,
+        "eqne_conditionals": conditional,
     }
 
 
@@ -190,6 +277,8 @@ def describe_capabilities() -> dict:
             "restriction": (
                 "normal byte memory in declared fixed valid regions; base+displacement; no writeback"
                 if opcode in MEMORY_OPS else
+                "raw-checked unshifted CMP defines NZCV; EQ/NE CSEL/CSINC aliases require a preceding CMP on each path"
+                if opcode in CONDITIONAL_OPS else
                 "local direct branch; NZCV conditions unsupported" if opcode in BRANCH_OPS else
                 "unsigned UBFM raw sf/N/immr/imms checked against decoded operands; bounded extract/insert"
                 if opcode in {"ubfm", "ubfx", "ubfiz"} else
@@ -197,7 +286,8 @@ def describe_capabilities() -> dict:
             ),
         } for opcode in sorted(SUPPORTED_OPS)],
         "unsupported_features": [
-            "NZCV", "calls", "unresolved indirect jumps", "exclusive monitors",
+            "NZCV beyond reviewed CMP and EQ/NE selects", "NZCV conditional branches",
+            "entry/return NZCV observation", "calls", "unresolved indirect jumps", "exclusive monitors",
             "atomics", "barriers", "PAC", "BTI", "MTE", "SVE", "SME",
             "floating point", "NEON", "exceptions", "TLS", "MMIO",
             "unclosed or budget-exhausted paths", "C++ source recovery",

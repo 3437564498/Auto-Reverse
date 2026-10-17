@@ -131,8 +131,8 @@ def actual_ndk():
 def assert_complete_matrix(report):
     assert report["errors"] == []
     assert report["status"] == "PASS" and report["subset_matrix_passed"]
-    assert report["completeness"]["expected_cases"] == 27
-    assert report["completeness"]["matched_cases"] == 27
+    assert report["completeness"]["expected_cases"] == 36
+    assert report["completeness"]["matched_cases"] == 36
     assert not report["full_m0_s_exit_satisfied"]
     assert not report["whole_library_equivalence"]
     assert not report["execution_policy"]["target_or_candidate_executed"]
@@ -141,6 +141,16 @@ def assert_complete_matrix(report):
         assert build["command"]["cleanup"]["compiler_reaped"]
         assert build["command"]["cleanup"]["process_group_stopped_confirmed"]
     cases = {c["id"]: c for c in report["cases"]}
+    assert {name: cases[name]["actual_status"] for name in (
+        "eqne_select64", "eqne_select32", "eqne_csinc32", "eqne_cinc_wrap64", "eqne_cset32",
+        "eqne_condition_changed", "eqne_cset_changed", "eqne_undefined_flags", "eqne_unsupported_lt",
+    )} == {
+        "eqne_select64": "EXACT_EQUIVALENT", "eqne_select32": "EXACT_EQUIVALENT",
+        "eqne_csinc32": "EXACT_EQUIVALENT", "eqne_cinc_wrap64": "EXACT_EQUIVALENT",
+        "eqne_cset32": "EXACT_EQUIVALENT", "eqne_condition_changed": "DIFFERENT",
+        "eqne_cset_changed": "DIFFERENT", "eqne_undefined_flags": "UNKNOWN",
+        "eqne_unsupported_lt": "UNKNOWN",
+    }
     assert cases["callee_saved_changed"]["actual_status"] == "DIFFERENT"
     witness = cases["callee_saved_changed"]["verification"]["counterexample"]["observations"]
     assert witness["original"]["registers"]["x19"] != witness["candidate"]["registers"]["x19"]

@@ -68,7 +68,11 @@ jobs:
           AUTO_REVERSE_TEST_NDK_ROOT: ${{ github.workspace }}/work/tools/android-ndk-r27c
           GHIDRA_HOME: ${{ github.workspace }}/work/tools/ghidra_11.3.2_PUBLIC
           JAVA_HOME: ${{ github.workspace }}/work/tools/jdk-21.0.8+9
-        run: pytest -q
+        run: |
+          AUTO_REVERSE_TEST_CMAKE="$(command -v cmake)"
+          test -x "$AUTO_REVERSE_TEST_CMAKE"
+          export AUTO_REVERSE_TEST_CMAKE
+          pytest -q
       - name: Upload static evidence even on classification failure
         if: always()
         uses: actions/upload-artifact@v4

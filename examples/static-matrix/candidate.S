@@ -226,4 +226,103 @@ indirect_branch:
     br x1
 .size indirect_branch, .-indirect_branch
 
+
+.balign 4
+.global eqne_select64
+.type eqne_select64, %function
+eqne_select64:
+    eor x4, x0, x1
+    mov x0, x3
+    cbnz x4, 1f
+    mov x0, x2
+1:
+    ret
+.size eqne_select64, .-eqne_select64
+
+.balign 4
+.global eqne_select32
+.type eqne_select32, %function
+eqne_select32:
+    eor w4, w0, w1
+    mov w0, w3
+    cbz w4, 1f
+    mov w0, w2
+1:
+    ret
+.size eqne_select32, .-eqne_select32
+
+.balign 4
+.global eqne_csinc32
+.type eqne_csinc32, %function
+eqne_csinc32:
+    eor w4, w0, w1
+    cbnz w4, 1f
+    mov w0, w2
+    b 2f
+1:
+    add w0, w3, #1
+2:
+    ret
+.size eqne_csinc32, .-eqne_csinc32
+
+.balign 4
+.global eqne_cinc_wrap64
+.type eqne_cinc_wrap64, %function
+eqne_cinc_wrap64:
+    cbnz x0, 1f
+    add x0, x1, #1
+    b 2f
+1:
+    mov x0, x1
+2:
+    ret
+.size eqne_cinc_wrap64, .-eqne_cinc_wrap64
+
+.balign 4
+.global eqne_cset32
+.type eqne_cset32, %function
+eqne_cset32:
+    cbnz w0, 1f
+    mov w0, #0
+    ret
+1:
+    mov w0, #1
+    ret
+.size eqne_cset32, .-eqne_cset32
+
+.balign 4
+.global eqne_condition_changed
+.type eqne_condition_changed, %function
+eqne_condition_changed:
+    cmp x0, #0
+    csel x0, x1, x2, ne
+    ret
+.size eqne_condition_changed, .-eqne_condition_changed
+
+.balign 4
+.global eqne_cset_changed
+.type eqne_cset_changed, %function
+eqne_cset_changed:
+    cmp w0, #0
+    cset w0, ne
+    ret
+.size eqne_cset_changed, .-eqne_cset_changed
+
+.balign 4
+.global eqne_undefined_flags
+.type eqne_undefined_flags, %function
+eqne_undefined_flags:
+    csel x0, x1, x2, eq
+    ret
+.size eqne_undefined_flags, .-eqne_undefined_flags
+
+.balign 4
+.global eqne_unsupported_lt
+.type eqne_unsupported_lt, %function
+eqne_unsupported_lt:
+    cmp x0, #0
+    csel x0, x1, x2, lt
+    ret
+.size eqne_unsupported_lt, .-eqne_unsupported_lt
+
 .section .note.GNU-stack,"",%progbits
