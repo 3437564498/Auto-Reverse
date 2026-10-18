@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "matrix_id": "ndk-r27c-aarch64-m0-static-ror-3",
+  "matrix_id": "ndk-r27c-aarch64-m0-static-logical-flags-4",
   "scope": "supplied micro-function entry pairs, declared register/byte-memory observations and external RET boundary",
   "full_m0_s_exit_satisfied": false,
   "source_kind": "versioned trusted assembler fixtures; no candidate/model-supplied build options",
@@ -22,11 +22,11 @@
   "sources": {
     "original": {
       "file": "original.S",
-      "sha256": "6533839e113c3ed4029ce1da3437ce4bcf00ffd3ae4f82ea925b1ebed7281a04"
+      "sha256": "30096f2128f823cc5687956132bf62e73faac45a7221903b9a47dd6b32be51df"
     },
     "candidate": {
       "file": "candidate.S",
-      "sha256": "050d06ca9224c853f5285709bbc56fad3bc999130828f49dde66acd2899bbd0f"
+      "sha256": "f107475f29119cac4f1ace8709bbdae566abc02687e85427e5d344dcb76289cb"
     }
   },
   "cases": [
@@ -588,6 +588,102 @@
       "expected_status": "UNKNOWN",
       "contract": {},
       "expected_reason": "original_or_candidate_has_unsupported_opcode"
+    },
+    {
+      "id": "ands_result32_equal",
+      "symbol": "ands_result32_equal",
+      "category": "logical-flags",
+      "expected_status": "EXACT_EQUIVALENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "ands_repeated_mask64_equal",
+      "symbol": "ands_repeated_mask64_equal",
+      "category": "logical-flags",
+      "expected_status": "EXACT_EQUIVALENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "tst_select32_equal",
+      "symbol": "tst_select32_equal",
+      "category": "logical-flags",
+      "expected_status": "EXACT_EQUIVALENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "ands_snapshot_branch_equal",
+      "symbol": "ands_snapshot_branch_equal",
+      "category": "logical-flags",
+      "expected_status": "EXACT_EQUIVALENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "ands_replaces_cmp_equal",
+      "symbol": "ands_replaces_cmp_equal",
+      "category": "logical-flags",
+      "expected_status": "EXACT_EQUIVALENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "ands_condition_changed",
+      "symbol": "ands_condition_changed",
+      "category": "logical-flags",
+      "expected_status": "DIFFERENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "ands_result_mask_changed",
+      "symbol": "ands_result_mask_changed",
+      "category": "logical-flags",
+      "expected_status": "DIFFERENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "ands_width_changed",
+      "symbol": "ands_width_changed",
+      "category": "logical-flags",
+      "expected_status": "DIFFERENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "flags_branch_undefined",
+      "symbol": "flags_branch_undefined",
+      "category": "logical-flags",
+      "expected_status": "UNKNOWN",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "flags_bc_unsupported",
+      "symbol": "flags_bc_unsupported",
+      "category": "logical-flags",
+      "expected_status": "UNKNOWN",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "flags_backward_unsupported",
+      "symbol": "flags_backward_unsupported",
+      "category": "logical-flags",
+      "expected_status": "UNKNOWN",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "ands_reserved_immediate",
+      "symbol": "ands_reserved_immediate",
+      "category": "logical-flags",
+      "expected_status": "UNKNOWN",
+      "contract": {},
+      "expected_reason": null
     }
   ]
 }

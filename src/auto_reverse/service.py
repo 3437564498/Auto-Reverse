@@ -53,7 +53,7 @@ class RecoveryService:
                 "ghidra": "Pinned 11.3.2; configured by trusted host path; export is evidence",
                 "ndk": "Pinned r27c; configured by trusted host path; compile/link only",
                 "recovery": "Restricted unsigned integer leaves and bounded forward CFG; partial A1 maximum; original ABI unknown",
-                "machine_conditions": "Raw-checked unshifted CMP and EQ/NE CSEL/CSINC aliases; path-local defined flags required; other conditions and flags updates remain unsupported",
+                "machine_conditions": "Raw-checked CMP, ANDS logical immediate and TST alias; EQ/NE selects and strictly forward local conditional branches require path-local defined NZCV; other conditions and flags updates remain unsupported",
                 "source_safety": "Independent finite unsigned CFG grammar, initialization and declared-bit availability; current reports revalidated without compilers; whole-library UB proof remains unknown",
                 "candidate_validation": "Trusted host queue; independent build and function proof",
                 "selection": "Best available local candidates; unintegrated collection; whole-library quality unknown",

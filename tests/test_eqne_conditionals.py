@@ -156,7 +156,7 @@ def test_full_width_nzcv_formula_is_not_a_sample_only_claim(width):
 def test_each_feasible_path_must_define_flags():
     original = code(cbz(64, 0, 8), cmp_imm(64, 1),
                     select(64, left=31, right=31, increment=True), RET)
-    assert semantics.verify_machine_code(original, original)["semantic"]["reason"] == "nzcv_read_before_supported_compare"
+    assert semantics.verify_machine_code(original, original)["semantic"]["reason"] == "nzcv_read_before_supported_definition"
     report = semantics.verify_machine_code(original, original,
         preconditions=[{"register": "x0", "operator": "ne", "value": 0}])
     assert report["semantic"]["status"] == "EXACT_EQUIVALENT"

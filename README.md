@@ -8,7 +8,7 @@
 
 流水线使用确定性静态生成器，模型调用数为零。DSH 账本、插件和 SDK 离线接线已实现；用户暂时无法提供真实 DSH 模型环境，该项保持未验收。当前进度与 V1 剩余范围见 [实施记录](docs/implementation-status.md)。
 
-[PR #11](https://github.com/3437564498/Auto-Reverse/pull/11) 已合并到 `main`，[有限无环条件源码恢复](docs/acyclic-recovery.md)、独立 CFG 安全审计和 current 纯重验的 GitHub 固定工具完整验收为 **2889 passed、0 skipped、0 failed**。本批补强 [ROR 独立 ISA 与 helper 验收](docs/ror-acceptance.md)，集中在 [待审核更新](https://github.com/3437564498/Auto-Reverse/pulls)。各增量的来源、验收和限制见 [实施记录](docs/implementation-status.md)，当前远端 Checks 与可审核状态以活动 PR 为准。
+[PR #12](https://github.com/3437564498/Auto-Reverse/pull/12) 已合并到 `main`，[ROR 独立 ISA 与 helper 验收](docs/ror-acceptance.md)的 GitHub 固定工具完整回归为 **3298 passed、0 skipped、0 failed**。本批增加 [ANDS 与局部 EQ/NE 条件分支](docs/logical-flags.md)，保留原有观察范围并对真实 64 位旋转 helper 重新证明，集中在 [待审核更新](https://github.com/3437564498/Auto-Reverse/pulls)。各增量的来源、验收和限制见 [实施记录](docs/implementation-status.md)，当前远端 Checks 与可审核状态以活动 PR 为准。
 
 ## 开发与运行
 
@@ -83,6 +83,8 @@ npm run preflight
 | [DSH 专项调研](docs/main-child-agent-DSH-RESEARCH.md) | 固定源码能力、32 路联动配置、插件扩展和生命周期 |
 | [证据与声明契约](docs/evidence-contracts.md) | 辅助交付消费、原始 DWARF 核验、版本冻结与当前限制 |
 | [有限条件机器模型](docs/machine-conditions.md) | CMP、EQ/NE 条件选择、原始编码核验及观察边界 |
+| [ANDS 与局部条件分支](docs/logical-flags.md) | 逻辑立即数、完整内部 NZCV、前向 B.EQ/B.NE 与当前证明 |
+| [ROR 独立验收](docs/ror-acceptance.md) | 位排列 oracle、真实 helper 编译及高位/编码边界 |
 | [无环条件源码恢复](docs/acyclic-recovery.md) | 有界前向 CFG 生成、独立安全审计与当前工程证据 |
 | [实际编译的布局依赖](docs/layout-dependencies.md) | 类型作用域、宿主编译期断言、跨 TU 一致性及源码归档重建 |
 | [自动静态工程流水线](docs/static-project-pipeline.md) | 输入 `.so`、持久接续、多模块工程、最终字节验证与交付读取 |
@@ -103,4 +105,4 @@ npm run preflight
 
 M0-S 静态语义与 M0-R DSH 受控运行两项原型的完整退出条件尚未全部通过；通过后重新冻结 MVP 子集、工期、成本和验收门槛。性能数字是待校准研发目标，不能解释为 Android `.so` 实测成功率。
 
-更新日期：2026-10-16（Asia/Singapore）。
+更新日期：2026-10-18（Asia/Singapore）。

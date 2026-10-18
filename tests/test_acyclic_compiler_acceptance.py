@@ -373,7 +373,7 @@ def test_recompiled_choices_and_wrap_have_independent_raw_constant_oracles(compi
     ("select_zero64", "O0", None),
     ("forward_bit63_64", "O2", "if ((x & 1ULL) == 0ULL) { return y + 7ULL; } return y - 3ULL;"),
 ])
-def test_unsupported_lt_tst_and_uncontracted_o0_remain_unknown(compiler_acceptance, symbol, optimization, body):
+def test_lt_o0_and_tst_keep_distinct_machine_and_source_boundaries(compiler_acceptance, symbol, optimization, body):
     if body is None:
         original = compiler_acceptance.original(symbol, optimization)
     else:
@@ -393,7 +393,16 @@ def test_unsupported_lt_tst_and_uncontracted_o0_remain_unknown(compiler_acceptan
                                         parameter_widths=widths, return_width=64)
     assert lifted["status"] == "UNKNOWN" and lifted["source"] is None, lifted
     report = prove(original, original)
-    assert report["semantic"]["status"] == "UNKNOWN", report
+    if body is not None:
+        # TST-immediate machine support does not add a source-generation
+        # grammar. Check its actual compiled behavior against a flag-free
+        # raw reference, rather than accepting only a same-byte comparison.
+        assert report["semantic"]["status"] == "EXACT_EQUIVALENT", report
+        oracle = {"code": words(tbz(0, 0, 12), 0xD1000C20, RET, 0x91001C20, RET),
+                  "address": 0x9000}
+        assert_exact(original, oracle)
+    else:
+        assert report["semantic"]["status"] == "UNKNOWN", report
     assert not any(item["kind"] == "valid_normal_memory_regions" for item in report["semantic"]["assumptions"])
 
 

@@ -189,7 +189,7 @@ def test_zero_destination_discards_write_without_mutating_stack_pointer():
 def test_initial_undefined_flags_cannot_become_implicit_shared_inputs(consumer):
     report = compare(consumer + RET)
     assert report["semantic"]["status"] == "UNKNOWN"
-    assert "nzcv_read_before_supported_compare" in report["semantic"]["reason"]
+    assert "nzcv_read_before_supported_definition" in report["semantic"]["reason"]
 
 
 def test_missing_compare_on_one_feasible_path_is_unknown_but_excluded_path_is_not():

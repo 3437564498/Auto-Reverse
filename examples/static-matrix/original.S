@@ -406,4 +406,126 @@ ror_unreachable_reserved:
     ret
 .size ror_unreachable_reserved, .-ror_unreachable_reserved
 
+// ANDS immediate and local EQ/NE B.cond: flags, writes and rejection scope.
+.balign 4
+.global ands_result32_equal
+.type ands_result32_equal, %function
+ands_result32_equal:
+    ands w0, w1, #63
+    ret
+.size ands_result32_equal, .-ands_result32_equal
+
+.balign 4
+.global ands_repeated_mask64_equal
+.type ands_repeated_mask64_equal, %function
+ands_repeated_mask64_equal:
+    ands x0, x1, #0x3f0000003f
+    ret
+.size ands_repeated_mask64_equal, .-ands_repeated_mask64_equal
+
+.balign 4
+.global tst_select32_equal
+.type tst_select32_equal, %function
+tst_select32_equal:
+    tst w1, #63
+    cset w0, ne
+    ret
+.size tst_select32_equal, .-tst_select32_equal
+
+.balign 4
+.global ands_snapshot_branch_equal
+.type ands_snapshot_branch_equal, %function
+ands_snapshot_branch_equal:
+    ands w8, w1, #63
+    mov w8, #0
+    b.eq 1f
+    mov w0, #2
+    ret
+1:
+    mov w0, #1
+    ret
+.size ands_snapshot_branch_equal, .-ands_snapshot_branch_equal
+
+.balign 4
+.global ands_replaces_cmp_equal
+.type ands_replaces_cmp_equal, %function
+ands_replaces_cmp_equal:
+    cmp x0, #0
+    tst w1, #63
+    b.eq 1f
+    mov w0, #2
+    ret
+1:
+    mov w0, #1
+    ret
+.size ands_replaces_cmp_equal, .-ands_replaces_cmp_equal
+
+.balign 4
+.global ands_condition_changed
+.type ands_condition_changed, %function
+ands_condition_changed:
+    tst w1, #63
+    b.eq 1f
+    mov w0, #2
+    ret
+1:
+    mov w0, #1
+    ret
+.size ands_condition_changed, .-ands_condition_changed
+
+.balign 4
+.global ands_result_mask_changed
+.type ands_result_mask_changed, %function
+ands_result_mask_changed:
+    ands w0, w1, #63
+    ret
+.size ands_result_mask_changed, .-ands_result_mask_changed
+
+.balign 4
+.global ands_width_changed
+.type ands_width_changed, %function
+ands_width_changed:
+    ands w0, w1, #63
+    ret
+.size ands_width_changed, .-ands_width_changed
+
+.balign 4
+.global flags_branch_undefined
+.type flags_branch_undefined, %function
+flags_branch_undefined:
+    b.eq 1f
+    mov w0, #2
+    ret
+1:
+    mov w0, #1
+    ret
+.size flags_branch_undefined, .-flags_branch_undefined
+
+.balign 4
+.global flags_bc_unsupported
+.type flags_bc_unsupported, %function
+flags_bc_unsupported:
+    .inst 0x54000050
+    ret
+    ret
+.size flags_bc_unsupported, .-flags_bc_unsupported
+
+.balign 4
+.global flags_backward_unsupported
+.type flags_backward_unsupported, %function
+flags_backward_unsupported:
+    1:
+    tst w1, #63
+    b.eq 1b
+    ret
+.size flags_backward_unsupported, .-flags_backward_unsupported
+
+.balign 4
+.global ands_reserved_immediate
+.type ands_reserved_immediate, %function
+ands_reserved_immediate:
+    .inst 0x7240fc20
+    ret
+.size ands_reserved_immediate, .-ands_reserved_immediate
+
 .section .note.GNU-stack,"",%progbits

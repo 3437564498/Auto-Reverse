@@ -44,6 +44,7 @@ def test_changed_fixture_refuses_acceptance(tmp_path):
     (lambda m: m["cases"][0]["contract"].update(arbitrary_flags=["-plugin"]), "frozen case"),
     (lambda m: m.update(cases=[c for c in m["cases"] if c["category"] != "branch"]), "categories"),
     (lambda m: m.update(cases=[c for c in m["cases"] if c["category"] != "ror"]), "categories"),
+    (lambda m: m.update(cases=[c for c in m["cases"] if c["category"] != "logical-flags"]), "categories"),
     (lambda m: m["cases"].pop(0), "symbol inventory"),
     (lambda m: m.update(full_m0_s_exit_satisfied=True), "manifest"),
 ])
@@ -132,8 +133,8 @@ def actual_ndk():
 def assert_complete_matrix(report):
     assert report["errors"] == []
     assert report["status"] == "PASS" and report["subset_matrix_passed"]
-    assert report["completeness"]["expected_cases"] == 48
-    assert report["completeness"]["matched_cases"] == 48
+    assert report["completeness"]["expected_cases"] == 60
+    assert report["completeness"]["matched_cases"] == 60
     assert not report["full_m0_s_exit_satisfied"]
     assert not report["whole_library_equivalence"]
     assert not report["execution_policy"]["target_or_candidate_executed"]
@@ -153,6 +154,19 @@ def assert_complete_matrix(report):
         "eqne_unsupported_lt": "UNKNOWN",
     }
     assert cases["callee_saved_changed"]["actual_status"] == "DIFFERENT"
+    assert {name: cases[name]["actual_status"] for name in (
+        "ands_result32_equal", "ands_repeated_mask64_equal", "tst_select32_equal",
+        "ands_snapshot_branch_equal", "ands_replaces_cmp_equal", "ands_condition_changed",
+        "ands_result_mask_changed", "ands_width_changed", "flags_branch_undefined",
+        "flags_bc_unsupported", "flags_backward_unsupported", "ands_reserved_immediate",
+    )} == {
+        "ands_result32_equal": "EXACT_EQUIVALENT", "ands_repeated_mask64_equal": "EXACT_EQUIVALENT",
+        "tst_select32_equal": "EXACT_EQUIVALENT", "ands_snapshot_branch_equal": "EXACT_EQUIVALENT",
+        "ands_replaces_cmp_equal": "EXACT_EQUIVALENT", "ands_condition_changed": "DIFFERENT",
+        "ands_result_mask_changed": "DIFFERENT", "ands_width_changed": "DIFFERENT",
+        "flags_branch_undefined": "UNKNOWN", "flags_bc_unsupported": "UNKNOWN",
+        "flags_backward_unsupported": "UNKNOWN", "ands_reserved_immediate": "UNKNOWN",
+    }
     assert {name: cases[name]["actual_status"] for name in (
         "ror_variable64_equal", "ror_variable32_equal", "ror_immediate64_equal",
         "ror_immediate32_equal", "ror_zero64_equal", "ror_zero32_equal", "ror_amount_changed",
