@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "matrix_id": "ndk-r27c-aarch64-m0-static-eqne-2",
+  "matrix_id": "ndk-r27c-aarch64-m0-static-ror-3",
   "scope": "supplied micro-function entry pairs, declared register/byte-memory observations and external RET boundary",
   "full_m0_s_exit_satisfied": false,
   "source_kind": "versioned trusted assembler fixtures; no candidate/model-supplied build options",
@@ -22,11 +22,11 @@
   "sources": {
     "original": {
       "file": "original.S",
-      "sha256": "7aabe928aa6fdc0e3d35a52d87f79f7f746eb3f54e7c6b9da8b4f561a538afcc"
+      "sha256": "6533839e113c3ed4029ce1da3437ce4bcf00ffd3ae4f82ea925b1ebed7281a04"
     },
     "candidate": {
       "file": "candidate.S",
-      "sha256": "dc72701210639ac2c489dc1b14b0784a0e1b000c4b413557eef57585d44ecc95"
+      "sha256": "050d06ca9224c853f5285709bbc56fad3bc999130828f49dde66acd2899bbd0f"
     }
   },
   "cases": [
@@ -492,6 +492,102 @@
       "expected_status": "UNKNOWN",
       "contract": {},
       "expected_reason": null
+    },
+    {
+      "id": "ror_variable64_equal",
+      "symbol": "ror_variable64_equal",
+      "category": "ror",
+      "expected_status": "EXACT_EQUIVALENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "ror_variable32_equal",
+      "symbol": "ror_variable32_equal",
+      "category": "ror",
+      "expected_status": "EXACT_EQUIVALENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "ror_immediate64_equal",
+      "symbol": "ror_immediate64_equal",
+      "category": "ror",
+      "expected_status": "EXACT_EQUIVALENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "ror_immediate32_equal",
+      "symbol": "ror_immediate32_equal",
+      "category": "ror",
+      "expected_status": "EXACT_EQUIVALENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "ror_zero64_equal",
+      "symbol": "ror_zero64_equal",
+      "category": "ror",
+      "expected_status": "EXACT_EQUIVALENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "ror_zero32_equal",
+      "symbol": "ror_zero32_equal",
+      "category": "ror",
+      "expected_status": "EXACT_EQUIVALENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "ror_amount_changed",
+      "symbol": "ror_amount_changed",
+      "category": "ror",
+      "expected_status": "DIFFERENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "ror_direction_changed",
+      "symbol": "ror_direction_changed",
+      "category": "ror",
+      "expected_status": "DIFFERENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "ror_width_changed",
+      "symbol": "ror_width_changed",
+      "category": "ror",
+      "expected_status": "DIFFERENT",
+      "contract": {},
+      "expected_reason": null
+    },
+    {
+      "id": "ror_reserved_original",
+      "symbol": "ror_reserved_original",
+      "category": "ror",
+      "expected_status": "UNKNOWN",
+      "contract": {},
+      "expected_reason": "original_or_candidate_has_unsupported_opcode"
+    },
+    {
+      "id": "ror_reserved_candidate",
+      "symbol": "ror_reserved_candidate",
+      "category": "ror",
+      "expected_status": "UNKNOWN",
+      "contract": {},
+      "expected_reason": "original_or_candidate_has_unsupported_opcode"
+    },
+    {
+      "id": "ror_unreachable_reserved",
+      "symbol": "ror_unreachable_reserved",
+      "category": "ror",
+      "expected_status": "UNKNOWN",
+      "contract": {},
+      "expected_reason": "original_or_candidate_has_unsupported_opcode"
     }
   ]
 }

@@ -43,6 +43,7 @@ def test_changed_fixture_refuses_acceptance(tmp_path):
     (lambda m: m["cases"].append(dict(m["cases"][0])), "duplicate"),
     (lambda m: m["cases"][0]["contract"].update(arbitrary_flags=["-plugin"]), "frozen case"),
     (lambda m: m.update(cases=[c for c in m["cases"] if c["category"] != "branch"]), "categories"),
+    (lambda m: m.update(cases=[c for c in m["cases"] if c["category"] != "ror"]), "categories"),
     (lambda m: m["cases"].pop(0), "symbol inventory"),
     (lambda m: m.update(full_m0_s_exit_satisfied=True), "manifest"),
 ])
@@ -131,8 +132,8 @@ def actual_ndk():
 def assert_complete_matrix(report):
     assert report["errors"] == []
     assert report["status"] == "PASS" and report["subset_matrix_passed"]
-    assert report["completeness"]["expected_cases"] == 36
-    assert report["completeness"]["matched_cases"] == 36
+    assert report["completeness"]["expected_cases"] == 48
+    assert report["completeness"]["matched_cases"] == 48
     assert not report["full_m0_s_exit_satisfied"]
     assert not report["whole_library_equivalence"]
     assert not report["execution_policy"]["target_or_candidate_executed"]
@@ -152,6 +153,19 @@ def assert_complete_matrix(report):
         "eqne_unsupported_lt": "UNKNOWN",
     }
     assert cases["callee_saved_changed"]["actual_status"] == "DIFFERENT"
+    assert {name: cases[name]["actual_status"] for name in (
+        "ror_variable64_equal", "ror_variable32_equal", "ror_immediate64_equal",
+        "ror_immediate32_equal", "ror_zero64_equal", "ror_zero32_equal", "ror_amount_changed",
+        "ror_direction_changed", "ror_width_changed", "ror_reserved_original",
+        "ror_reserved_candidate", "ror_unreachable_reserved",
+    )} == {
+        "ror_variable64_equal": "EXACT_EQUIVALENT", "ror_variable32_equal": "EXACT_EQUIVALENT",
+        "ror_immediate64_equal": "EXACT_EQUIVALENT", "ror_immediate32_equal": "EXACT_EQUIVALENT",
+        "ror_zero64_equal": "EXACT_EQUIVALENT", "ror_zero32_equal": "EXACT_EQUIVALENT",
+        "ror_amount_changed": "DIFFERENT", "ror_direction_changed": "DIFFERENT",
+        "ror_width_changed": "DIFFERENT", "ror_reserved_original": "UNKNOWN",
+        "ror_reserved_candidate": "UNKNOWN", "ror_unreachable_reserved": "UNKNOWN",
+    }
     witness = cases["callee_saved_changed"]["verification"]["counterexample"]["observations"]
     assert witness["original"]["registers"]["x19"] != witness["candidate"]["registers"]["x19"]
     for case in report["cases"]:
