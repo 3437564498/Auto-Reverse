@@ -18,7 +18,7 @@ ROR 的结果第 k 位来自输入的第 `(k + r) mod width` 位。独立 oracle
 
 编译验收使用实际打包的头文件、固定 NDK r27c、正常 O2 C++ 和既有构建入口，不以 asm、volatile 或特殊优化参数迫使输出。每份 ELF 都提取新函数字节，与独立原始 ISA word 参考程序比较，并保留编译器、工具链、运行库、源码、头文件、ELF、函数和清理证据。编译通过不替代机器证明；Clang 输出不支持形式时仍为 UNKNOWN。
 
-实际 r27c O2 的 `ror<uint64_t>(x,n)` 保留 ANDS 与 B.EQ 的零移位分支，现有机器 profile 不支持这些形式，所以该完整编译函数保留 UNKNOWN。直接原始 RORV X 的独立 ISA 义务和固定矩阵仍可单独通过。32 位变量 helper 和受支持的立即数 helper 另按各自新字节验收，不能把它们的结果替代 64 位变量 helper。
+实际 r27c O2 的 `ror<uint64_t>(x,n)` 保留 ANDS 与 B.EQ 的零移位分支。在本 ROR 验收提交的旧 profile 中，这个完整函数保留 UNKNOWN，历史记录不改写。后续 [ANDS 与局部 EQ/NE 分支增量](logical-flags.md) 专门核验这两种形式后，以新的实际编译字节和新模型证明该 helper，不复用旧 UNKNOWN 或其他函数的结果。
 
 普通 `uint32_t` 返回的源码只规定低 32 位。特别是旋转零位的身份函数，Clang 可以只生成 RET；原始 W 指令则会清零 X0 高半，两者在完整 X0 观察下可能 DIFFERENT。需要表达完整 W 写入时，使用实际 `write_w(ror<uint32_t>(...))` 返回 uint64 位模式，并保留普通 uint32 身份包装器的实际反例。不得以缩小初始域、放宽观察集合或调用 ABI 假设隐藏这个差异。
 

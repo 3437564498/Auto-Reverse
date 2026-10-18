@@ -35,9 +35,7 @@ def verification_identity(proof):
     }, sort_keys=True).encode())
 
 
-@pytest.fixture
-def certificate(tmp_path):
-    raw = bytes.fromhex("5f0003ebe0179f9ac0035fd6")  # CMP X2,X3; CSET X0,EQ; RET.
+def certificate_for_code(tmp_path, raw):
     binary = bytearray(build_elf(symbol_size=len(raw)))
     binary[0x400:0x400 + len(raw)] = raw
     objects = ArtifactStore(tmp_path / "evidence")
@@ -66,6 +64,12 @@ def certificate(tmp_path):
     service = CandidateSelectionService.__new__(CandidateSelectionService)
     service.objects = objects
     return service, proof, report, gate, frozen, row
+
+
+@pytest.fixture
+def certificate(tmp_path):
+    # CMP X2,X3; CSET X0,EQ; RET.
+    return certificate_for_code(tmp_path, bytes.fromhex("5f0003ebe0179f9ac0035fd6"))
 
 
 def checked(certificate):

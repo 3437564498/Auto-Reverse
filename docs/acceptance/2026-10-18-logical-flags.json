@@ -1,0 +1,279 @@
+{
+  "schema_version": 1,
+  "kind": "raw_logical_immediate_flags_and_local_eqne_branch_acceptance",
+  "recorded_date": "2026-10-18",
+  "timezone": "Asia/Singapore",
+  "model_profile": "arm64-m0-integer-memory-eqne-ands-4",
+  "base_implementation_commit": "36c8da7d7bcb52464b25203d473a0bf460aa3cf0",
+  "source_fingerprints": {
+    "src/auto_reverse/capabilities.py": "3c0c515e27bb693fd5010d97f7b5165062941933e8d8eb0bb992b5c7b7309556",
+    "src/auto_reverse/semantics.py": "743da4ff71f0ed1ef7c8708c7e1848b39875a9ea0cf7403cddadba3568315fe9",
+    "src/auto_reverse/candidate_selection.py": "c11d52df6ba966c32b876f5ba3c2a43cec7353dfdc3518fedb89af48c33ed930",
+    "src/auto_reverse/service.py": "bc4ebce3edca3d2425a5ce43475408d2eaaf1cf6eaec3488030ae2e5b99d461f",
+    "tests/test_logical_flags.py": "39f1c27ca7a951151575cbb2340bf654613035548913f98dd29f2655ca735b38",
+    "tests/test_logical_flags_adversarial.py": "6cc2e61351204228ced7a657177903d1554120cf4535b1e0ebda1a7ab6d08c85",
+    "tests/test_logical_flags_compiler_acceptance.py": "899ed983ce1d94c6c1e019fd594026a4e7f2f6552b44f47d07199e8cd35ab766",
+    "tests/test_logical_flags_proof_boundary.py": "0f433910b92ee65e07bb914a1a8a956247b62ed77de63d890d39bf1d31683150",
+    "tests/test_ror_compiler_acceptance.py": "d1c9df944f226859cfb1d4487e4b7d4c018b96a2136eff29a605042bf5c5c081",
+    "tests/test_acyclic_compiler_acceptance.py": "fa9c79e51428e7954effc3a4be916164c9ff2108e071e9c4f56b9630282d21e2",
+    "tests/test_eqne_proof_boundary.py": "97594549ddc80aaa40ede515fe589066cbc45d5082d9708077cb34fa5b9d6061",
+    "tests/test_eqne_conditionals.py": "2f6f52756d3af7ddc6b84cdfeeb39b96131bc874efbf90c1e6d0a34c13d62426",
+    "tests/test_eqne_conditionals_adversarial.py": "6fcadaaf2a4070b84d8c3f62c15d1772d4793ee38e4c8c8865074d1b84b6b2cb",
+    "scripts/run_static_acceptance.py": "2c622fd61a15275fc42f65e82a67564a8cd1ad48971a1b6b47380369dea40ac7",
+    "tests/test_static_acceptance.py": "9182600f58dfe83e4ed3619f253ebf0ab9a01062ad37e046ac478bd3d85c4005",
+    "examples/static-matrix/manifest.json": "bcf1e4413536da7e16587e21d9da047db95b558b549b81f92475c6fa67adff37",
+    "examples/static-matrix/original.S": "30096f2128f823cc5687956132bf62e73faac45a7221903b9a47dd6b32be51df",
+    "examples/static-matrix/candidate.S": "f107475f29119cac4f1ace8709bbdae566abc02687e85427e5d344dcb76289cb"
+  },
+  "all_frozen_production_modules": {
+    "src/auto_reverse/__init__.py": "58f35f53ea13ca2357707cd1001d607b2a1b9b703ff5c7cb31f19182cbf57f16",
+    "src/auto_reverse/abi.py": "900a6268c00b7cdfb7d855490225d3806e2ddcff996111ca678e9c47e833c74e",
+    "src/auto_reverse/abi_contracts.py": "330030cd7b2dab4168c7825d14c8c91dfefe2b4bed557e839da0314b4ee7fb15",
+    "src/auto_reverse/analysis_service.py": "0b15220e819f3099848ab5ba0c5043f4412c0e7573e53b3c21fb7eeb16f8a19b",
+    "src/auto_reverse/android_profile.py": "84288f9663d713ac30c3dd06210569b9253babe433b8c8d1df55f21e4857ced3",
+    "src/auto_reverse/artifacts.py": "d66f853d1b0cba20ffe89761edf725c06d7a061806e803aaf705f12fbf21c571",
+    "src/auto_reverse/backend_rpc.py": "e83a50a7eac5c28e690c5336069eb3f3da86c5b54166e7cdb5f309a8718b1dac",
+    "src/auto_reverse/build_gate.py": "2411e76ebed3ea0ba28d658ae024245a1c9600f22aadf45f083c442f9aed46be",
+    "src/auto_reverse/candidate_layout.py": "17548369d84b1d560ac29944cd6443fa5a1e7f07d23d815eabc529fd4405f245",
+    "src/auto_reverse/candidate_selection.py": "c11d52df6ba966c32b876f5ba3c2a43cec7353dfdc3518fedb89af48c33ed930",
+    "src/auto_reverse/candidate_validation.py": "a1383ca1bf97666756a15abe8e0f2c5bb5a3df433cae5610e90e4b7500ae30fc",
+    "src/auto_reverse/capabilities.py": "3c0c515e27bb693fd5010d97f7b5165062941933e8d8eb0bb992b5c7b7309556",
+    "src/auto_reverse/cli.py": "19e4bfaeea9a6bab19520bb0b6d371d96664a9378f361aba29c3771c669a5387",
+    "src/auto_reverse/contracts.py": "e89a7e5593e6b6637c229c2f8f99258bc3696e69fb26e6a04cc542f88b81991d",
+    "src/auto_reverse/domain.py": "83d5a1a6c552a87d9246f796be833ee78e2d320de26dfeea21ce691667e894e5",
+    "src/auto_reverse/dwarf_layout.py": "5a214e403a3e93f6781f22080d683c73f01448a75adb3e9f20fd607d1fb8f8d7",
+    "src/auto_reverse/evidence_delivery.py": "a69e5cae1c2491fa89d5be7f6edb98e35fff810f7dc23811525c5176faa6e96e",
+    "src/auto_reverse/final_report.py": "e7dfd9ca3e9c6e401116e25b7f991440aa3914ef6c105f2753c4331256b9e35a",
+    "src/auto_reverse/ghidra.py": "28325a72ac144ed7f7c2a57ba86b6842a9eb38a5b3644039585163d00b540116",
+    "src/auto_reverse/host_reconcile.py": "3f2655b3af6b1124986e006a013480fa0eb73157a100e25465c99c432a404b73",
+    "src/auto_reverse/intake.py": "b08729df5a482c12cac0214fa6cc08462f09c069bd4a2cb888784d6aaaf38ee7",
+    "src/auto_reverse/layout_contracts.py": "13323667bf421cfda42d1e44149c73b06f3840e92fef3b382c246256ee54a4fd",
+    "src/auto_reverse/layout_dependencies.py": "350168a8edb9dd6395ed1586a407f1449a9b5c43ce2a956a56a14e092638a579",
+    "src/auto_reverse/library_inventory.py": "f258c2652b305e9b89836440a484e8d90d7be162eeb0aaf3ab9277ca6afa9162",
+    "src/auto_reverse/mcp_server.py": "25aef5c01ac8e07152f455e45294c6c3e23d8f5a992569d03f2473c656ca9ec8",
+    "src/auto_reverse/postprocessing.py": "445a9b03236cc63a38f4a28b3f170e9ea3e803fa868b8dcb51f6a5d342111773",
+    "src/auto_reverse/project_archive.py": "65d83d99c4db561153410835af1abfed51dd940e4d064003e9341d7bda75d143",
+    "src/auto_reverse/project_build.py": "8eb5e7d057e2f1e7a2c4f55fe5e0ca9beca89b80e7ffeacb90cf85544d724dce",
+    "src/auto_reverse/project_service.py": "8620254894f88cf56087d1fd49416c2a6d598d3a6fbc7d85b7b1b2d38e6d2e61",
+    "src/auto_reverse/project_verification.py": "ed9623704539edb671e88cc0ce7682f19523c64a359cb3b482e0424358b408c7",
+    "src/auto_reverse/recovery.py": "46b84e2fe2a36274e64dd05b799d02db095ef0f056e630b850f610e318e8293b",
+    "src/auto_reverse/recovery_cfg.py": "fbcb59cd392326fe8a7ed55aa36419c71f4a97da972f2885593417993e8b9691",
+    "src/auto_reverse/repair_feedback.py": "eddc8d955fad564d38678d468644fb416d2bafeaa62650e73ecdbf42a5d5dd7b",
+    "src/auto_reverse/scalar_abi.py": "9e34fa06c5ca3c32d0c99422a575400ab63466da469792bf46589a64b7be6807",
+    "src/auto_reverse/semantics.py": "743da4ff71f0ed1ef7c8708c7e1848b39875a9ea0cf7403cddadba3568315fe9",
+    "src/auto_reverse/service.py": "bc4ebce3edca3d2425a5ce43475408d2eaaf1cf6eaec3488030ae2e5b99d461f",
+    "src/auto_reverse/source_cfg_safety.py": "c2ba52bcc0a30fec98a1c904a435d7985b9f44bce5b28dab76c137a83312325e",
+    "src/auto_reverse/source_safety.py": "efd7856a7f4eab7f8120bd6cc71bf785232a5503ca29f05607f518adadeb2e13",
+    "src/auto_reverse/source_signature.py": "bfa3ce16a5e7bc100a531a3f2f59adc9c32f5678034ff3aae7932d1645efdff4",
+    "src/auto_reverse/static_pipeline.py": "512832a1fd2de3729785f35a2613561c763490fae3fef8c87ea3814205192ab5",
+    "src/auto_reverse/type_solver.py": "85b6dba886c4d42206c3e9bfd007c7e77c7871a7760d143ab56490d7765e827e"
+  },
+  "new_tests": {
+    "implementation": 48,
+    "independent_isa_and_adversarial": 190,
+    "actual_compiler": 23,
+    "proof_binding_and_current": 22,
+    "matrix_required_category_guard": 1,
+    "total": 284,
+    "already_included_in_full_regression": true
+  },
+  "fixed_tool_local_full_regression": {
+    "passed": 3582,
+    "skipped": 0,
+    "failed": 0,
+    "warnings": 1,
+    "seconds": 869.36,
+    "log_sha256": "18248b39955fd91ed1ad0d76946ed9ded335f4d35230283adf2d2144fc293fc3"
+  },
+  "actual_compiler_group": {
+    "passed": 97,
+    "skipped": 0,
+    "failed": 0,
+    "warnings": 0,
+    "seconds": 28.41,
+    "log_sha256": "0855e4450773312aa2e68a687151bfc6adb15c62b20f5d176ed662cb25ef6e2a"
+  },
+  "strict_proof_and_actual_current_group": {
+    "passed": 22,
+    "skipped": 0,
+    "failed": 0,
+    "warnings": 0,
+    "seconds": 14.75,
+    "log_sha256": "a876cb7646821f7f0df36c089f60279bf51e003d6836471ad57d0d1b853d5fda"
+  },
+  "existing_acyclic_compiler_compatibility": {
+    "passed": 41,
+    "skipped": 0,
+    "failed": 0,
+    "warnings": 0,
+    "seconds": 15.91,
+    "log_sha256": "afae9c8352da4019f81ef28632acc07b715c8ecba51a19dae818548299e8d340"
+  },
+  "independent_adversarial_group": {
+    "passed": 190,
+    "skipped": 0,
+    "failed": 0,
+    "warnings": 0,
+    "seconds": 1.8,
+    "log_sha256": "fcda31ca76aa421ecf80f4bc5ad518183e3fdce5232e09bfd6f3ffeed4926ac0"
+  },
+  "initial_full_attempt": {
+    "failed": 1,
+    "passed_before_interruption": 347,
+    "interrupted_after_known_failure": true,
+    "seconds": 78.06,
+    "reason": "old TST machine UNKNOWN expectation became obsolete under the new profile; source generation still UNKNOWN; upgraded test adds an independent TBZ/ADD/SUB raw reference; production source unchanged during correction",
+    "log_sha256": "026f22ca79b404ef43aaaf7a690a0531a21f2617ee1382dfda5e931e2937e8df"
+  },
+  "raw_mask_oracle": {
+    "field_combinations": 16384,
+    "w": {
+      "valid_encodings": 3648,
+      "reserved_encodings": 4544,
+      "unique_masks": 1302
+    },
+    "x": {
+      "valid_encodings": 7680,
+      "reserved_encodings": 512,
+      "unique_masks": 5334
+    },
+    "symbolic_result_full_nzcv_and_register_frame_cases": 128,
+    "false_exact_found": false,
+    "fixed_high_pc_signed_target_false_unknown": true
+  },
+  "fresh_compilation": {
+    "fresh_elfs": 55,
+    "compiler_commands": 165,
+    "every_compiler_cleanup_confirmed": true,
+    "compiled_pair_proofs": 83,
+    "EXACT_EQUIVALENT": 44,
+    "DIFFERENT": 37,
+    "UNKNOWN": 2,
+    "unknown_reasons": [
+      "unsupported LT",
+      "memory write without a valid region contract"
+    ],
+    "extra_raw_boundary_unknown_cases": 10,
+    "source_audits_unknown": 4,
+    "ror_counts": {
+      "fresh_elfs": 42,
+      "machine_proofs": 70,
+      "machine_statuses": {
+        "EXACT_EQUIVALENT": 40,
+        "DIFFERENT": 29,
+        "UNKNOWN": 1
+      },
+      "source_audits": 4,
+      "source_audit_statuses": {
+        "UNKNOWN": 4
+      }
+    },
+    "natural_mask_counts": {
+      "fresh_elfs": 13,
+      "machine_proofs": 13,
+      "machine_statuses": {
+        "EXACT_EQUIVALENT": 4,
+        "DIFFERENT": 8,
+        "UNKNOWN": 1
+      }
+    },
+    "helper_sha256": "c762370e632167b104186a745d00351c49e1c8718b0ff243a6548a6a7fb6281a",
+    "header_changed": false,
+    "sysroot_fingerprint_scope": "selected actual API/CRT/header/runtime files, not the entire sysroot",
+    "target_or_candidate_executed": false,
+    "manifests_sha256": {
+      "ror": "c14d8ce8dd551aee214f9fe23e1b0d931d00cc1f7e61cdc9f2cfc2e28c8d2c22",
+      "natural_masks": "42e8c01a939f2369f30de51ef8a48dde2a0822879a90c98f628f36e73495d0b9"
+    }
+  },
+  "fixed_matrix": {
+    "report_sha256": "bcec0f06cd59756284a1f46a52f6d31b210b6ae7aabf9e93849c794787f0a547",
+    "matrix_id": "ndk-r27c-aarch64-m0-static-logical-flags-4",
+    "manifest_sha256": "bcf1e4413536da7e16587e21d9da047db95b558b549b81f92475c6fa67adff37",
+    "completeness": {
+      "expected_cases": 60,
+      "classified_cases": 60,
+      "matched_cases": 60,
+      "both_fixture_inventories_matched": true,
+      "classified_fixture_bytes": {
+        "original": 616,
+        "candidate": 688
+      },
+      "ghidra_requested": true,
+      "global_function_discovery_complete": false
+    },
+    "new_case_statuses": {
+      "EXACT_EQUIVALENT": 5,
+      "DIFFERENT": 3,
+      "UNKNOWN": 4
+    },
+    "target_or_candidate_executed": false
+  },
+  "installed_wheel": {
+    "status": "PASS",
+    "installed_modules": 41,
+    "resource_files": 3,
+    "generated_schemas": 9,
+    "all_package_and_schema_bytes_match": true,
+    "profile": "arm64-m0-integer-memory-eqne-ands-4",
+    "actual_fresh_helper_function_sha256": "2a4e6cf8d5445ef6555560f4db0fb9f075ee2f761c407c908f36a464877020cf",
+    "installed_full_observation_proof": "EXACT_EQUIVALENT",
+    "scope_fingerprint": "sha256:cc99c9ac214a04a940416cac4032040c6f58b86d19fbe0f0cef7909e0b860cdf",
+    "solver_query_fingerprint": "sha256:58d967d596747461c01ac1402f77bc4f2b2d4a9d1d2c2c19e91157cad37dd49a",
+    "tools": {
+      "decoder": {
+        "name": "capstone",
+        "version": "5.0.9",
+        "binding_version": "5.0.7"
+      },
+      "solver": {
+        "name": "z3",
+        "version": "4.15.4"
+      },
+      "model": {
+        "name": "arm64-m0-integer-memory-eqne-ands-4",
+        "implementation_fingerprint": "sha256:743da4ff71f0ed1ef7c8708c7e1848b39875a9ea0cf7403cddadba3568315fe9",
+        "capabilities_fingerprint": "sha256:3c0c515e27bb693fd5010d97f7b5165062941933e8d8eb0bb992b5c7b7309556"
+      }
+    },
+    "compiler_executed_by_wheel_smoke": false,
+    "target_or_candidate_executed": false
+  },
+  "ruff": "PASS",
+  "schema_check": "9 regenerated schemas unchanged and installed wheel byte-exact",
+  "dsh_offline": {
+    "passed": 30,
+    "skipped": 0,
+    "failed": 0,
+    "model_calls": 0,
+    "log_sha256": "06ec4563408d4a98baeb0557a5c66ef386bf93c8de9339ff4e05ad4a3c416ecb"
+  },
+  "branch_guards": {
+    "passed": 13,
+    "skipped": 0,
+    "failed": 0,
+    "log_sha256": "1d2a2a5e76076674c927866fc310836ec139fd22d81f67d68b2466d0f1b789e8"
+  },
+  "current_remote_ci": "PENDING: inspect actual logs for the new commit; previous PR/local results are not current remote acceptance",
+  "boundaries": {
+    "branch_scope": "strictly forward, aligned, decoded words within each complete side extent, checked before pruning",
+    "flags_definitions": [
+      "reviewed unshifted CMP",
+      "reviewed ANDS logical immediate/TST alias"
+    ],
+    "consumers": [
+      "EQ",
+      "NE"
+    ],
+    "entry_flags_defined": false,
+    "boundary_nzcv_observed": false,
+    "source_generator_grammar_expanded": false,
+    "arbitrary_cpp_ub_proof": false,
+    "original_calling_abi_verified": false,
+    "whole_program_equivalence": false,
+    "full_m0_s_exit_satisfied": false,
+    "real_dsh_acceptance_verified": false,
+    "v1_complete": false,
+    "target_or_candidate_executed": false
+  }
+}

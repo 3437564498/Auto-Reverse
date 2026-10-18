@@ -25,6 +25,7 @@ from auto_reverse.source_safety import audit_generated_leaf
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNTIMES = ("c++_shared", "c++_static")
+MODEL_PROFILE = "arm64-m0-integer-memory-eqne-ands-4"
 RET = 0xD65F03C0
 HEADER_ARGUMENT = {
     "scope": "exact-packaged-ror-and-write_w-unsigned32-or-64-helper",
@@ -109,6 +110,7 @@ def assert_full_contract(report, original, candidate):
         assert report["evidence"][side]["fingerprint"] == "sha256:" + sha(case["code"])
     assert report["tools"]["model"]["implementation_fingerprint"] == "sha256:" + sha(Path(semantics.__file__).read_bytes())
     assert report["tools"]["model"]["capabilities_fingerprint"] == "sha256:" + sha(Path(capabilities.__file__).read_bytes())
+    assert report["tools"]["model"]["name"] == MODEL_PROFILE
 
 
 class RorCompiler:
@@ -198,7 +200,7 @@ class RorCompiler:
                                "machine_statuses": dict(Counter(item["proof"]["semantic"]["status"] for item in self.proofs)),
                                "source_audits": len(self.audits),
                                "source_audit_statuses": dict(Counter(item["status"] for item in self.audits))},
-                    "limitations": ["uint64 variable helper compiles to unsupported ANDS and B.EQ",
+                    "limitations": ["ANDS logical-immediate/TST and strictly forward local EQ/NE branches are reviewed; other flags families are not implied",
                                     "naked uint32 zero identity is RET and does not establish full X0 zero extension",
                                     "selected sysroot files are hashed; the entire sysroot is not fingerprinted",
                                     "finite known-header reasoning is not arbitrary C++ UB or calling ABI proof"],
@@ -219,6 +221,7 @@ def ror_compiler(tmp_path_factory):
     ndk = Path(os.environ.get("AUTO_REVERSE_TEST_NDK_ROOT", ROOT / "work/tools/android-ndk-r27c")).absolute()
     if not (ndk / "source.properties").is_file():
         pytest.skip("pinned Android NDK r27c unavailable; real ROR compiler acceptance skipped")
+    assert capabilities.CAPABILITY_VERSION == MODEL_PROFILE, "reviewed logical-flags model is required"
     assert "Pkg.Revision = 27.2.12479018" in (ndk / "source.properties").read_text()
     compiler = RorCompiler(tmp_path_factory.mktemp("ror-real-compiler"), ndk)
     yield compiler
@@ -228,24 +231,24 @@ def ror_compiler(tmp_path_factory):
 @pytest.mark.parametrize("runtime", RUNTIMES)
 @pytest.mark.parametrize("width,amount", [(32, None), (64, None), (32, 0), (32, 1), (32, 31),
                                           (64, 0), (64, 1), (64, 63)])
-def test_actual_helper_bytes_keep_exact_or_fixed_unsupported_classification(ror_compiler, runtime, width, amount):
+def test_actual_helper_bytes_match_independent_isa_under_reviewed_flags_profile(ror_compiler, runtime, width, amount):
     compiled = ror_compiler.build(width, runtime, amount)
     report = ror_compiler.prove(reference(width, amount), compiled, label=compiled["label"])
-    if width == 64 and amount is None:
-        assert_variable_x_compiler_limit(report)
-        return
     assert report["semantic"]["status"] == "EXACT_EQUIVALENT", report
     assert report["semantic"]["solver_result"] == "unsat"
     assert report["semantic"]["precondition_satisfiable"] is True
     assert report["semantic"]["path_coverage_complete_within_bound"] is True
-    if amount is None or amount != 0:
+    assert all(item["capability"]["exact_semantics_supported"] for item in compiled["instructions"])
+    if width == 64 and amount is None:
+        assert {"ands", "b.eq"} <= {item["mnemonic"] for item in compiled["instructions"]}
+    elif amount is None or amount != 0:
         assert any(item["mnemonic"] == "ror" for item in compiled["instructions"])
 
 
 @pytest.mark.parametrize("runtime", RUNTIMES)
 @pytest.mark.parametrize("width", [32, 64])
 @pytest.mark.parametrize("amount_kind", ["zero", "one", "last", "width", "width_plus_one", "all_ones"])
-def test_actual_variable_helper_boundary_proofs_keep_compiler_limits(ror_compiler, runtime, width, amount_kind):
+def test_actual_variable_helper_boundary_proofs_match_independent_permutations(ror_compiler, runtime, width, amount_kind):
     amount = {"zero": 0, "one": 1, "last": width - 1, "width": width,
               "width_plus_one": width + 1, "all_ones": (1 << 64) - 1}[amount_kind]
     # Include a high incoming source half even for W. Only low W bits rotate;
@@ -264,9 +267,6 @@ def test_actual_variable_helper_boundary_proofs_keep_compiler_limits(ror_compile
     report = ror_compiler.prove(compiled, oracle, label=compiled["label"] + "-" + amount_kind,
                                 preconditions=[{"register": "x0", "op": "eq", "value": source},
                                                {"register": "x1", "op": "eq", "value": amount}])
-    if width == 64:
-        assert_variable_x_compiler_limit(report)
-        return
     assert report["semantic"]["status"] == "EXACT_EQUIVALENT", report
     assert report["semantic"]["precondition_satisfiable"] is True
     assert report["semantic"]["solver_result"] == "unsat"
@@ -284,26 +284,15 @@ def test_defined_same_public_type_compiler_mutations_have_counterexamples(ror_co
     assert report["counterexample"] is not None
 
 
-def assert_variable_x_compiler_limit(report):
-    assert report["semantic"]["status"] == "UNKNOWN", report
-    assert report["semantic"]["solver_result"] == "not_run"
-    unsupported = {item["opcode"] for item in report["semantic"]["unsupported_operations"]}
-    assert {"ands", "b.eq"} <= unsupported
-    assert report["counterexample"] is None
-
-
 @pytest.mark.parametrize("runtime", RUNTIMES)
 @pytest.mark.parametrize("width", [32, 64])
 @pytest.mark.parametrize("mutation", ["amount", "direction", "width"])
-def test_variable_mutations_keep_actual_supported_difference_or_compiler_gap(ror_compiler, runtime, width, mutation):
+def test_defined_variable_mutations_have_machine_counterexamples(ror_compiler, runtime, width, mutation):
     original = ror_compiler.build(width, runtime)
     mutated = ror_compiler.build(width, runtime, mutation=mutation)
     report = ror_compiler.prove(original, mutated, label=mutated["label"])
-    if width == 32 and mutation in {"amount", "direction"}:
-        assert report["semantic"]["status"] == "DIFFERENT", report
-        assert report["semantic"]["solver_result"] == "sat" and report["counterexample"] is not None
-    else:
-        assert_variable_x_compiler_limit(report)
+    assert report["semantic"]["status"] == "DIFFERENT", report
+    assert report["semantic"]["solver_result"] == "sat" and report["counterexample"] is not None
 
 
 @pytest.mark.parametrize("runtime", RUNTIMES)

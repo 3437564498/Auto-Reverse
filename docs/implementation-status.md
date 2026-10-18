@@ -1,6 +1,6 @@
 # 实施状态与验收边界
 
-更新：2026-10-18（Asia/Singapore）。设计基线为 [V1 主方案](android-arm64-so-cpp-recovery-V1.md)。`main` 已合并 PR #11（`ed46fc0`），有限无环条件源码生成、独立 CFG 审计与当前安全证据重验已进入主分支。本批补强既有 ROR 的独立 ISA、实际 packaged helper 与固定矩阵验收，集中在 [待审核更新](https://github.com/3437564498/Auto-Reverse/pulls) 的活动 PR。各验收数字对应下文明确的代码范围，当前 Checks 与可审核状态以活动 PR 页面为准。
+更新：2026-10-18（Asia/Singapore）。设计基线为 [V1 主方案](android-arm64-so-cpp-recovery-V1.md)。`main` 已合并 PR #12（`17d7b08`），ROR 独立 ISA 与实际 helper 验收已进入主分支。本批增加原始编码核验的 ANDS logical-immediate/TST 与局部前向 B.EQ/B.NE，集中在 [待审核更新](https://github.com/3437564498/Auto-Reverse/pulls) 的活动 PR。各验收数字对应下文明确的代码范围，当前 Checks 与可审核状态以活动 PR 页面为准。
 
 **完整 V1、M0-S、M0-R 和 M1 的完整退出条件尚未全部验收。** 本批将原有单候选验证扩展为可恢复的自动静态工程流水线，最高交付真实编译的局部 A1。用户暂时无法提供真实 DSH 模型环境，该项保留未验收；确定性静态生成、注入 Provider 和 SDK 离线预检均不计作真实模型验收。
 
@@ -18,7 +18,7 @@
 | 候选签名 | 由固定 Clang 实际 AST 与类型探针提取候选参数和返回类型，对比当前可信标量约束 | 歧义、扩展类型、未知属性与不支持声明不给匹配通过；候选自报类型无权威 |
 | 受限源码生成 | 旧有类型整数叶输出保持；新增 CMP/EQ-NE 选择及有限前向 B/CBZ/TBZ CFG，统一 carrier、路径汇合初始化/高位与 flags 检查 | 只覆盖 unsigned32/64 有界 profile；环、调用、内存恢复、其他 flags/条件与通用 C++ 继续未知 |
 | 独立源码安全与 current | 独立解析源码 CFG/类型/初始化及原始高位可用性，重建实际 byte/span/CFG 绑定；工程与 FINAL 纯重验当前 staged source、契约、布局材料和实现 | 匹配 UNKNOWN 仍可局部 A1；审计不自动证明机器等价、原调用 ABI 或全库 UB，详见[无环恢复](acyclic-recovery.md) |
-| 条件机器语义 | 原始编码核验的无移位 CMP、EQ/NE CSEL/CSINC 及反条件 CINC/CSET 别名；路径独立 NZCV、32/64 位回绕与 W 零扩展 | 缺有效 CMP、LT/HI、B.cond、其他 flags 更新仍 UNKNOWN；有限条件生成另见无环恢复，机器范围详见[条件机器模型](machine-conditions.md) |
+| 条件机器语义 | 原始编码 CMP、ANDS logical-immediate/TST、EQ/NE 选择及严格前向局部 B.cond；路径独立 NZCV、32/64 回绕与 W 零扩展 | LT/HI、BC、后向条件分支、寄存器 ANDS、其他 flags 更新仍 UNKNOWN；生成语法与调用 ABI 不扩大，详见[新 flags 边界](logical-flags.md) |
 | 工程物化 | 当前所选源码分成独立翻译单元，生成受控公共声明，固定 NDK 真实编译与联合链接 | 不复制原机器码、不补空实现；缺少内部实现或声明冲突时保留失败/未知 |
 | 最终产物验证 | 对最终联合 ELF 的实际字节逐个重新做局部 SMT，独立比较原库完整导出与依赖结构 | 不复用单候选证明替代最终证明；局部 EXACT 不提升为整库通过 |
 | 源码工程归档 | 确定性 ZIP 包含实际源码、受控头文件、CMake 和公开报告；可用固定 NDK 重新编译 | ZIP 不包含原库、目标 `.so`、对象文件、私有账本或运行凭据；重建后须重新验证 |
@@ -89,7 +89,7 @@ SQLite/CAS 持有 Job、DAG、租约、Attempt、回执、Outbox、32 个共享 
 
 PR #11 的冻结实现提交 `0a1bdc9` 已在 [GitHub 固定工具完整 CI](https://github.com/3437564498/Auto-Reverse/actions/runs/39051357897) 实际通过 **2889 passed、0 skipped、0 failed**（1040.63 秒，1 条既有警告）；36 场景矩阵、全部工程/布局/条件 guarded TU、ZIP 新路径重建及新字节证明与[证据上传](https://github.com/3437564498/Auto-Reverse/actions/runs/39051357897/artifacts/12108296050)均通过。[普通 CI](https://github.com/3437564498/Auto-Reverse/actions/runs/39051357911) 为 2164 passed、725 项工具缺失 skip（107.85 秒），Ruff/Schema、DSH 离线 30 与分支守卫 13 项通过。PR 已合并 `ed46fc0`，旧开发分支已清理；冻结快照中的远端 pending 表示提交时状态，最终远端结果以这里关联的同一提交日志为准。
 
-本批 ROR 验收新增 **409 项测试**（334 独立 ISA、74 实际 helper 编译、1 矩阵分类守卫），本地分组实际通过独立 ISA 334 项、真实编译 74 项与矩阵 15 项，去重共 **423 passed、0 skipped、0 failed**；其中包括既有矩阵测试，数字不重复累加。真实固定 NDK/Ghidra CLI 完整矩阵 **48/48** 符合预期，新增 12 个 ROR 场景为 6 EXACT、3 DIFFERENT、3 UNKNOWN。实际 packaged helper 生成 **42 份新 ELF**，70 个完整机器比较为 **26 EXACT、21 DIFFERENT、23 UNKNOWN**；另 4 份任意 helper 源码安全审计保留 UNKNOWN。64 位变量 helper 的实际 ANDS/B.EQ 编译形态超出 profile（22 个机器 UNKNOWN），另 1 个 UNKNOWN 来自缺失内存区域契约；不扩展生产语义或修改头文件来迫使通过。uint32 零旋转身份 RET 的两份高半反例保留，显式 write_w 的 uint64 返回另行验证。126 次工具命令均确认清理，41 生产模块与 3 资源字节和 main 完全一致。独立审查的 994 个非空域 UNSAT 与 94 个不可行分区分列，不加入 pytest 数量。详见 [ROR 边界](ror-acceptance.md)及[冻结验收](acceptance/2026-10-18-ror-independent.json)。当前收集 3298 个测试，但本地重点组合不替代全量；本批完整远端 CI 仍待当前提交的实际日志。
+本批 ROR 验收新增 **409 项测试**（334 独立 ISA、74 实际 helper 编译、1 矩阵分类守卫），本地分组实际通过独立 ISA 334 项、真实编译 74 项与矩阵 15 项，去重共 **423 passed、0 skipped、0 failed**；其中包括既有矩阵测试，数字不重复累加。真实固定 NDK/Ghidra CLI 完整矩阵 **48/48** 符合预期，新增 12 个 ROR 场景为 6 EXACT、3 DIFFERENT、3 UNKNOWN。实际 packaged helper 生成 **42 份新 ELF**，70 个完整机器比较为 **26 EXACT、21 DIFFERENT、23 UNKNOWN**；另 4 份任意 helper 源码安全审计保留 UNKNOWN。64 位变量 helper 的实际 ANDS/B.EQ 编译形态超出 profile（22 个机器 UNKNOWN），另 1 个 UNKNOWN 来自缺失内存区域契约；不扩展生产语义或修改头文件来迫使通过。uint32 零旋转身份 RET 的两份高半反例保留，显式 write_w 的 uint64 返回另行验证。126 次工具命令均确认清理，41 生产模块与 3 资源字节和 main 完全一致。独立审查的 994 个非空域 UNSAT 与 94 个不可行分区分列，不加入 pytest 数量。详见 [ROR 边界](ror-acceptance.md)及[冻结验收](acceptance/2026-10-18-ror-independent.json)。该冻结提交随后已通过 [PR #12 固定工具完整远端 CI](https://github.com/3437564498/Auto-Reverse/actions/runs/39104858560)：**3298 passed、0 skipped、0 failed**（1091.11 秒，1 条既有警告），48 场景矩阵、全部工程/布局/条件/ZIP 样例及[证据上传](https://github.com/3437564498/Auto-Reverse/actions/runs/39104858560/artifacts/12128098943)通过。[普通 CI](https://github.com/3437564498/Auto-Reverse/actions/runs/39104858429) 为 2499 passed、799 项工具缺失 skip（81.59 秒），Ruff/Schema、DSH 离线 30 和分支守卫 13 项通过。这些结果验收 `36c8da7`，不替代后续 ANDS 模型增量的完整验收。
 
 真实 CLI 样例保留 5 个原始导出、11 个已发现函数范围和 216 字节可执行分母，恢复并集成 2 个 unsigned32/64 函数；浮点、访存、全局量、初始化继续形成缺口。Ghidra 导出 54 条指令并独立核对原始字节，同目录恢复无新增任务、事件或工具活动，所有资源清理确认。源码 ZIP 解包后 CMake 重建，再对新构建绑定下的 2 个函数重新证明 EXACT，未复用历史证明。详细记录见 [工程流水线样例](acceptance/2026-10-15-project-pipeline.json)。
 
@@ -117,6 +117,8 @@ npm run preflight
 本批将 [固定工具静态验收 workflow](../.github/workflows/static-acceptance.yml) 接入 PR 自动检查：当 `src/`、`tests/`、`scripts/`、`toolchains/`、`schemas/` 或该 workflow 变化时自动触发，用户无需手动 dispatch。该 job 下载并校验固定 NDK/Ghidra/JDK，安装 CMake 3.31.6，执行静态矩阵、证据契约样例、自动工程 ZIP 重建与新字节证明样例、11 场景候选结构布局、原始布局事务，以及实际布局依赖的两 TU/ZIP/新字节证明样例，再使用真实工具环境运行完整 Python 测试，并上传静态证据。远端是否实际成功须以当前提交的 PR Checks 为准，不预先记作通过。
 
 历史结果保持原文件：[候选验收](acceptance/2026-10-14-validation.json)、[修复与分支验收](acceptance/2026-10-14-feedback.json)、[证据与声明验收](acceptance/2026-10-14-evidence-contract.json)。这些结果对应各自冻结代码，不能直接作为本批新增模块已验收的结论。
+
+当前本地模型增量限定 ANDS logical-immediate/TST 与严格前向局部 B.EQ/B.NE。实现 48 项、独立对抗 190 项、实际编译 97 项、proof/current 22 项及兼容编译 41 项均已实际通过；实际编译 55 份新 ELF，83 个比较为 44 EXACT、37 DIFFERENT、2 UNKNOWN，另 10 raw 边界及 4 源码安全审计 UNKNOWN。高地址 Capstone signed 目标导致的误拒已修复。初轮完整回归的旧 TST 未知断言失败后中断（1 failed、347 passed、78.06 秒），已保留并补独立 TBZ/ADD/SUB 参考；完整源码生成边界未扩大。固定 NDK/Ghidra 矩阵为 60/60，独立安装 wheel 的 41 模块/3 资源/9 Schema 与新 helper 机器证明通过，DSH 离线 30 与分支守卫 13 项通过。冻结源码后的固定 NDK/Ghidra/JDK/CMake 完整本地回归实际为 **3582 passed、0 skipped、0 failed**（869.36 秒，1 条既有警告），新增 **284 项**已包含其中（48 实现、190 独审、23 编译、22 证明/current、1 矩阵守卫）。最初失败过程与最终输入、实现和工具绑定见[本批冻结验收](acceptance/2026-10-18-logical-flags.json)。本批新的远端完整结果仍须核对当前提交的实际日志，不以本地或旧 PR 代替。
 
 ## V1 尚未通过的范围
 

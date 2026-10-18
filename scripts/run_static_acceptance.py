@@ -78,7 +78,7 @@ def read_manifest(fixture_dir: Path = FIXTURES) -> dict:
         ids.add(symbol)
     required = {"integer64", "integer32", "branch", "memory64", "memory32", "signed-memory",
                 "invalid-memory", "empty-domain", "abi-observation", "unsupported", "unclosed-path",
-                "eqne-conditional", "ror"}
+                "eqne-conditional", "ror", "logical-flags"}
     if not required <= {case.get("category") for case in cases}:
         raise ValueError("acceptance matrix is missing required categories")
     for source in manifest["sources"].values():

@@ -20,8 +20,9 @@ import z3
 from capstone import arm64
 
 from .capabilities import (
-    CAPABILITY_MATRIX_REF, CAPABILITY_VERSION, CAPSTONE_PACKAGE_VERSION, CONDITIONAL_OPS,
-    INTEGER_OPS, MEMORY_OPS, PINNED_CAPSTONE_VERSION, eqne_instruction_encoding,
+    CAPABILITY_MATRIX_REF, CAPABILITY_VERSION, CAPSTONE_PACKAGE_VERSION, CONDITIONAL_BRANCH_OPS,
+    CONDITIONAL_OPS, INTEGER_OPS, LOGICAL_FLAG_OPS, MEMORY_OPS, PINNED_CAPSTONE_VERSION,
+    ands_immediate_encoding, eqne_branch_encoding, eqne_instruction_encoding,
     instruction_capability, register_width, unsigned_bitfield_encoding,
 )
 
@@ -119,9 +120,18 @@ def _structured_operand(instruction, operand) -> dict:
         name = instruction.reg_name(operand.reg)
         return {"kind": "register", "name": name, "width": register_width(name), **common}
     if operand.type == arm64.ARM64_OP_IMM:
+        branch = eqne_branch_encoding(instruction) if instruction.mnemonic in CONDITIONAL_BRANCH_OPS else None
+        if branch is not None:
+            return {"kind": "immediate", "value": str(branch["target"]),
+                    "decoded_value": str(operand.imm), "width": 64, **common}
+        logical_flags = ands_immediate_encoding(instruction) if instruction.mnemonic in LOGICAL_FLAG_OPS else None
+        if logical_flags is not None:
+            return {"kind": "immediate", "value": str(logical_flags["mask"]),
+                    "decoded_value": str(operand.imm), "width": logical_flags["width"],
+                    "bit_pattern": _hex(logical_flags["mask"], logical_flags["width"]), **common}
         first = instruction.operands[0]
         width = register_width(instruction.reg_name(first.reg)) if first.type == arm64.ARM64_OP_REG else 64
-        if instruction.mnemonic in {"b", "cbz", "cbnz", "tbz", "tbnz"}:
+        if instruction.mnemonic in {"b", "cbz", "cbnz", "tbz", "tbnz"} or instruction.mnemonic.startswith(("b.", "bc.")):
             width = 64
         return {"kind": "immediate", "value": str(operand.imm), "width": width, **common}
     if operand.type == arm64.ARM64_OP_MEM:
@@ -140,7 +150,7 @@ def _control_flow(instruction) -> dict:
         return {"kind": "return", "register": instruction.reg_name(instruction.operands[0].reg)
             if instruction.operands else "x30", "successors": []}
     fallthrough = _hex(instruction.address + 4)
-    if mnemonic in {"b", "cbz", "cbnz", "tbz", "tbnz"}:
+    if mnemonic in {"b", "cbz", "cbnz", "tbz", "tbnz"} or mnemonic.startswith(("b.", "bc.")):
         target = _hex(instruction.operands[-1].imm)
         return {"kind": "branch", "target": target, "condition": None if mnemonic == "b" else mnemonic,
             "successors": [target] if mnemonic == "b" else [target, fallthrough]}
@@ -158,6 +168,15 @@ def _register_effect(name: str) -> dict:
 
 
 def _instruction_effects(instruction, capability: dict) -> tuple[list, list]:
+    logical_flags = capability.get("logical_immediate_flags")
+    if logical_flags is not None:
+        inputs = [_register_effect(_encoding_register_name(logical_flags["source_index"], logical_flags["width"]))]
+        outputs = [_register_effect("nzcv")]
+        if logical_flags["destination_index"] != 31:
+            outputs.append(_register_effect(_encoding_register_name(logical_flags["destination_index"], logical_flags["width"])))
+        return inputs, outputs
+    if capability.get("eqne_branch") is not None:
+        return [_register_effect("nzcv")], []
     encoding = capability.get("eqne_conditionals")
     if encoding is not None:
         # Capstone 5.0.9 incorrectly marks CMP's first source as written.
@@ -221,6 +240,20 @@ def _decode(code: bytes, address: int, side: str):
             if not capability["exact_semantics_supported"]:
                 unsupported.append({"side": side, "address": _hex(location), "opcode": instruction.mnemonic, "reason": capability["reason"]})
         ir.append(record)
+    # Scope is a property of each entire original/candidate byte extent.  Do
+    # this after all words are decoded, before feasibility or entry traversal,
+    # so an unreachable or apparently untaken escape cannot gain exact support.
+    for record in ir:
+        capability = record["capability"]
+        branch = capability.get("eqne_branch")
+        if branch is not None and branch["target"] not in instructions:
+            reason = "eqne_branch_target_not_in_side_extent"
+            capability.update(analysis_supported=False, exact_semantics_supported=False,
+                              reason=reason,
+                              semantic_capability_id=f"{CAPABILITY_VERSION}/unsupported/{record['opcode'].lower()}")
+            record["semantic_capability_id"] = capability["semantic_capability_id"]
+            unsupported.append({"side": side, "address": record["address"],
+                                "opcode": record["opcode"].lower(), "reason": reason})
     return instructions, ir, unsupported
 
 
@@ -399,6 +432,18 @@ class _Path:
     nzcv: dict | None = None
 
 
+def _logical_flags(instruction, state: _Path):
+    encoding = ands_immediate_encoding(instruction)
+    if encoding is None:
+        raise _Incomplete("ands_logical_immediate_raw_encoding_or_decoding_invalid")
+    width = encoding["width"]
+    source = _read(state.registers, _encoding_register_name(encoding["source_index"], width))
+    result = source & z3.BitVecVal(encoding["mask"], width)
+    _write(state.registers, _encoding_register_name(encoding["destination_index"], width), result)
+    state.nzcv = {"N": z3.Extract(width - 1, width - 1, result) == 1,
+                  "Z": result == 0, "C": z3.BoolVal(False), "V": z3.BoolVal(False)}
+
+
 def _conditional(instruction, state: _Path):
     encoding = eqne_instruction_encoding(instruction)
     if encoding is None:
@@ -420,7 +465,7 @@ def _conditional(instruction, state: _Path):
                       "V": z3.And(left_sign != right_sign, result_sign != left_sign)}
         return
     if state.nzcv is None:
-        raise _Incomplete("nzcv_read_before_supported_compare")
+        raise _Incomplete("nzcv_read_before_supported_definition")
     condition = state.nzcv["Z"] if encoding["condition_code"] == 0 else z3.Not(state.nzcv["Z"])
     true_value, false_value = read(encoding["true_index"]), read(encoding["false_index"])
     if encoding["raw_opcode"] == "CSINC":
@@ -453,21 +498,29 @@ def _lower_paths(instructions, entry, initial, initial_memory, precondition, reg
                     raise _Incomplete("ret_target_may_reenter_declared_code_scope")
                 returned.append((state.condition, dict(state.registers), state.memory, target))
                 break
-            if mnemonic in {"b", "cbz", "cbnz", "tbz", "tbnz"}:
-                target = operands[-1].imm
+            if mnemonic in {"b", "cbz", "cbnz", "tbz", "tbnz"} or mnemonic in CONDITIONAL_BRANCH_OPS:
+                branch = eqne_branch_encoding(instruction) if mnemonic in CONDITIONAL_BRANCH_OPS else None
+                target = branch["target"] if branch is not None else operands[-1].imm
                 if mnemonic == "b":
                     state.pc = target
                     continue
-                value = _read(state.registers, instruction.reg_name(operands[0].reg))
-                if mnemonic in {"cbz", "cbnz"}:
-                    condition = value == 0
+                if mnemonic in CONDITIONAL_BRANCH_OPS:
+                    if branch is None or target not in instructions:
+                        raise _Incomplete("eqne_branch_raw_or_scope_invalid")
+                    if state.nzcv is None:
+                        raise _Incomplete("nzcv_read_before_supported_definition")
+                    condition = state.nzcv["Z"] if branch["condition_code"] == 0 else z3.Not(state.nzcv["Z"])
                 else:
-                    bit = operands[1].imm
-                    if not 0 <= bit < value.size():
-                        raise _Incomplete("branch_bit_out_of_width")
-                    condition = z3.Extract(bit, bit, value) == 0
-                if mnemonic in {"cbnz", "tbnz"}:
-                    condition = z3.Not(condition)
+                    value = _read(state.registers, instruction.reg_name(operands[0].reg))
+                    if mnemonic in {"cbz", "cbnz"}:
+                        condition = value == 0
+                    else:
+                        bit = operands[1].imm
+                        if not 0 <= bit < value.size():
+                            raise _Incomplete("branch_bit_out_of_width")
+                        condition = z3.Extract(bit, bit, value) == 0
+                    if mnemonic in {"cbnz", "tbnz"}:
+                        condition = z3.Not(condition)
                 choices = [(target, z3.And(state.condition, condition)),
                     (state.pc + 4, z3.And(state.condition, z3.Not(condition)))]
                 feasible = [(pc, cond) for pc, cond in choices if _is_feasible(cond, timeout)]
@@ -478,7 +531,9 @@ def _lower_paths(instructions, entry, initial, initial_memory, precondition, reg
                     pending.append(_Path(pc, cond, dict(state.registers), state.memory, state.steps,
                         dict(state.nzcv) if state.nzcv is not None else None))
                 break
-            if mnemonic in CONDITIONAL_OPS:
+            if mnemonic in LOGICAL_FLAG_OPS:
+                _logical_flags(instruction, state)
+            elif mnemonic in CONDITIONAL_OPS:
                 _conditional(instruction, state)
             elif mnemonic in INTEGER_OPS:
                 _integer(instruction, state.registers)
@@ -541,8 +596,8 @@ def verify_machine_code(
                 "unmodeled_processor_state_not_observed": ["FPCR", "FPSR"],
                 "external_calls": "unsupported", "target_execution": False},
             {"kind": "internal_condition_state", "modeled_bits": ["N", "Z", "C", "V"],
-                "definition": "reviewed unshifted CMP only", "consumers": ["EQ", "NE"],
-                "entry_flags": "undefined; a read before a supported CMP on any feasible path is UNKNOWN",
+                "definition": "reviewed unshifted CMP and ANDS logical immediate only", "consumers": ["EQ", "NE"],
+                "entry_flags": "undefined; a read before a supported NZCV definition on any feasible path is UNKNOWN",
                 "boundary_flags_not_observed": True, "scope_limitation": True},
             {"kind": "observation_contract", "registers": list(observed_registers),
                 "return_target": True, "memory": "all-modeled-bytes", "unobserved_registers_are_outside_scope": True,
