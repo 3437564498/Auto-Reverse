@@ -325,4 +325,112 @@ eqne_unsupported_lt:
     ret
 .size eqne_unsupported_lt, .-eqne_unsupported_lt
 
+// ROR family: mask, W zero-extension and reserved raw boundaries.
+.balign 4
+.global ror_variable64_equal
+.type ror_variable64_equal, %function
+ror_variable64_equal:
+    neg x2, x1
+    lsl x3, x0, x2
+    lsr x0, x0, x1
+    orr x0, x0, x3
+    ret
+.size ror_variable64_equal, .-ror_variable64_equal
+
+.balign 4
+.global ror_variable32_equal
+.type ror_variable32_equal, %function
+ror_variable32_equal:
+    neg w2, w1
+    lsl w3, w0, w2
+    lsr w0, w0, w1
+    orr w0, w0, w3
+    ret
+.size ror_variable32_equal, .-ror_variable32_equal
+
+.balign 4
+.global ror_immediate64_equal
+.type ror_immediate64_equal, %function
+ror_immediate64_equal:
+    lsr x2, x0, #63
+    lsl x0, x0, #1
+    orr x0, x0, x2
+    ret
+.size ror_immediate64_equal, .-ror_immediate64_equal
+
+.balign 4
+.global ror_immediate32_equal
+.type ror_immediate32_equal, %function
+ror_immediate32_equal:
+    lsr w2, w0, #31
+    lsl w0, w0, #1
+    orr w0, w0, w2
+    ret
+.size ror_immediate32_equal, .-ror_immediate32_equal
+
+.balign 4
+.global ror_zero64_equal
+.type ror_zero64_equal, %function
+ror_zero64_equal:
+    mov x0, x0
+    ret
+.size ror_zero64_equal, .-ror_zero64_equal
+
+.balign 4
+.global ror_zero32_equal
+.type ror_zero32_equal, %function
+ror_zero32_equal:
+    mov w0, w0
+    ret
+.size ror_zero32_equal, .-ror_zero32_equal
+
+.balign 4
+.global ror_amount_changed
+.type ror_amount_changed, %function
+ror_amount_changed:
+    add x1, x1, #1
+    ror x0, x0, x1
+    ret
+.size ror_amount_changed, .-ror_amount_changed
+
+.balign 4
+.global ror_direction_changed
+.type ror_direction_changed, %function
+ror_direction_changed:
+    ror w0, w0, #31
+    ret
+.size ror_direction_changed, .-ror_direction_changed
+
+.balign 4
+.global ror_width_changed
+.type ror_width_changed, %function
+ror_width_changed:
+    ror w0, w0, #1
+    ret
+.size ror_width_changed, .-ror_width_changed
+
+.balign 4
+.global ror_reserved_original
+.type ror_reserved_original, %function
+ror_reserved_original:
+    mov w0, w1
+    ret
+.size ror_reserved_original, .-ror_reserved_original
+
+.balign 4
+.global ror_reserved_candidate
+.type ror_reserved_candidate, %function
+ror_reserved_candidate:
+    .inst 0x13818020
+    ret
+.size ror_reserved_candidate, .-ror_reserved_candidate
+
+.balign 4
+.global ror_unreachable_reserved
+.type ror_unreachable_reserved, %function
+ror_unreachable_reserved:
+    ror x0, x0, x1
+    ret
+.size ror_unreachable_reserved, .-ror_unreachable_reserved
+
 .section .note.GNU-stack,"",%progbits

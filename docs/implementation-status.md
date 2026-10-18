@@ -1,6 +1,6 @@
 # 实施状态与验收边界
 
-更新：2026-10-18（Asia/Singapore）。设计基线为 [V1 主方案](android-arm64-so-cpp-recovery-V1.md)。`main` 已合并 PR #10（`3a12f5b`），有限 CMP/EQ-NE 机器模型和严格证明绑定已进入主分支。本批实现有限无环条件源码生成、独立 CFG 审计与当前安全证据重验，集中在 [待审核更新](https://github.com/3437564498/Auto-Reverse/pulls) 的活动 PR。各验收数字对应下文明确的代码范围，当前 Checks 与可审核状态以活动 PR 页面为准。
+更新：2026-10-18（Asia/Singapore）。设计基线为 [V1 主方案](android-arm64-so-cpp-recovery-V1.md)。`main` 已合并 PR #11（`ed46fc0`），有限无环条件源码生成、独立 CFG 审计与当前安全证据重验已进入主分支。本批补强既有 ROR 的独立 ISA、实际 packaged helper 与固定矩阵验收，集中在 [待审核更新](https://github.com/3437564498/Auto-Reverse/pulls) 的活动 PR。各验收数字对应下文明确的代码范围，当前 Checks 与可审核状态以活动 PR 页面为准。
 
 **完整 V1、M0-S、M0-R 和 M1 的完整退出条件尚未全部验收。** 本批将原有单候选验证扩展为可恢复的自动静态工程流水线，最高交付真实编译的局部 A1。用户暂时无法提供真实 DSH 模型环境，该项保留未验收；确定性静态生成、注入 Provider 和 SDK 离线预检均不计作真实模型验收。
 
@@ -85,7 +85,11 @@ SQLite/CAS 持有 Job、DAG、租约、Attempt、回执、Outbox、32 个共享 
 
 条件机器模型提交 `6216d0c` 的[固定工具完整 CI](https://github.com/3437564498/Auto-Reverse/actions/runs/39002389361) 已实际通过 **2534 passed、0 skipped、0 failed**（933.12 秒，1 条既有警告），36 场景及全部真实样例、证据上传成功；前批 CMake skip 本轮已执行。普通 CI 为 1887 passed、647 个工具缺失 skip，DSH 离线 30 和分支守卫 13 项通过。PR #10 已合并，完整 V1 仍未完成。
 
-本批有限无环条件恢复新增 **355 项测试**，分别通过：61 恢复核心、49 独立源码 checker、170 raw/source/map 攻击、41 真实编译、20 工程/current/FINAL 和 14 无形状契约的独立工程攻击。生产源码冻结后的本地固定 NDK/Ghidra/JDK/CMake 完整回归为 **2889 passed、0 skipped、0 failed**（854.09 秒，1 条既有警告），新增 355 项已包含其中。独立编译实际产生 38 个新 ELF，六个自然 O2 和七个独立 raw CFG 完成恢复/安全审计/签名/新字节 EXACT，实际条件及常量变异得到 DIFFERENT；LT/TST/O0 等仍 UNKNOWN。条件源码携带布局 guard 的两 TU 工程及 ZIP 新路径重建、新字节证明、当前源码审计、FINAL 和资源归零通过，自动控制器恢复及禁工具续跑通过。独立安装 wheel 的 41 模块、3 资源和 9 Schema 字节一致；聚合 `recover-leaf` 的实际编译与映射跨度、DSH 离线 30 项和分支清理 13 项通过。实际输入、实现指纹与分母见[本批冻结验收](acceptance/2026-10-18-acyclic-recovery.json)。这些是本地实际结果，本批新的 GitHub CI 仍须核对当前提交的日志。
+有限无环条件恢复批次新增 **355 项测试**，分别通过：61 恢复核心、49 独立源码 checker、170 raw/source/map 攻击、41 真实编译、20 工程/current/FINAL 和 14 无形状契约的独立工程攻击。生产源码冻结后的本地固定 NDK/Ghidra/JDK/CMake 完整回归为 **2889 passed、0 skipped、0 failed**（854.09 秒，1 条既有警告），新增 355 项已包含其中。独立编译实际产生 38 个新 ELF，六个自然 O2 和七个独立 raw CFG 完成恢复/安全审计/签名/新字节 EXACT，实际条件及常量变异得到 DIFFERENT；LT/TST/O0 等仍 UNKNOWN。条件源码携带布局 guard 的两 TU 工程及 ZIP 新路径重建、新字节证明、当前源码审计、FINAL 和资源归零通过，自动控制器恢复及禁工具续跑通过。独立安装 wheel 的 41 模块、3 资源和 9 Schema 字节一致；聚合 `recover-leaf` 的实际编译与映射跨度、DSH 离线 30 项和分支清理 13 项通过。实际输入、实现指纹与分母见[本批冻结验收](acceptance/2026-10-18-acyclic-recovery.json)。这些是该冻结提交的本地实际结果，其远端验收见下文 PR #11 的最终结果。
+
+PR #11 的冻结实现提交 `0a1bdc9` 已在 [GitHub 固定工具完整 CI](https://github.com/3437564498/Auto-Reverse/actions/runs/39051357897) 实际通过 **2889 passed、0 skipped、0 failed**（1040.63 秒，1 条既有警告）；36 场景矩阵、全部工程/布局/条件 guarded TU、ZIP 新路径重建及新字节证明与[证据上传](https://github.com/3437564498/Auto-Reverse/actions/runs/39051357897/artifacts/12108296050)均通过。[普通 CI](https://github.com/3437564498/Auto-Reverse/actions/runs/39051357911) 为 2164 passed、725 项工具缺失 skip（107.85 秒），Ruff/Schema、DSH 离线 30 与分支守卫 13 项通过。PR 已合并 `ed46fc0`，旧开发分支已清理；冻结快照中的远端 pending 表示提交时状态，最终远端结果以这里关联的同一提交日志为准。
+
+本批 ROR 验收新增 **409 项测试**（334 独立 ISA、74 实际 helper 编译、1 矩阵分类守卫），本地分组实际通过独立 ISA 334 项、真实编译 74 项与矩阵 15 项，去重共 **423 passed、0 skipped、0 failed**；其中包括既有矩阵测试，数字不重复累加。真实固定 NDK/Ghidra CLI 完整矩阵 **48/48** 符合预期，新增 12 个 ROR 场景为 6 EXACT、3 DIFFERENT、3 UNKNOWN。实际 packaged helper 生成 **42 份新 ELF**，70 个完整机器比较为 **26 EXACT、21 DIFFERENT、23 UNKNOWN**；另 4 份任意 helper 源码安全审计保留 UNKNOWN。64 位变量 helper 的实际 ANDS/B.EQ 编译形态超出 profile（22 个机器 UNKNOWN），另 1 个 UNKNOWN 来自缺失内存区域契约；不扩展生产语义或修改头文件来迫使通过。uint32 零旋转身份 RET 的两份高半反例保留，显式 write_w 的 uint64 返回另行验证。126 次工具命令均确认清理，41 生产模块与 3 资源字节和 main 完全一致。独立审查的 994 个非空域 UNSAT 与 94 个不可行分区分列，不加入 pytest 数量。详见 [ROR 边界](ror-acceptance.md)及[冻结验收](acceptance/2026-10-18-ror-independent.json)。当前收集 3298 个测试，但本地重点组合不替代全量；本批完整远端 CI 仍待当前提交的实际日志。
 
 真实 CLI 样例保留 5 个原始导出、11 个已发现函数范围和 216 字节可执行分母，恢复并集成 2 个 unsigned32/64 函数；浮点、访存、全局量、初始化继续形成缺口。Ghidra 导出 54 条指令并独立核对原始字节，同目录恢复无新增任务、事件或工具活动，所有资源清理确认。源码 ZIP 解包后 CMake 重建，再对新构建绑定下的 2 个函数重新证明 EXACT，未复用历史证明。详细记录见 [工程流水线样例](acceptance/2026-10-15-project-pipeline.json)。
 

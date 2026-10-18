@@ -8,7 +8,7 @@
 
 流水线使用确定性静态生成器，模型调用数为零。DSH 账本、插件和 SDK 离线接线已实现；用户暂时无法提供真实 DSH 模型环境，该项保持未验收。当前进度与 V1 剩余范围见 [实施记录](docs/implementation-status.md)。
 
-[PR #10](https://github.com/3437564498/Auto-Reverse/pull/10) 已合并到 `main`，有限 CMP/EQ-NE 机器模型的 GitHub 固定工具完整验收为 **2534 passed、0 skipped、0 failed**。下一批接通[有限无环条件源码恢复](docs/acyclic-recovery.md)、独立 CFG 安全审计和 current 纯重验，集中在 [待审核更新](https://github.com/3437564498/Auto-Reverse/pulls)。各增量的来源、验收和限制见 [实施记录](docs/implementation-status.md)，当前远端 Checks 与可审核状态以活动 PR 为准。
+[PR #11](https://github.com/3437564498/Auto-Reverse/pull/11) 已合并到 `main`，[有限无环条件源码恢复](docs/acyclic-recovery.md)、独立 CFG 安全审计和 current 纯重验的 GitHub 固定工具完整验收为 **2889 passed、0 skipped、0 failed**。本批补强 [ROR 独立 ISA 与 helper 验收](docs/ror-acceptance.md)，集中在 [待审核更新](https://github.com/3437564498/Auto-Reverse/pulls)。各增量的来源、验收和限制见 [实施记录](docs/implementation-status.md)，当前远端 Checks 与可审核状态以活动 PR 为准。
 
 ## 开发与运行
 

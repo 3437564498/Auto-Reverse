@@ -1,0 +1,216 @@
+{
+  "schema_version": 1,
+  "kind": "ror_independent_isa_and_actual_packaged_helper_acceptance",
+  "recorded_date": "2026-10-18",
+  "timezone": "Asia/Singapore",
+  "base_main_commit": "ed46fc0f33646a8f6ae2dfc92e3287e0e6db83a6",
+  "production_changed": false,
+  "source_fingerprints": {
+    "tests/test_ror_independent.py": "24c488f770492fcc02ebbe61a2123cf3b7ab93dfbc8e238df45cface37fc024e",
+    "tests/test_ror_compiler_acceptance.py": "bfa31c73b8fe36d827e824a54450daf2fd90facdd4ff5c4735bc0b5fc5f59649",
+    "tests/test_static_acceptance.py": "87a27d8fc1304c73dcec8ede24b3eaba022577df6e150d6b9e7c10bfb0e1fbc4",
+    "scripts/run_static_acceptance.py": "de79b79e3c8a79ee3bac563b54853186b0949159802f3f63c1b6d3efda1302b9",
+    "examples/static-matrix/manifest.json": "ab3434a7f76f86ef5f77cf7266fd0f8417179e6437d7c432241bf8806496f494",
+    "examples/static-matrix/original.S": "6533839e113c3ed4029ce1da3437ce4bcf00ffd3ae4f82ea925b1ebed7281a04",
+    "examples/static-matrix/candidate.S": "050d06ca9224c853f5285709bbc56fad3bc999130828f49dde66acd2899bbd0f"
+  },
+  "frozen_production_modules": {
+    "src/auto_reverse/__init__.py": "58f35f53ea13ca2357707cd1001d607b2a1b9b703ff5c7cb31f19182cbf57f16",
+    "src/auto_reverse/abi.py": "900a6268c00b7cdfb7d855490225d3806e2ddcff996111ca678e9c47e833c74e",
+    "src/auto_reverse/abi_contracts.py": "330030cd7b2dab4168c7825d14c8c91dfefe2b4bed557e839da0314b4ee7fb15",
+    "src/auto_reverse/analysis_service.py": "0b15220e819f3099848ab5ba0c5043f4412c0e7573e53b3c21fb7eeb16f8a19b",
+    "src/auto_reverse/android_profile.py": "84288f9663d713ac30c3dd06210569b9253babe433b8c8d1df55f21e4857ced3",
+    "src/auto_reverse/artifacts.py": "d66f853d1b0cba20ffe89761edf725c06d7a061806e803aaf705f12fbf21c571",
+    "src/auto_reverse/backend_rpc.py": "e83a50a7eac5c28e690c5336069eb3f3da86c5b54166e7cdb5f309a8718b1dac",
+    "src/auto_reverse/build_gate.py": "2411e76ebed3ea0ba28d658ae024245a1c9600f22aadf45f083c442f9aed46be",
+    "src/auto_reverse/candidate_layout.py": "17548369d84b1d560ac29944cd6443fa5a1e7f07d23d815eabc529fd4405f245",
+    "src/auto_reverse/candidate_selection.py": "f47eeaa512a60752a39e12c171eace6d093061a56e54ada4495ffccc8fd97d0f",
+    "src/auto_reverse/candidate_validation.py": "a1383ca1bf97666756a15abe8e0f2c5bb5a3df433cae5610e90e4b7500ae30fc",
+    "src/auto_reverse/capabilities.py": "fa5d346d3fe0ccc55b022427a6945f225c66d1a9366d5eb4b0976b39faf35a69",
+    "src/auto_reverse/cli.py": "19e4bfaeea9a6bab19520bb0b6d371d96664a9378f361aba29c3771c669a5387",
+    "src/auto_reverse/contracts.py": "e89a7e5593e6b6637c229c2f8f99258bc3696e69fb26e6a04cc542f88b81991d",
+    "src/auto_reverse/domain.py": "83d5a1a6c552a87d9246f796be833ee78e2d320de26dfeea21ce691667e894e5",
+    "src/auto_reverse/dwarf_layout.py": "5a214e403a3e93f6781f22080d683c73f01448a75adb3e9f20fd607d1fb8f8d7",
+    "src/auto_reverse/evidence_delivery.py": "a69e5cae1c2491fa89d5be7f6edb98e35fff810f7dc23811525c5176faa6e96e",
+    "src/auto_reverse/final_report.py": "e7dfd9ca3e9c6e401116e25b7f991440aa3914ef6c105f2753c4331256b9e35a",
+    "src/auto_reverse/ghidra.py": "28325a72ac144ed7f7c2a57ba86b6842a9eb38a5b3644039585163d00b540116",
+    "src/auto_reverse/host_reconcile.py": "3f2655b3af6b1124986e006a013480fa0eb73157a100e25465c99c432a404b73",
+    "src/auto_reverse/intake.py": "b08729df5a482c12cac0214fa6cc08462f09c069bd4a2cb888784d6aaaf38ee7",
+    "src/auto_reverse/layout_contracts.py": "13323667bf421cfda42d1e44149c73b06f3840e92fef3b382c246256ee54a4fd",
+    "src/auto_reverse/layout_dependencies.py": "350168a8edb9dd6395ed1586a407f1449a9b5c43ce2a956a56a14e092638a579",
+    "src/auto_reverse/library_inventory.py": "f258c2652b305e9b89836440a484e8d90d7be162eeb0aaf3ab9277ca6afa9162",
+    "src/auto_reverse/mcp_server.py": "25aef5c01ac8e07152f455e45294c6c3e23d8f5a992569d03f2473c656ca9ec8",
+    "src/auto_reverse/postprocessing.py": "445a9b03236cc63a38f4a28b3f170e9ea3e803fa868b8dcb51f6a5d342111773",
+    "src/auto_reverse/project_archive.py": "65d83d99c4db561153410835af1abfed51dd940e4d064003e9341d7bda75d143",
+    "src/auto_reverse/project_build.py": "8eb5e7d057e2f1e7a2c4f55fe5e0ca9beca89b80e7ffeacb90cf85544d724dce",
+    "src/auto_reverse/project_service.py": "8620254894f88cf56087d1fd49416c2a6d598d3a6fbc7d85b7b1b2d38e6d2e61",
+    "src/auto_reverse/project_verification.py": "ed9623704539edb671e88cc0ce7682f19523c64a359cb3b482e0424358b408c7",
+    "src/auto_reverse/recovery.py": "46b84e2fe2a36274e64dd05b799d02db095ef0f056e630b850f610e318e8293b",
+    "src/auto_reverse/recovery_cfg.py": "fbcb59cd392326fe8a7ed55aa36419c71f4a97da972f2885593417993e8b9691",
+    "src/auto_reverse/repair_feedback.py": "eddc8d955fad564d38678d468644fb416d2bafeaa62650e73ecdbf42a5d5dd7b",
+    "src/auto_reverse/scalar_abi.py": "9e34fa06c5ca3c32d0c99422a575400ab63466da469792bf46589a64b7be6807",
+    "src/auto_reverse/semantics.py": "2eb71de26bae2f81dfcccb6543ce881fd667e56e87ee959ee1836bf742f996cf",
+    "src/auto_reverse/service.py": "0db5c9ac06dbbbaedd361e0152b174b00b1d960200a01447b0098d11a4fbdde8",
+    "src/auto_reverse/source_cfg_safety.py": "c2ba52bcc0a30fec98a1c904a435d7985b9f44bce5b28dab76c137a83312325e",
+    "src/auto_reverse/source_safety.py": "efd7856a7f4eab7f8120bd6cc71bf785232a5503ca29f05607f518adadeb2e13",
+    "src/auto_reverse/source_signature.py": "bfa3ce16a5e7bc100a531a3f2f59adc9c32f5678034ff3aae7932d1645efdff4",
+    "src/auto_reverse/static_pipeline.py": "512832a1fd2de3729785f35a2613561c763490fae3fef8c87ea3814205192ab5",
+    "src/auto_reverse/type_solver.py": "85b6dba886c4d42206c3e9bfd007c7e77c7871a7760d143ab56490d7765e827e"
+  },
+  "frozen_packaged_resources": {
+    "src/auto_reverse/resources/ExportRawPcode.java": "f3cf310108ffcfc46230443adff8043cc0911977b596bc65d27083767cc8d60b",
+    "src/auto_reverse/resources/ghidra-toolchain-pin.json": "c9840cd44ae20d5f7f852896ccf5995f59463eb6f7a7a120f6a3bc03724ae581",
+    "src/auto_reverse/resources/machine_helpers.hpp": "c762370e632167b104186a745d00351c49e1c8718b0ff243a6548a6a7fb6281a"
+  },
+  "new_pytest_cases": {
+    "independent_isa": 334,
+    "actual_compiler": 74,
+    "matrix_required_category_guard": 1,
+    "total": 409,
+    "not_added_again_to_full_regression": true
+  },
+  "focused_local_groups": {
+    "ror-independent-final.log": {
+      "passed": 334,
+      "skipped": 0,
+      "failed": 0,
+      "seconds": 3.95,
+      "log_sha256": "9d87b7a9c8d798f5faf91ea6e01c717b0958ed6edb87d591fa04486f58080001"
+    },
+    "ror-compiler-final.log": {
+      "passed": 74,
+      "skipped": 0,
+      "failed": 0,
+      "seconds": 23.39,
+      "log_sha256": "e5230814b867f04ade15315051416252217d7447f3d7a3adae415aac43842002"
+    },
+    "ror-matrix-tests.log": {
+      "passed": 15,
+      "skipped": 0,
+      "failed": 0,
+      "seconds": 18.36,
+      "log_sha256": "cefe2bba998b1011ce940d950df71b347008c89ebd816286b16addb035522dba"
+    }
+  },
+  "focused_unique_passed": 423,
+  "current_collection": 3298,
+  "current_full_regression": "PENDING current GitHub fixed-tool logs; focused local groups are not a full regression result",
+  "independent_isa": {
+    "full_symbolic_instruction_frame_obligations": 148,
+    "all_valid_immediate_amounts": 96,
+    "variable_alias_zr_roles": 24,
+    "immediate_alias_zr_roles": 28,
+    "reserved_sf_n_immediate_forms": 160,
+    "non_alias_extr_forms": 16,
+    "each_unsupported_form_tested_both_sides_and_unreachable": true,
+    "wrong_math_models_sat": 5,
+    "supported_machine_mutants_different": 5,
+    "unrestricted_source_amount_and_old_destination_bits": true,
+    "oracle": "per-bit permutation and 1-bit mux; no production shift/OR formula or RotateRight"
+  },
+  "actual_compiler": {
+    "manifest_sha256": "ce49b9ff117ecfe4962c80ea219877fe0259d63667b15ab5090327d051956361",
+    "counts": {
+      "fresh_elfs": 42,
+      "machine_proofs": 70,
+      "machine_statuses": {
+        "EXACT_EQUIVALENT": 26,
+        "UNKNOWN": 23,
+        "DIFFERENT": 21
+      },
+      "source_audits": 4,
+      "source_audit_statuses": {
+        "UNKNOWN": 4
+      }
+    },
+    "helper": {
+      "sha256": "c762370e632167b104186a745d00351c49e1c8718b0ff243a6548a6a7fb6281a",
+      "size": 4777
+    },
+    "runtimes": [
+      "c++_shared",
+      "c++_static"
+    ],
+    "limitations": [
+      "uint64 variable helper compiles to unsupported ANDS and B.EQ",
+      "naked uint32 zero identity is RET and does not establish full X0 zero extension",
+      "selected sysroot files are hashed; the entire sysroot is not fingerprinted",
+      "finite known-header reasoning is not arbitrary C++ UB or calling ABI proof"
+    ],
+    "sysroot_binding": "selected actual sysroot files only; not an entire-sysroot digest",
+    "full_observation_contract": "X0, SP, X19-X29, all modeled memory, RET; initial LR external to both code scopes",
+    "naked_uint32_zero_ret_high_half_counterexamples": 2,
+    "unknown_machine_results": {
+      "unsupported_uint64_variable_helper_ands_b_eq": 22,
+      "memory_write_without_region_contract": 1
+    },
+    "arbitrary_helper_source_ub_audits_unknown": 4,
+    "target_or_candidate_executed": false,
+    "compiler_command_count": 126,
+    "every_compiler_command_cleanup_confirmed": true
+  },
+  "frozen_matrix": {
+    "report_sha256": "67ae3c12e3e6caed4f32f41d165a573b88895d5702a0cdbee69fc5c40e67d554",
+    "matrix_id": "ndk-r27c-aarch64-m0-static-ror-3",
+    "completeness": {
+      "expected_cases": 48,
+      "classified_cases": 48,
+      "matched_cases": 48,
+      "both_fixture_inventories_matched": true,
+      "classified_fixture_bytes": {
+        "original": 440,
+        "candidate": 524
+      },
+      "ghidra_requested": true,
+      "global_function_discovery_complete": false
+    },
+    "new_ror_cases": {
+      "total": 12,
+      "EXACT_EQUIVALENT": 6,
+      "DIFFERENT": 3,
+      "UNKNOWN": 3
+    },
+    "fixture_manifest_sha256": "ab3434a7f76f86ef5f77cf7266fd0f8417179e6437d7c432241bf8806496f494",
+    "both_new_elfs_and_ghidra_bytes_verified": true,
+    "compiler_cleanup_confirmed": true,
+    "target_or_candidate_executed": false
+  },
+  "independent_scratch_review": {
+    "separate_from_pytest_counts": true,
+    "report_sha256": "03bd57066ca1af3f88d5568aa308624a080364b9fb515493a4e891d21fb7e15f",
+    "note": "nonempty-domain UNSAT and infeasible partitions reported separately; exact detailed checks preserved in scratch review",
+    "instruction_instances": 148,
+    "nonempty_domain_unsat_obligations": 994,
+    "infeasible_partitions_not_counted_as_success": 94,
+    "raw_neighbour_instances": 796,
+    "unsupported_word_instances_each_side_unreachable": 449,
+    "false_exact_found": false,
+    "final_test_and_compiler_metadata_reviewed": true
+  },
+  "prior_merged_unit_remote_acceptance": {
+    "implementation_commit": "0a1bdc9b4def8bb5369820bc91573d5198626ffd",
+    "merged_main_commit": "ed46fc0f33646a8f6ae2dfc92e3287e0e6db83a6",
+    "run_url": "https://github.com/3437564498/Auto-Reverse/actions/runs/39051357897",
+    "passed": 2889,
+    "skipped": 0,
+    "failed": 0,
+    "warning": 1,
+    "seconds": 1040.63,
+    "artifact_id": 12108296050,
+    "not_acceptance_of_current_tests_or_matrix": true
+  },
+  "ruff": "PASS",
+  "schema_status": "9 unchanged schemas; generation checked before push",
+  "wheel_rebuilt_this_unit": false,
+  "wheel_reason": "All 41 production modules and 3 packaged resources unchanged from accepted main; this unit changes tests, frozen matrix and its host runner only",
+  "boundaries": {
+    "full_m0_s_exit_satisfied": false,
+    "original_calling_abi_verified": false,
+    "whole_program_equivalence": false,
+    "arbitrary_cpp_ub_proof": false,
+    "real_dsh_acceptance_verified": false,
+    "v1_complete": false,
+    "target_or_candidate_executed": false,
+    "new_machine_semantics_or_opcode_support": false
+  }
+}

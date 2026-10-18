@@ -28,7 +28,7 @@ Capstone 5.0.9 会把 CMP 左操作数误列为写入。仅对已经 raw 核验�
 
 新增测试使用完整 32/64 位域的独立数学公式、原始 ISA 编码、无 flags 的 EOR/CBZ 参考程序和真实固定 NDK 编译结果交叉检查。既有寄存器、内存、返回和预算负例继续执行。反转条件或常量需要给出 DIFFERENT；缺 CMP、LT 和没有合法栈区域契约的 O0 输出保持 UNKNOWN。
 
-固定静态矩阵新增 9 个场景，合计 36 个：五个条件选择/别名与无 flags 参考的正例、两个反条件负例、缺 CMP 和 LT 两个未知场景。原始与候选汇编只作为版本化宿主 fixture，SHA256 固定；不接受工作者编译参数，不加载或执行产物。
+本条件模型批次曾向固定静态矩阵新增 9 个场景，形成 36 个：五个条件选择/别名与无 flags 参考的正例、两个反条件负例、缺 CMP 和 LT 两个未知场景。后续 [ROR 独立验收](ror-acceptance.md) 保留这些场景并扩展至 48 个。原始与候选汇编只作为版本化宿主 fixture，SHA256 固定；不接受工作者编译参数，不加载或执行产物。
 
 ```bash
 export AUTO_REVERSE_TEST_NDK_ROOT="$PWD/work/tools/android-ndk-r27c"
