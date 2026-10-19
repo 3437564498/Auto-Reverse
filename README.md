@@ -8,7 +8,7 @@
 
 流水线使用确定性静态生成器，模型调用数为零。DSH 账本、插件和 SDK 离线接线已实现；用户暂时无法提供真实 DSH 模型环境，该项保持未验收。当前进度与 V1 剩余范围见 [实施记录](docs/implementation-status.md)。
 
-[PR #14](https://github.com/3437564498/Auto-Reverse/pull/14) 已合并到 `main`（`6239c2a`），包含[逻辑条件源码恢复](docs/logical-source-recovery.md)和[NEG 与有界变量移位恢复](docs/variable-source-recovery.md)。该提交的 GitHub 固定工具完整回归实际为 **4260 passed、0 skipped、0 failed**；已下载核对公开证据包、源码 ZIP 和新链接字节证明，见[远端验收记录](docs/acceptance/2026-10-19-variable-source-remote.json)。[首版有限 M0-S](docs/m0-s-exit-review.md)已按设计逐项完成退出核对，完整模型、全部 helper 和 M0-R 另列，不能等同完整 V1；当前更新与 Checks 见[待审核更新](https://github.com/3437564498/Auto-Reverse/pulls)。
+[PR #15](https://github.com/3437564498/Auto-Reverse/pull/15) 已合并到 `main`（`79d663e`），[首版有限 M0-S](docs/m0-s-exit-review.md)已按设计逐项完成退出核对，该批 [GitHub 固定工具完整回归](https://github.com/3437564498/Auto-Reverse/actions/runs/39216850862)实际为 **4295 passed、0 skipped、0 failed**，公开证据包已下载核验。本批继续实现 [M1 宿主内存假设权威](docs/memory-context-authority.md)：登记、冻结、撤销和纯读为 A0/ASSUMED，候选与工程证明尚不消费它。当前更新与完整 Checks 见[待审核更新](https://github.com/3437564498/Auto-Reverse/pulls)。
 
 ## 开发与运行
 
@@ -82,6 +82,7 @@ npm run preflight
 | [V1 主方案](docs/android-arm64-so-cpp-recovery-V1.md) | 47 节统一需求、架构、DSH/插件、契约、实施与验收 |
 | [DSH 专项调研](docs/main-child-agent-DSH-RESEARCH.md) | 固定源码能力、32 路联动配置、插件扩展和生命周期 |
 | [证据与声明契约](docs/evidence-contracts.md) | 辅助交付消费、原始 DWARF 核验、版本冻结与当前限制 |
+| [宿主内存假设权威](docs/memory-context-authority.md) | M1 第一阶段来源登记、A0 冻结/撤销、current/history 与纯读边界 |
 | [有限条件机器模型](docs/machine-conditions.md) | CMP、EQ/NE 条件选择、原始编码核验及观察边界 |
 | [ANDS 与局部条件分支](docs/logical-flags.md) | 逻辑立即数、完整内部 NZCV、前向 B.EQ/B.NE 与当前证明 |
 | [逻辑条件源码恢复](docs/logical-source-recovery.md) | CFG2 写回与条件快照、独立 word/span 审计、实际工程与新字节证明 |
@@ -105,6 +106,6 @@ npm run preflight
 - Raw P-code 不自动代表完整机器语义；两侧按原始指令检查能力，C++ UB 保真、有限/条件/UNKNOWN 分别报告。
 - 回执、Outbox、版本检查和历史轮换保障持久恢复；Job 结束与产物质量分开。
 
-M0-S 静态语义与 M0-R DSH 受控运行两项原型的完整退出条件尚未全部通过；通过后重新冻结 MVP 子集、工期、成本和验收门槛。性能数字是待校准研发目标，不能解释为 Android `.so` 实测成功率。
+首版有限 M0-S 静态语义原型已按设计退出；M0-R DSH 受控运行和后续完整里程碑仍未通过。性能数字是待校准研发目标，不能解释为 Android `.so` 实测成功率。
 
 更新日期：2026-10-18（Asia/Singapore）。

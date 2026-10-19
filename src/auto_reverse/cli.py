@@ -9,6 +9,32 @@ import threading
 from pathlib import Path
 
 
+def _host_memory_document(path: str) -> dict:
+    """Preserve strict JSON boundaries before constructing host authority."""
+    def unique_object(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError("duplicate JSON object key")
+            result[key] = value
+        return result
+
+    def reject_constant(value):
+        raise ValueError(f"non-finite JSON constant: {value}")
+
+    with Path(path).open("rb") as stream:
+        encoded = stream.read(65536 + 1)
+    if len(encoded) > 65536:
+        raise ValueError("host memory document exceeds the bounded 64 KiB profile")
+    try:
+        document = json.loads(encoded, object_pairs_hook=unique_object, parse_constant=reject_constant)
+    except RecursionError as exc:
+        raise ValueError("host memory document exceeds the JSON nesting limit") from exc
+    if not isinstance(document, dict):
+        raise ValueError("host memory document must be a JSON object")
+    return document
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="arm64-recover")
     parser.add_argument("--state-dir", default=".auto-reverse")
@@ -91,9 +117,26 @@ def main(argv=None):
     current_contracts.add_argument("job_id")
     current_layouts = commands.add_parser("get-layout-contracts", help="Read current original structure declarations without freezing or starting tools")
     current_layouts.add_argument("job_id")
+    memory_source = commands.add_parser("register-memory-context-source", help="Trusted host: register an explicit A0 memory assumption source")
+    memory_source.add_argument("--job", required=True, dest="job_id")
+    memory_source.add_argument("--source", required=True)
+    memory_source.add_argument("--idempotency-key", required=True)
+    memory_freeze = commands.add_parser("freeze-memory-context", help="Trusted host: freeze an A0 memory assumption; proof consumption remains disabled")
+    memory_freeze.add_argument("--job", required=True, dest="job_id")
+    memory_freeze.add_argument("--request", required=True)
+    memory_freeze.add_argument("--expected-revision", type=int, required=True)
+    memory_freeze.add_argument("--idempotency-key", required=True)
+    memory_revoke = commands.add_parser("revoke-memory-context", help="Trusted host: revoke a frozen A0 memory assumption")
+    memory_revoke.add_argument("--job", required=True, dest="job_id")
+    memory_revoke.add_argument("--symbol", required=True)
+    memory_revoke.add_argument("--expected-revision", type=int, required=True)
+    memory_revoke.add_argument("--idempotency-key", required=True)
+    current_memory = commands.add_parser("get-memory-contexts", help="Read current A0 memory assumptions without changing authority or starting tools")
+    current_memory.add_argument("job_id")
     for command_name, command_help in (
         ("list-abi-contracts", "Read frozen declaration constraint history"),
         ("list-layout-contracts", "Read original structure constraint history"),
+        ("list-memory-context-history", "Read bounded A0 memory assumption history"),
         ("list-evidence-deliveries", "Read auxiliary evidence/gap delivery history"),
     ):
         reader = commands.add_parser(command_name, help=command_help)
@@ -296,6 +339,22 @@ def main(argv=None):
             from .layout_contracts import LayoutContractService
             result = LayoutContractService(args.state_dir).freeze_bundle_from_proposal(
                 args.execution_key, args.artifact_ref, expected_revision=args.expected_revision)
+        elif args.command == "register-memory-context-source":
+            from .memory_contexts import HostMemorySourceDocument, MemoryContextService
+            document = HostMemorySourceDocument.model_validate(_host_memory_document(args.source))
+            result = MemoryContextService(args.state_dir).register_source(
+                args.job_id, document.model_dump(mode="json"), idempotency_key=args.idempotency_key)
+        elif args.command == "freeze-memory-context":
+            from .memory_contexts import HostMemoryContextRequest, MemoryContextService
+            request = HostMemoryContextRequest.model_validate(_host_memory_document(args.request))
+            result = MemoryContextService(args.state_dir).freeze(
+                args.job_id, request.model_dump(mode="json"), expected_revision=args.expected_revision,
+                idempotency_key=args.idempotency_key)
+        elif args.command == "revoke-memory-context":
+            from .memory_contexts import MemoryContextService
+            result = MemoryContextService(args.state_dir).revoke(
+                args.job_id, args.symbol, expected_revision=args.expected_revision,
+                idempotency_key=args.idempotency_key)
         elif args.command == "publish-final-report":
             from .final_report import FinalReportService
             result = FinalReportService(args.state_dir).publish(
@@ -433,6 +492,10 @@ def main(argv=None):
                 result = service.get_layout_contracts(args.job_id)
             elif args.command == "list-layout-contracts":
                 result = service.list_layout_contracts(args.job_id, cursor=args.cursor, limit=args.limit)
+            elif args.command == "get-memory-contexts":
+                result = service.get_memory_contexts(args.job_id)
+            elif args.command == "list-memory-context-history":
+                result = service.list_memory_context_history(args.job_id, cursor=args.cursor, limit=args.limit)
             elif args.command == "list-evidence-deliveries":
                 result = service.list_evidence_deliveries(args.job_id, cursor=args.cursor, limit=args.limit)
             elif args.command == "list-validations":

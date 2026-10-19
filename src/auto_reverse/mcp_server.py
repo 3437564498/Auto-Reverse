@@ -112,6 +112,16 @@ def create_server(state_dir, *, host="127.0.0.1", port=8765):
         return service.list_layout_contracts(job_id, cursor, limit)
 
     @server.tool()
+    def get_memory_contexts(job_id: str) -> dict[str, Any]:
+        """Read current Job-owned A0 memory assumptions; no freezing or proof consumption."""
+        return service.get_memory_contexts(job_id)
+
+    @server.tool()
+    def list_memory_context_history(job_id: str, cursor: int = 0, limit: int = 100) -> dict[str, Any]:
+        """Read bounded Job-owned memory assumption history without creating host tables or tools."""
+        return service.list_memory_context_history(job_id, cursor, limit)
+
+    @server.tool()
     def list_integrations(job_id: str, cursor: int = 0, limit: int = 100) -> dict[str, Any]:
         """Read persisted project builds; creates no activity, compiler or optional host tables."""
         return service.list_integrations(job_id, cursor, limit)

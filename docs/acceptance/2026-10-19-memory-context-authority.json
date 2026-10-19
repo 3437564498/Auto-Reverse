@@ -1,0 +1,320 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-19",
+  "timezone": "Asia/Singapore",
+  "stage": "M1 stage 1 host memory authority",
+  "base_commit": "79d663eba213b820968b54c5194dc4602ae3ba35",
+  "status_at_commit": "local static development accepted within recorded sandbox limits; remote push and complete CI blocked by never approval policy",
+  "scope": {
+    "artifact_level": "A0",
+    "environment_status": "ASSUMED",
+    "environment_proved": false,
+    "proof_consumption_implemented": false,
+    "candidate_selection_project_consumption": false,
+    "full_m1_exit_satisfied": false,
+    "full_v1_complete": false,
+    "finite_m0_s_prototype_exit_satisfied": true,
+    "real_dsh_model_acceptance": false,
+    "target_or_candidate_executed": false,
+    "model_calls": 0
+  },
+  "new_tests": {
+    "revision_fencing": 21,
+    "memory_service": 52,
+    "independent_adversarial": 136,
+    "interfaces": 44,
+    "total": 253
+  },
+  "focused_regression": {
+    "passed": 275,
+    "skipped": 0,
+    "failed": 0,
+    "warnings": 1,
+    "seconds": 11.5,
+    "log_sha256": "5a43ac72dd01eaf5526a6469cf3caa51684b84386e6d39fa2373e3c4751a1743"
+  },
+  "collected_suite": 4548,
+  "real_ndk_sample": {
+    "passed": true,
+    "checks": {
+      "normal_O2_and_DWARF_original_function_bytes_match": true,
+      "source_registration_does_not_advance_revision": true,
+      "real_scalar_then_host_freeze_then_revoke_revisions": true,
+      "host_assumption_is_current_A0": true,
+      "proof_consumption_disabled": true,
+      "actual_candidates_remain_unknown": true,
+      "source_and_freeze_replay_do_not_mutate": true,
+      "revoke_and_old_freeze_replay_do_not_reactivate": true,
+      "history_preserved": true,
+      "query_only_reads_without_writes": true,
+      "all_resources_released_after_confirmed_cleanup": true,
+      "job_semantic_and_calling_ABI_stay_unknown": true
+    },
+    "public_summary_sha256": "ed4109f728a80c9163e66d497365d234e8d384535bdbe920f4b881f5b7fccefe",
+    "original_function_bytes": "000040f9c0035fd6",
+    "before": "UNKNOWN",
+    "after": "UNKNOWN",
+    "actual_candidate_signature_and_build_passed": 2,
+    "machine_unknown_reason": "memory_access_not_proved_in_declared_valid_region",
+    "resources_occupied": {
+      "agent_attempts": 0,
+      "validation_activities": 0
+    }
+  },
+  "compatibility": {
+    "wheel_sha256": "b57f641adaab9d373a19935bec33e1b369ccf612df4c3060238fb678c008ac13",
+    "modules_matched": 43,
+    "resources_matched": 3,
+    "includes_new_memory_authority_and_revision": true,
+    "old_schema_bytes_unchanged": 9,
+    "new_schemas": 2
+  },
+  "branch_cleanup_tests": {
+    "passed": 13,
+    "skipped": 0,
+    "failed": 0,
+    "log_sha256": "0d8adc2e597ee2b938435275ac5b175951abf499e2578a1ed07b663cf5bbe9df"
+  },
+  "local_environment_limits": {
+    "socket_bind_denied": "PermissionError EPERM on loopback and UNIX host socket",
+    "mcp_stdio": "existing test times out on both unchanged merged main and new tree; interrupted after 253 passed, not counted as full acceptance",
+    "local_broad_run": "4545 passed, 1 skipped, 2 deselected; missing NDK work path configured and the single skipped test rerun: 1 passed; two MCP transport cases remain unaccepted",
+    "dsh_offline_node": "28 passed, 2 socket-dependent checks failed under sandbox EPERM; not real model acceptance",
+    "remote_requirement": "complete unchanged pytest and npm test must pass without deselection before Ready"
+  },
+  "fixed_regressions": [
+    {
+      "finding": "Python bool/int/float equality accepted modified current payloads",
+      "reproduction": "expanded independent attacks: 121 passed / 3 failed",
+      "fix": "strict canonical JSON comparisons and duplicate/nonfinite rejection"
+    },
+    {
+      "finding": "old current map could resurrect a revoked or replaced context",
+      "fix": "recheck latest host publication event"
+    },
+    {
+      "finding": "source/revocation CAS return and source scalar authority were not rechecked after write",
+      "reproduction": "three root-added attacks failed before fix; all included in final 275 pass",
+      "before_fix_log_sha256": "e95ca6ddcb1cd337acbd123bd6be453e0460714729f7bb1c66d05c5642ea9c42",
+      "fix": "actual CAS reread plus authority resnapshot before ledger publication"
+    }
+  ],
+  "frozen_inputs_sha256": {
+    ".github/workflows/static-acceptance.yml": "3db6a92254fd9e4fc8e9fef7b5e45a8fee732ed86773dc6e19da54467198c2a3",
+    "schemas/cpp-source-candidate.schema.json": "31fead0c2ad1f0001fbf416f86e9211f842cb793d4f7ac0013928883251eafaf",
+    "schemas/evidence-delivery.schema.json": "8ceb156a45c94ef678d74590a6d84c1a2bb11575c6eec3def21b403a3cb19400",
+    "schemas/host-memory-context-request.schema.json": "85b35dd19d8f1932ce12baaec94a9074eddccd36789fcfb7367176529d9c101d",
+    "schemas/host-memory-source-document.schema.json": "546ea8d8d3f8e5d7e9da74994d0d59c76ada92d5af7063333b66a989cf21bdec",
+    "schemas/original-layout-bundle.schema.json": "b6081dd741a6c7ec894f330b89d04c9564c87eccdb51d2d1789eab86874cabff",
+    "schemas/policy.schema.json": "f0ecc3932dce8f760afaed673d8cdf48417cec9ac55e7ade1103ee28d72853e8",
+    "schemas/proposal.schema.json": "f8a9c65c0378bbe49b2222d84e3d6e7614141cd90f96aa864907b38b27a5880d",
+    "schemas/scalar-abi-bundle.schema.json": "002807e6444d238c8aeeb30a2e929c4003b10747ddc62cbe8662971db938ee4f",
+    "schemas/scalar-abi-constraints.schema.json": "cc8ee569a4dbacbb42052c116d2963cbc7881771f3272048f5af878872a8c8d1",
+    "schemas/work-package-spec.schema.json": "b62fff06a93eb8467996bd42c5389d0c8b7ccf18715ba20617dc247e59a64c21",
+    "schemas/work-package.schema.json": "48dc7fabd2e83b87e6f323295a05cbe23c42827f7e691cc5430203fea9476428",
+    "scripts/run_memory_context_sample.py": "f28f4def09b39460ca513a3fcb389efb82a940790f37a6aae939c225f72e076d",
+    "src/auto_reverse/__init__.py": "58f35f53ea13ca2357707cd1001d607b2a1b9b703ff5c7cb31f19182cbf57f16",
+    "src/auto_reverse/abi.py": "900a6268c00b7cdfb7d855490225d3806e2ddcff996111ca678e9c47e833c74e",
+    "src/auto_reverse/abi_contracts.py": "d1059cccd6ef75412b8359ddb8a0bd57566028ea8fe96b496ca2b179c8205db9",
+    "src/auto_reverse/analysis_service.py": "0b15220e819f3099848ab5ba0c5043f4412c0e7573e53b3c21fb7eeb16f8a19b",
+    "src/auto_reverse/android_profile.py": "84288f9663d713ac30c3dd06210569b9253babe433b8c8d1df55f21e4857ced3",
+    "src/auto_reverse/artifacts.py": "d66f853d1b0cba20ffe89761edf725c06d7a061806e803aaf705f12fbf21c571",
+    "src/auto_reverse/backend_rpc.py": "e83a50a7eac5c28e690c5336069eb3f3da86c5b54166e7cdb5f309a8718b1dac",
+    "src/auto_reverse/build_gate.py": "2411e76ebed3ea0ba28d658ae024245a1c9600f22aadf45f083c442f9aed46be",
+    "src/auto_reverse/candidate_layout.py": "17548369d84b1d560ac29944cd6443fa5a1e7f07d23d815eabc529fd4405f245",
+    "src/auto_reverse/candidate_selection.py": "c11d52df6ba966c32b876f5ba3c2a43cec7353dfdc3518fedb89af48c33ed930",
+    "src/auto_reverse/candidate_validation.py": "a1383ca1bf97666756a15abe8e0f2c5bb5a3df433cae5610e90e4b7500ae30fc",
+    "src/auto_reverse/capabilities.py": "3c0c515e27bb693fd5010d97f7b5165062941933e8d8eb0bb992b5c7b7309556",
+    "src/auto_reverse/cli.py": "f55f571c5ecdd617ca2673eef088f429a30c498ad23cd70ae1bc0bf937fec7a8",
+    "src/auto_reverse/contract_revision.py": "ef2b36ce52276862f142c933fb2e2a38f8f50dfe66f4c706bb7b49457b8a4557",
+    "src/auto_reverse/contracts.py": "5138c3320a9aa41a421498b9b848bbc20a845cfb48d0b9227ce9bfe4dcf0ca6e",
+    "src/auto_reverse/domain.py": "83d5a1a6c552a87d9246f796be833ee78e2d320de26dfeea21ce691667e894e5",
+    "src/auto_reverse/dwarf_layout.py": "5a214e403a3e93f6781f22080d683c73f01448a75adb3e9f20fd607d1fb8f8d7",
+    "src/auto_reverse/evidence_delivery.py": "a69e5cae1c2491fa89d5be7f6edb98e35fff810f7dc23811525c5176faa6e96e",
+    "src/auto_reverse/final_report.py": "e7dfd9ca3e9c6e401116e25b7f991440aa3914ef6c105f2753c4331256b9e35a",
+    "src/auto_reverse/ghidra.py": "28325a72ac144ed7f7c2a57ba86b6842a9eb38a5b3644039585163d00b540116",
+    "src/auto_reverse/host_reconcile.py": "3f2655b3af6b1124986e006a013480fa0eb73157a100e25465c99c432a404b73",
+    "src/auto_reverse/intake.py": "b08729df5a482c12cac0214fa6cc08462f09c069bd4a2cb888784d6aaaf38ee7",
+    "src/auto_reverse/layout_contracts.py": "13323667bf421cfda42d1e44149c73b06f3840e92fef3b382c246256ee54a4fd",
+    "src/auto_reverse/layout_dependencies.py": "350168a8edb9dd6395ed1586a407f1449a9b5c43ce2a956a56a14e092638a579",
+    "src/auto_reverse/library_inventory.py": "f258c2652b305e9b89836440a484e8d90d7be162eeb0aaf3ab9277ca6afa9162",
+    "src/auto_reverse/mcp_server.py": "e7dbc0ab49c8024ba129450aa3c9408c30076d45a7a3108c37f7fcee7af79a35",
+    "src/auto_reverse/memory_contexts.py": "61165cff108a172156f5bd08de37801e91461dfe1437ec186ae94f4bb8e643ed",
+    "src/auto_reverse/postprocessing.py": "445a9b03236cc63a38f4a28b3f170e9ea3e803fa868b8dcb51f6a5d342111773",
+    "src/auto_reverse/project_archive.py": "65d83d99c4db561153410835af1abfed51dd940e4d064003e9341d7bda75d143",
+    "src/auto_reverse/project_build.py": "8eb5e7d057e2f1e7a2c4f55fe5e0ca9beca89b80e7ffeacb90cf85544d724dce",
+    "src/auto_reverse/project_service.py": "8620254894f88cf56087d1fd49416c2a6d598d3a6fbc7d85b7b1b2d38e6d2e61",
+    "src/auto_reverse/project_verification.py": "ed9623704539edb671e88cc0ce7682f19523c64a359cb3b482e0424358b408c7",
+    "src/auto_reverse/recovery.py": "2be8d7fd69103b63db067bc10602305fe59f0c8d4c5dd0f3ee66e8d48a6bebcc",
+    "src/auto_reverse/recovery_cfg.py": "f34a8c8a77159a07e343df7742a5459e79dbca2063ff5b025329da66c1150175",
+    "src/auto_reverse/repair_feedback.py": "eddc8d955fad564d38678d468644fb416d2bafeaa62650e73ecdbf42a5d5dd7b",
+    "src/auto_reverse/resources/ExportRawPcode.java": "f3cf310108ffcfc46230443adff8043cc0911977b596bc65d27083767cc8d60b",
+    "src/auto_reverse/resources/ghidra-toolchain-pin.json": "c9840cd44ae20d5f7f852896ccf5995f59463eb6f7a7a120f6a3bc03724ae581",
+    "src/auto_reverse/resources/machine_helpers.hpp": "c762370e632167b104186a745d00351c49e1c8718b0ff243a6548a6a7fb6281a",
+    "src/auto_reverse/scalar_abi.py": "9e34fa06c5ca3c32d0c99422a575400ab63466da469792bf46589a64b7be6807",
+    "src/auto_reverse/semantics.py": "743da4ff71f0ed1ef7c8708c7e1848b39875a9ea0cf7403cddadba3568315fe9",
+    "src/auto_reverse/service.py": "2925712b203c260df55212324095802365c43d0a3296dd365450ef97391d430e",
+    "src/auto_reverse/source_cfg_safety.py": "e3e8bffddbd3f63faaae07c2432d4669b35992eaadd66f11737ba1dfc60fb817",
+    "src/auto_reverse/source_safety.py": "4f37867b8581dc753995e5efafaf878d9471e14bd236c1003e5f987deff80403",
+    "src/auto_reverse/source_signature.py": "bfa3ce16a5e7bc100a531a3f2f59adc9c32f5678034ff3aae7932d1645efdff4",
+    "src/auto_reverse/static_pipeline.py": "512832a1fd2de3729785f35a2613561c763490fae3fef8c87ea3814205192ab5",
+    "src/auto_reverse/type_solver.py": "85b6dba886c4d42206c3e9bfd007c7e77c7871a7760d143ab56490d7765e827e",
+    "tests/test_contract_revision.py": "4f3a0584a61b6595624cbe7e234a6b6b1a748071f3458318c3731feb38b874d6",
+    "tests/test_memory_context_interfaces.py": "ed0ced840b9c145dfd464b413bebbd2dda8eabd40222f55ae606ddd62efd8824",
+    "tests/test_memory_contexts.py": "5015e98b38190242bad20dc908968fe25689eefb6a6b25bf998b02dda84c2673",
+    "tests/test_memory_contexts_adversarial.py": "0cae948f29e12455726b5d47f5ef9ab9dad47abf2f6175d443c20f7ef59b46b0",
+    "tests/test_project_interfaces.py": "128c6386124a36da088feeae6c58d1f5bc862e4de36d39cdb45db3189cd90150",
+    "tests/test_service.py": "cb433b665bec7b5c0300e561bfd097fc7fa75fa55e551f7081e06ef3fe44d8ba"
+  },
+  "remote_acceptance": {
+    "repository": "3437564498/Auto-Reverse",
+    "base": "79d663eba213b820968b54c5194dc4602ae3ba35",
+    "attempted_action": "github_create_tree for staged host-only memory-context authority changes",
+    "tool_result": {
+      "isError": true,
+      "message": "MCP tool call requires approval, but approval policy is never"
+    },
+    "remote_branch_created": false,
+    "commit_pushed": false,
+    "pull_request_created": false,
+    "complete_remote_ci_executed": false,
+    "approval_requested": false,
+    "approval_policy": "never"
+  },
+  "post_broad_sample_hardening": {
+    "changed_file": "scripts/run_memory_context_sample.py",
+    "production_and_tests_changed": false,
+    "broad_regression_repeated": false,
+    "actual_standalone_sample_rerun": true,
+    "initial_sample_not_accepted": "Initial header-heavy AST exceeded the bounded signature-output budget; UNKNOWN alone did not establish the intended machine boundary. Kept original logs; replaced fixture with header-free unsigned64 declaration and required actual signature/build/cleanup PASS and machine verifier reason.",
+    "log_sha256": "9bdff57c231d75c48a26921789d7b9d9cc85d1c2494773251ce2e3034fbb9589",
+    "independent_final_review_sha256": "42ce9a132656126e3cc72e9e97384a114a4186059ea866fd81c9af789c8b1bb3"
+  },
+  "local_broad_regression": {
+    "passed": 4545,
+    "skipped": 1,
+    "deselected": 2,
+    "failed": 0,
+    "warnings": 1,
+    "seconds": 1343.69,
+    "log_sha256": "49eb36c113e88ae5e4ce2e90fcc2ed1220b737b9ee96976787fec83501e99cb9",
+    "selected_cases_passed_across_runs": 4546,
+    "missing_local_tool_path_supplement": {
+      "passed": 1,
+      "log_sha256": "070a0a1a384f8986bf91c5e6a28d1adb0cf8744a853fe1ce7e8ca4541698f8d4"
+    },
+    "excluded_environment_checks": [
+      "tests/test_service.py::test_real_stdio_mcp_handshake_and_short_idempotent_submit",
+      "tests/test_mcp_http.py::test_real_streamable_http_handshake_submit_and_reconnect"
+    ],
+    "complete_suite_acceptance": false
+  },
+  "lint": "Ruff passed on frozen production/tests and again on the strengthened standalone sample",
+  "static_matrix": {
+    "status": "PASS",
+    "cases": 60,
+    "actual_status_counts": {
+      "EXACT_EQUIVALENT": 22,
+      "DIFFERENT": 16,
+      "UNKNOWN": 20,
+      "INVALID_PRECONDITION": 2
+    },
+    "report_sha256": "cb8a170cc818cfd9ef680fcf971a07433aef484d83a504902699e9ea7ac31d7a",
+    "all_cleanup_confirmed": true,
+    "historical_matrix_full_m0_s_flag_unchanged": false
+  },
+  "existing_real_cli_samples": {
+    "evidence": {
+      "exit_code": 0,
+      "seconds": 8.96,
+      "log_sha256": "8c2c3706664e73dd24c89db70e8083a7efc5ff087f2a49e212237e57a1f9363e"
+    },
+    "candidate-layout": {
+      "exit_code": 0,
+      "seconds": 5.13,
+      "log_sha256": "75b5985186e566ba5b4f21c2c269ca5fd1b3e0c42f1ec5d96e9af2e906477f46"
+    },
+    "layout-contract": {
+      "exit_code": 0,
+      "seconds": 1.11,
+      "log_sha256": "89b17bb3927b14ad8eb4ff76675cbf1e2e06804a4abff0bc17370a0492523e86"
+    },
+    "project": {
+      "exit_code": 0,
+      "seconds": 34.75,
+      "log_sha256": "974de0cfb6ed11fac09cd674e22a350c3462e5d3cdb589afd1c7d2c946d04274"
+    },
+    "layout": {
+      "exit_code": 0,
+      "seconds": 28.56,
+      "log_sha256": "27ef45fb8d73864f42ef48c24eba386ed5ee2adb4e9ac7152150a078e2a42fae"
+    },
+    "conditional": {
+      "exit_code": 0,
+      "seconds": 26.63,
+      "log_sha256": "27ef45fb8d73864f42ef48c24eba386ed5ee2adb4e9ac7152150a078e2a42fae"
+    },
+    "logical": {
+      "exit_code": 0,
+      "seconds": 27.13,
+      "log_sha256": "27ef45fb8d73864f42ef48c24eba386ed5ee2adb4e9ac7152150a078e2a42fae"
+    },
+    "variable": {
+      "exit_code": 0,
+      "seconds": 26.0,
+      "log_sha256": "27ef45fb8d73864f42ef48c24eba386ed5ee2adb4e9ac7152150a078e2a42fae"
+    }
+  },
+  "byte_helper_compatibility": {
+    "counts": {
+      "fresh_elfs": 17,
+      "actual_compiler_failures": 6,
+      "compiler_commands": 69,
+      "independent_constant_vectors": {
+        "32": 37,
+        "64": 69
+      },
+      "machine_proofs": 25,
+      "machine_statuses": {
+        "EXACT_EQUIVALENT": 8,
+        "DIFFERENT": 4,
+        "UNKNOWN": 13
+      }
+    },
+    "public_report_sha256": "a6f1676364ed7dcd50af7f7c9294740e0e7e819c216f891ce59d2cae257b2a95"
+  },
+  "archive_data_checks": {
+    "conditional": {
+      "entries": 12,
+      "source_tus": 3,
+      "sha256": "171e318fdbb4a8b38e2ff2b7dd0e63a0084536dfc46ba29d564cad7c5eeec690",
+      "no_private_state_or_ELF": true
+    },
+    "layout": {
+      "entries": 12,
+      "source_tus": 3,
+      "sha256": "9c7d3c641c20922bbe434ca34bd7ad04405de1d4866224c64af66962ce9c2c1f",
+      "no_private_state_or_ELF": true
+    },
+    "logical": {
+      "entries": 12,
+      "source_tus": 3,
+      "sha256": "8ae5037fe136b7466bea3922c2be0eb42613cd7c8ee68c878e24c0c6d713e2f5",
+      "no_private_state_or_ELF": true
+    },
+    "variable": {
+      "entries": 12,
+      "source_tus": 3,
+      "sha256": "c30a9fb844b609490d1003e89b3cbf9241b1d57cb4a813cd90550e9128db19d7",
+      "no_private_state_or_ELF": true
+    }
+  },
+  "final_independent_reviews": {
+    "memory_authority": "no new blocking defect; 65 frozen hashes unchanged",
+    "interfaces": "read-only MCP, 64 KiB CLI/model and schemas consistent",
+    "report_sha256": {
+      "memory-authority-adversarial-final-review.json": "1b517488436a07fd0e70c98fdea5e12e9917a5f73a59e597ffb16db2e6b207b0",
+      "memory-context-interfaces-final-review.md": "2840d6836e955c5dccf1a9edabdb6f42c386ee4264275c3c496f4934485409d8"
+    }
+  }
+}

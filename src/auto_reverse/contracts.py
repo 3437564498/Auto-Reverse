@@ -205,6 +205,7 @@ def write_schemas(directory):
     from .abi_contracts import ScalarAbiConstraintsEnvelope
     from .evidence_delivery import EvidenceDeliveryEnvelope
     from .layout_contracts import LayoutBundleEnvelope
+    from .memory_contexts import HostMemoryContextRequest, HostMemorySourceDocument
     from .type_solver import ScalarAbiBundleEnvelope
 
     root = Path(directory)
@@ -215,7 +216,9 @@ def write_schemas(directory):
                         ("evidence-delivery", EvidenceDeliveryEnvelope),
                         ("scalar-abi-constraints", ScalarAbiConstraintsEnvelope),
                         ("scalar-abi-bundle", ScalarAbiBundleEnvelope),
-                        ("original-layout-bundle", LayoutBundleEnvelope)]:
+                        ("original-layout-bundle", LayoutBundleEnvelope),
+                        ("host-memory-context-request", HostMemoryContextRequest),
+                        ("host-memory-source-document", HostMemorySourceDocument)]:
         (root / f"{name}.schema.json").write_text(
             json.dumps(model.model_json_schema(), ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",

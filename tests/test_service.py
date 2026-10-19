@@ -88,6 +88,7 @@ def test_real_stdio_mcp_handshake_and_short_idempotent_submit(tmp_path):
                     "get_candidate_selection", "list_candidates", "list_feedback", "get_feedback",
                     "list_evidence_deliveries", "get_evidence_delivery", "get_abi_contracts", "list_abi_contracts",
                     "get_layout_contracts", "list_layout_contracts",
+                    "get_memory_contexts", "list_memory_context_history",
                     "list_integrations", "get_integration", "read_integration_report",
                     "get_final_delivery", "list_final_deliveries", "read_final_report",
                 }

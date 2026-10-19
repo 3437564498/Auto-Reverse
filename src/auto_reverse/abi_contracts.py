@@ -21,6 +21,7 @@ from pydantic import Field, ValidationError, field_validator
 from .artifacts import ArtifactError, ArtifactStore
 from .candidate_validation import CandidateValidationService
 from .contracts import Contract
+from .contract_revision import advance_contract_revision, unknown_contract_quality
 from .domain import DomainError, DomainStore, TERMINAL_TASKS, _integer, _json, _string
 
 
@@ -83,9 +84,7 @@ def _verified_json(objects: ArtifactStore, ref: str) -> Any:
 
 
 def _unknown_quality() -> dict[str, Any]:
-    return {"artifact_level": None, **{
-        name: {"status": "UNKNOWN", "reason": "contract_revision_changed"}
-        for name in ("build", "abi", "semantic", "completeness")}}
+    return unknown_contract_quality()
 
 
 class AbiContractService:
@@ -246,31 +245,10 @@ class AbiContractService:
         if self.domain._row(connection, "tasks", "task_id", frozen["task_id"])["state"] == "RESULT_PROPOSED":
             self.domain._change_task(connection, frozen["task_id"], "CHECKING", "trusted original-DWARF declaration check")
         self.domain._change_task(connection, frozen["task_id"], "COMPLETED", completion_reason)
-        for task in tasks:
-            connection.execute("UPDATE tasks SET epoch=epoch+1,updated_at=? WHERE task_id=?",
-                               (time.time(), task["task_id"]))
-            if task["task_id"] in invalidated_tasks:
-                self.domain._change_task(connection, task["task_id"], "SUPERSEDED", "ABI contract revision changed")
-        connection.execute("UPDATE attempts SET state='SUPERSEDED',updated_at=? WHERE job_id=? AND occupied=1",
-                           (time.time(), job["job_id"]))
-        for table, check in active_checks:
-            connection.execute(f"UPDATE {table} SET state=?,cancel_requested=1,updated_at=? WHERE activity_id=?",
-                               ("CANCELED" if check["state"] == "READY" else check["state"], time.time(), check["activity_id"]))
-            kind = table.removesuffix("_activities")
-            self.domain._emit(connection, job["job_id"], f"{kind}.cancel_requested", {
-                "activity_id": check["activity_id"], "reason": "contract_revision_changed",
-                "cleanup_confirmed": not bool(check["occupied"])})
-        changed = connection.execute(
-            "UPDATE jobs SET contract_revision=?,quality=?,updated_at=? WHERE job_id=? AND contract_revision=?",
-            (expected_revision + 1, _json(_unknown_quality()), time.time(), job["job_id"], expected_revision))
-        if changed.rowcount != 1:
-            raise DomainError("CONTRACT_REVISION_CONFLICT", "Expected revision changed during the freeze transaction")
-        self.domain._emit(connection, job["job_id"], "job.contract_revision_changed", {
-            "previous_revision": expected_revision, "contract_revision": expected_revision + 1,
-            "input_snapshot_id": job["snapshot"], "contract_id": contract_id,
-            "epoch_fenced_task_ids": [row["task_id"] for row in tasks],
-            "invalidated_task_ids": invalidated_tasks, "quality": _unknown_quality(),
-            "resource_capacity_released": False})
+        advance_contract_revision(
+            self.domain, connection, job, expected_revision=expected_revision,
+            contract_id=contract_id, tasks=tasks, invalidated_tasks=invalidated_tasks,
+            active_checks=active_checks)
 
     def freeze_from_proposal(self, execution_key: str, artifact_ref: str, *,
                              expected_revision: int) -> dict[str, Any]:
