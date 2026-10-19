@@ -1,0 +1,102 @@
+{
+  "$defs": {
+    "_Address": {
+      "additionalProperties": false,
+      "properties": {
+        "register": {
+          "const": "x0",
+          "title": "Register",
+          "type": "string"
+        },
+        "value": {
+          "maxLength": 18,
+          "minLength": 18,
+          "pattern": "^0x[0-9a-f]{16}$",
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "register",
+        "value"
+      ],
+      "title": "_Address",
+      "type": "object"
+    },
+    "_Region": {
+      "additionalProperties": false,
+      "properties": {
+        "base": {
+          "maxLength": 18,
+          "minLength": 18,
+          "pattern": "^0x[0-9a-f]{16}$",
+          "title": "Base",
+          "type": "string"
+        },
+        "size": {
+          "maximum": 4096,
+          "minimum": 1,
+          "title": "Size",
+          "type": "integer"
+        },
+        "permissions": {
+          "enum": [
+            "r",
+            "rw"
+          ],
+          "title": "Permissions",
+          "type": "string"
+        }
+      },
+      "required": [
+        "base",
+        "size",
+        "permissions"
+      ],
+      "title": "_Region",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "symbol": {
+      "maxLength": 256,
+      "minLength": 1,
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+      "title": "Symbol",
+      "type": "string"
+    },
+    "address": {
+      "$ref": "#/$defs/_Address"
+    },
+    "region": {
+      "$ref": "#/$defs/_Region"
+    },
+    "kind": {
+      "const": "host_memory_assumption_source",
+      "title": "Kind",
+      "type": "string"
+    },
+    "statement": {
+      "maxLength": 8192,
+      "minLength": 1,
+      "title": "Statement",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "symbol",
+    "address",
+    "region",
+    "kind",
+    "statement"
+  ],
+  "title": "HostMemorySourceDocument",
+  "type": "object"
+}

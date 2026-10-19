@@ -43,6 +43,11 @@ jobs:
           python scripts/run_evidence_contract_sample.py
           --ndk-root work/tools/android-ndk-r27c
           --output work/evidence-contract-acceptance
+      - name: Register and revoke a host A0 memory assumption without enabling proof consumption
+        run: >-
+          python scripts/run_memory_context_sample.py
+          --ndk-root work/tools/android-ndk-r27c
+          --output work/memory-context-acceptance
       - name: Recover a partial project, rebuild its source archive and prove new linked bytes
         run: >-
           python scripts/run_project_pipeline_sample.py
@@ -98,6 +103,7 @@ jobs:
           path: |
             work/static-acceptance/
             work/evidence-contract-acceptance/evidence-contract-sample.json
+            work/memory-context-acceptance/memory-context-sample.json
             work/project-pipeline-acceptance/project-pipeline-sample.json
             work/project-pipeline-acceptance/recovered/project.zip
             work/candidate-layout-acceptance/candidate-layout-sample.json

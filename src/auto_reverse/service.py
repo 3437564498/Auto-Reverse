@@ -42,7 +42,10 @@ class RecoveryService:
                             "original_layout_catalog", "versioned_original_layout_constraints",
                             "candidate_project_layout_dependencies", "portable_layout_guard_verification",
                             "eqne_compare_select_machine_semantics", "bounded_acyclic_cpp_recovery",
-                            "independent_cfg_source_safety", "current_source_safety_revalidation"],
+                            "independent_cfg_source_safety", "current_source_safety_revalidation",
+                            "host_memory_context_authority"],
+            "memory_context_authority": {"artifact_level": "A0", "status": "ASSUMED", "host_only": True},
+            "memory_context_proof_consumption": False,
             "recovery_system_complete": False,
             "dsh_model_integration_verified": False,
             "ndk_build_integration_verified": False,
@@ -64,6 +67,7 @@ class RecoveryService:
                 "candidate_layout": "Fixed Clang checks ordinary unsigned structure declarations; A0 storage evidence only",
                 "layout_contracts": "Physical original DWARF type scope and atomic current/history; A0 declarations, original calling ABI unknown",
                 "layout_dependencies": "Host-scoped ordinary structures, guards in actual candidate/project TUs, exact cross-TU identities, portable archive bindings; scalar function ABI only, type usage and aggregate calling ABI unknown",
+                "memory_contexts": "Host-only fixed normal-memory assumptions, versioned current/history and revocation; A0/ASSUMED, no candidate, selection, project or proof consumption",
                 "project_integration": "Trusted host compiles selected source subsets and verifies final linked bytes statically",
                 "final_delivery": "Version-bound reports preserve original denominators, cleanup, and unresolved library gaps",
                 "android_profile": "Static relocation, lifecycle and loader observations; Android loadability remains unverified",
@@ -273,6 +277,19 @@ class RecoveryService:
         with closing(self.domain._connect()) as connection:
             connection.execute("BEGIN")
             return LayoutContractService.read_history(connection, job_id, cursor=cursor, limit=limit)
+
+    def get_memory_contexts(self, job_id: str) -> dict:
+        from .memory_contexts import MemoryContextService
+        with closing(self.domain._connect()) as connection:
+            connection.execute("BEGIN")
+            return MemoryContextService.read_current(connection, job_id, self.objects)
+
+    def list_memory_context_history(self, job_id: str, cursor=0, limit=100) -> dict:
+        from .memory_contexts import MemoryContextService
+        cursor, limit = self.domain._page(cursor, limit)
+        with closing(self.domain._connect()) as connection:
+            connection.execute("BEGIN")
+            return MemoryContextService.read_history(connection, job_id, self.objects, cursor=cursor, limit=limit)
 
     def list_integrations(self, job_id: str, cursor=0, limit=100) -> dict:
         from .project_service import ProjectIntegrationService

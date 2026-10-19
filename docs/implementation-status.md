@@ -1,6 +1,6 @@
 # 实施状态与验收边界
 
-更新：2026-10-19（Asia/Singapore）。设计基线为 [V1 主方案](android-arm64-so-cpp-recovery-V1.md)。`main` 已合并 PR #14（`6239c2a`），包含 CFG2 逻辑条件和 CFG3 精确 NEG/LSLV/LSRV/RORV 源码恢复；真实 ROR helper 的独立审计、实际工程及 GitHub 固定工具完整回归 **4260 passed、0 skipped、0 failed** 均通过。公开 ZIP 已实际下载核验，见[远端冻结记录](acceptance/2026-10-19-variable-source-remote.json)。本轮按原设计核对[首版 M0-S 退出证据](m0-s-exit-review.md)，并补充字节 helper 的独立端序验收。各数字只验收相应代码范围，后续更新与 Checks 仍见[待审核更新](https://github.com/3437564498/Auto-Reverse/pulls)。
+更新：2026-10-19（Asia/Singapore）。设计基线为 [V1 主方案](android-arm64-so-cpp-recovery-V1.md)。`main` 已合并 PR #15（`79d663e`），[有限 M0-S 原型退出核对](m0-s-exit-review.md)已满足；该批[固定工具完整 CI](https://github.com/3437564498/Auto-Reverse/actions/runs/39216850862)实际为 **4295 passed、0 skipped、0 failed**，公开产物已实际下载核验。本批推进 [M1 第一阶段宿主内存假设权威](memory-context-authority.md)，A0/ASSUMED 的来源登记、冻结、撤销及纯读已实现；候选与工程证明消费留在下一阶段，完整 M1 尚未退出。当前更新和本批完整远端验收见[待审核更新](https://github.com/3437564498/Auto-Reverse/pulls)。
 
 **完整 V1、M0-R 和 M1 的完整退出条件尚未全部验收。** 按 V1 第33节原定范围，[首版有限 M0-S 原型退出核对](m0-s-exit-review.md)已满足：真实微型样本、独立规则和负向反例均有对应证据。它不代表全 ISA、全部 helper 或完整调用 ABI 通过，历史矩阵的固定保守字段保持原样。 当前已实现可恢复的自动静态工程流水线，最高交付真实编译的局部 A1。用户暂时无法提供真实 DSH 模型环境，该项保留未验收；确定性静态生成、注入 Provider 和 SDK 离线预检均不计作真实模型验收。
 
@@ -10,6 +10,7 @@
 |---|---|---|
 | 自动入口 | `recover-project` 串接清单、声明、源码提案、验证、选择、集成和最终报告；同输入与配置可按账本接续 | 确定性静态生成器，模型调用数 0；最多处理 64 个安全命名的普通导出函数 |
 | 原库清单 | 保留原动态导出、导入、已发现定义函数和可执行区间字节；观察直接调用、SCC、全局量、TLS 和生命周期根 | 间接调用、未知范围、缺失函数和未闭合入口继续形成缺口；完整函数总数未知 |
+| 宿主内存假设权威 | 原始 unsigned64 首参数依赖、宿主来源登记、固定 X0/单区域 A0 冻结与撤销、全局版本隔离、纯 current/history | ASSUMED，环境未证明；候选、选择、工程与 FINAL 尚不消费，不产生新 EXACT/CONDITIONAL |
 | 标量契约 | 原 ELF 的 unsigned32/64 DWARF 声明核验；有界 bundle 原子冻结同一契约版本 | 仅有限声明形状，不等于完整类型推断、对象布局或原调用 ABI 证明 |
 | 原始结构布局证据 | `inspect-dwarf-layouts` 有界读取普通结构的 unsigned32/64 字段、嵌套结构声明范围与原始 DWARF 来源 | 只输出 A0 辅助声明；union、继承、位域、冲突与未知保留 UNKNOWN，完整类型系统未求解 |
 | 候选结构布局核对 | `inspect-candidate-layouts` 使用实际固定 Clang AST 和宿主编译期断言核对普通/嵌套结构的字段类型、大小和偏移 | 声明匹配仍为 A0；原始缺失的对齐、完整调用 ABI、机器访存语义和通用类型约束求解继续未知 |
@@ -124,11 +125,15 @@ CFG2 源码增量（实现提交 `d7f9c6e`）新增 **273 项测试**（45 生�
 
 本批 CFG3 增量新增 **405 项测试**（86生成、92独立审计、142攻击、59真实编译、26工程/current），已包含于冻结后的完整本地回归：**4260 passed、0 skipped、0 failed**（1056.17秒，1条既有警告）。相对合并前主分支5b0bb95的整个源码恢复PR累计新增678项（CFG2的273项加本次405项），未重复累加进全量数字。真实固定NDK专项生成47份新ELF，包含2份同输入debug原始helper；两份实际声明均为 `(64,64)->64`，38条恢复/独立审计/current/实际AST签名链通过。101次机器比较为96EXACT、5DIFFERENT，包含显式amount边界校准；原七指令X-variable ROR恢复后重新编译成不同四条指令，仍独立证明等价。213次工具命令全部确认清理，5份安全但错误源码被wrapper拒绝且实际编译字节DIFFERENT；独立攻击另有7组受支持raw变异DIFFERENT与完整符号bit-selection/ripple NEG校准。实际两份guarded TU、同debug输入与normal O2字节一致、ZIP新路径重建后两函数新证明、FINAL/current、资源归零及无工具续跑通过。旧恢复215项、旧编译41项、新旧源码安全634项通过，固定NDK/Ghidra矩阵60/60、安装wheel的41模块/3资源/9Schema和实际helper重建字节证明、离线DSH30及分支守卫13项通过。初轮编译因并行改动被指纹守卫拒绝（59passed、1teardown error），封板后重新完整通过；初轮全量因一条旧SOURCE UNKNOWN预期停止（1910passed、1failed、366.43秒），仅更新该预期并保留CFG2拒绝新语法/独立raw证明，生产代码未改，随后重新完整通过。全部过程和边界见[本批冻结验收](acceptance/2026-10-19-variable-source.json)及[变量移位说明](variable-source-recovery.md)。该提交的[固定工具完整远端验收](https://github.com/3437564498/Auto-Reverse/actions/runs/39200087245)已实际通过4260 passed、0 skipped、0 failed（1132.50秒，1条既有警告），60/60矩阵、全部真实工程样例及证据上传均成功。[产物12164131415](https://github.com/3437564498/Auto-Reverse/actions/runs/39200087245/artifacts/12164131415)已下载核验，441751字节、33个公开条目；新工程ZIP含12文件/2实际guarded TU，新链接2函数EXACT且不复用旧证明，摘要和包哈希一致。[远端记录](acceptance/2026-10-19-variable-source-remote.json)单独冻结实际结果，原提交时的本地快照不回写。PR #14已合并为6239c2a，旧分支自动清理成功。有限M0-S原型随后按原文逐项完成[退出核对](m0-s-exit-review.md)；真实DSH/M0-R、完整类型/调用ABI、整库和完整V1仍未完成。
 
-本轮完成[V1第33节有限M0-S退出核对](m0-s-exit-review.md)，[正式范围记录](acceptance/2026-10-19-m0-s-prototype.json)逐项绑定已执行的原始字节、Raw IR、负向见证和独立规则，保留旧矩阵固定false及全部历史快照。另补两项byte helper的独立证据：新增35项本地实际通过（13.72秒，0skip/0fail），106组独立literal/逐byte constexpr、17份新ELF、6次预期编译失败、69次命令清理，机器比较8EXACT/4DIFFERENT/13UNKNOWN；自然LDURH维持未知，头文件与生产实现未改。公共报告导出与默认报告逐字节一致，CI只上传该公开fixture JSON。详见[专项冻结记录](acceptance/2026-10-19-byte-helpers.json)。新增后实际收集4295项；当前提交的完整远端结果须核对新CI，旧4260不代替本次新全量。
+本轮完成[V1第33节有限M0-S退出核对](m0-s-exit-review.md)，[正式范围记录](acceptance/2026-10-19-m0-s-prototype.json)逐项绑定已执行的原始字节、Raw IR、负向见证和独立规则，保留旧矩阵固定false及全部历史快照。另补两项byte helper的独立证据：新增35项本地实际通过（13.72秒，0skip/0fail），106组独立literal/逐byte constexpr、17份新ELF、6次预期编译失败、69次命令清理，机器比较8EXACT/4DIFFERENT/13UNKNOWN；自然LDURH维持未知，头文件与生产实现未改。公共报告导出与默认报告逐字节一致，CI只上传该公开fixture JSON。详见[专项冻结记录](acceptance/2026-10-19-byte-helpers.json)。该批随后在[固定工具完整远端 CI](https://github.com/3437564498/Auto-Reverse/actions/runs/39216850862)实际通过4295 passed、0 skipped、0 failed（1404.32秒，1条既有警告）。公开产物12171460919已下载核验，SHA256为115e40910464ec831130757e0d09e99bb7f7f6d2795319f29ab0f7d2f0097840；其中34个公开条目、60-case矩阵、源码ZIP新链接证明和byte-helper报告一致。PR #15已合并为79d663e，旧开发分支已自动清理。
+
+本批 M1 第一阶段新增253项测试（21版本隔离、52内存服务、136独立攻击、44接口），275项相关组合回归已实际通过（11.50秒、0skip/0fail、1条既有警告），真实固定NDK命令样例12项检查全部通过。独立攻击发现并修复了JSON类型混同、旧current map复活、CAS写后复核及依赖重快照问题，历史失败记录保留。现共收集4548项；本地沙箱禁止回环端口，已合并主分支的MCP stdio同样超时，两个真实MCP传输检查由无排除的完整GitHub CI验收，本地广泛回归不把这两项算作通过。详见[内存权威说明](memory-context-authority.md)及[本批冻结记录](acceptance/2026-10-19-memory-context-authority.json)。
+
+本地广泛回归实际为4545 passed、1 skipped、2 deselected（1343.69秒）；补齐本地NDK路径后，唯一跳过项另行复测1 passed，合计4546项实际通过。两项MCP传输受沙箱限制仍未验收；离线Node为28通过、2个依赖socket的用例失败，分支守卫13项通过。固定NDK/Ghidra矩阵60/60与8个既有真实命令样例通过；wheel的43模块/3资源和9旧Schema逐字节一致。GitHub写工具返回 `MCP tool call requires approval, but approval policy is never`，本批尚未推送、未创建PR、未运行完整远端CI，不能标记完整验收通过。独立样例在广泛回归后加强了AST签名、实际build/cleanup和机器UNKNOWN原因断言；生产与测试文件未改，最终真实样例已另行重跑通过。
 
 ## V1 尚未通过的范围
 
-1. **M1 受控内存验证链路**：低层有限内存模型与首版正反例已有实际证据，但可信宿主区域/输入域尚未贯穿候选、选择、最终链接证明和 ZIP/current。现有 load_word 编译后仍因缺该上下文保持 UNKNOWN。补齐时需保留环境假设和条件化质量，不能将 worker finding、PT_LOAD 权限或局部证明当作调用者有效指针、源码 UB 或原调用 ABI 证明。
+1. **M1 受控内存验证链路**：低层有限内存模型与首版正反例已有实际证据，但宿主区域/输入域的A0登记与权威已实现，但尚未贯穿候选、选择、最终链接证明和 ZIP/current。现有 load_word 编译后仍因缺该上下文保持 UNKNOWN。补齐时需保留环境假设和条件化质量，不能将 worker finding、PT_LOAD 权限或局部证明当作调用者有效指针、源码 UB 或原调用 ABI 证明。
 2. **完整类型与调用 ABI**：当前有有限 unsigned 标量契约、候选签名核验、普通结构的 A0 布局证据、有限候选声明核对及原始布局声明事务；通用类型依赖推断、约束求解、聚合/向量返回和任意全工程对象布局一致性、继承/虚表、this 调整、异常及完整原调用 ABI 尚未验收。
 3. **整库工程和依赖闭包**：局部工程已能真实构建并打包；隐藏/内部函数、递归与互调、间接调用、外部效果、全局/TLS、初始化/析构及入口闭包尚未覆盖完整范围。不能靠缩小导出集合或复制原机器码宣称整库通过。
 4. **完整 Android/JNI Profile**：重定位格式和 API 下界观察已实现；加载器语义、页大小/权限、运行库行为、JNI 普通/Fast/CriticalNative、动态注册与 DEX/Java 上下文仍需专项契约和负向样例。
