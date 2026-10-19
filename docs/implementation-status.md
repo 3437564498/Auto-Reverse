@@ -129,7 +129,7 @@ CFG2 源码增量（实现提交 `d7f9c6e`）新增 **273 项测试**（45 生�
 
 本批 M1 第一阶段新增253项测试（21版本隔离、52内存服务、136独立攻击、44接口），275项相关组合回归已实际通过（11.50秒、0skip/0fail、1条既有警告），真实固定NDK命令样例12项检查全部通过。独立攻击发现并修复了JSON类型混同、旧current map复活、CAS写后复核及依赖重快照问题，历史失败记录保留。现共收集4548项；本地沙箱禁止回环端口，已合并主分支的MCP stdio同样超时，两个真实MCP传输检查由无排除的完整GitHub CI验收，本地广泛回归不把这两项算作通过。详见[内存权威说明](memory-context-authority.md)及[本批冻结记录](acceptance/2026-10-19-memory-context-authority.json)。
 
-本地广泛回归实际为4545 passed、1 skipped、2 deselected（1343.69秒）；补齐本地NDK路径后，唯一跳过项另行复测1 passed，合计4546项实际通过。两项MCP传输受沙箱限制仍未验收；离线Node为28通过、2个依赖socket的用例失败，分支守卫13项通过。固定NDK/Ghidra矩阵60/60与8个既有真实命令样例通过；wheel的43模块/3资源和9旧Schema逐字节一致。GitHub写工具返回 `MCP tool call requires approval, but approval policy is never`，本批尚未推送、未创建PR、未运行完整远端CI，不能标记完整验收通过。独立样例在广泛回归后加强了AST签名、实际build/cleanup和机器UNKNOWN原因断言；生产与测试文件未改，最终真实样例已另行重跑通过。
+本地广泛回归实际为4545 passed、1 skipped、2 deselected（1343.69秒）；补齐本地NDK路径后，唯一跳过项另行复测1 passed，合计4546项实际通过。两项MCP传输受沙箱限制仍未验收；离线Node为28通过、2个依赖socket的用例失败，分支守卫13项通过。固定NDK/Ghidra矩阵60/60与8个既有真实命令样例通过；wheel的43模块/3资源和9旧Schema逐字节一致。上次本地冻结时，GitHub写工具返回 `MCP tool call requires approval, but approval policy is never`，当时尚未推送或建立PR；该历史状态保留在验收快照。后续推送及完整远端验收状态统一见[当前PR与Checks](https://github.com/3437564498/Auto-Reverse/pulls)，不能从本地通过数推断远端已通过。独立样例在广泛回归后加强了AST签名、实际build/cleanup和机器UNKNOWN原因断言；生产与测试文件未改，最终真实样例已另行重跑通过。
 
 ## V1 尚未通过的范围
 

@@ -79,6 +79,6 @@ python scripts/run_memory_context_sample.py \
 
 本批新增 253 项：版本隔离 21、内存服务 52、独立攻击 136、接口 44；另有真实命令样例。275 项相关组合回归已实际通过，详细验收和本地环境限制见[冻结记录](acceptance/2026-10-19-memory-context-authority.json)。完整远端结果以当前 PR 的 Checks 和实际下载产物核对为准。
 
-本地广泛回归实际为4545 passed、1 skipped、2 deselected（1343.69秒）；补齐本地NDK路径后，唯一跳过项另行复测1 passed，合计4546项实际通过。两项MCP传输受沙箱限制仍未验收；离线Node为28通过、2个依赖socket的用例失败，分支守卫13项通过。固定NDK/Ghidra矩阵60/60与8个既有真实命令样例通过；wheel的43模块/3资源和9旧Schema逐字节一致。GitHub写工具返回 `MCP tool call requires approval, but approval policy is never`，本批尚未推送、未创建PR、未运行完整远端CI，不能标记完整验收通过。独立样例在广泛回归后加强了AST签名、实际build/cleanup和机器UNKNOWN原因断言；生产与测试文件未改，最终真实样例已另行重跑通过。
+本地广泛回归实际为4545 passed、1 skipped、2 deselected（1343.69秒）；补齐本地NDK路径后，唯一跳过项另行复测1 passed，合计4546项实际通过。两项MCP传输受沙箱限制仍未验收；离线Node为28通过、2个依赖socket的用例失败，分支守卫13项通过。固定NDK/Ghidra矩阵60/60与8个既有真实命令样例通过；wheel的43模块/3资源和9旧Schema逐字节一致。上次本地冻结时，GitHub写工具返回 `MCP tool call requires approval, but approval policy is never`，当时尚未推送或建立PR；该历史状态保留在验收快照。后续推送及完整远端验收状态统一见[当前PR与Checks](https://github.com/3437564498/Auto-Reverse/pulls)，不能从本地通过数推断远端已通过。独立样例在广泛回归后加强了AST签名、实际build/cleanup和机器UNKNOWN原因断言；生产与测试文件未改，最终真实样例已另行重跑通过。
 
 下一阶段须一起完成候选、选择/反馈、最终链接新字节、ZIP 和 FINAL/current 对可信上下文的消费。低层原始 EXACT 必须保留其精确机器模型范围，宿主环境假设应使外层质量明确条件化；不能仅接上候选就提升全工程质量。完整调用 ABI、源码 UB、指针来源、物理环境和整库语义仍是独立未决义务。
