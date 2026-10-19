@@ -53,6 +53,31 @@ unsigned long long select_zero(unsigned long long x, unsigned long long a, unsig
     return x == 0ULL ? a : b;
 }
 '''
+LOGICAL_SYMBOLS = ("materialize_mask", "select_mask")
+LOGICAL_ORIGINAL = DECLARATIONS + '''sample::Record retain_debug_type;
+extern "C" __attribute__((visibility("default")))
+unsigned long long select_mask(unsigned long long x, unsigned long long a, unsigned long long b) {
+    return (x & 63ULL) == 0ULL ? a : b;
+}
+extern "C" __attribute__((visibility("default")))
+unsigned long long materialize_mask(unsigned long long x, unsigned long long a,
+                                    [[maybe_unused]] unsigned long long b) {
+    unsigned long long masked = x & 63ULL;
+    return masked == 0ULL ? a : masked + 7ULL;
+}
+'''
+VARIABLE_SYMBOLS = ("rotate_word", "shift_word")
+VARIABLE_ORIGINAL = DECLARATIONS + '''#include "auto_reverse/machine_helpers.hpp"
+sample::Record retain_debug_type;
+extern "C" __attribute__((visibility("default")))
+unsigned long long rotate_word(unsigned long long value, unsigned long long amount) {
+    return auto_reverse::machine::ror<unsigned long long>(value, amount);
+}
+extern "C" __attribute__((visibility("default")))
+unsigned long long shift_word(unsigned long long value, unsigned long long amount) {
+    return auto_reverse::machine::lsl<unsigned long long>(value, amount);
+}
+'''
 
 
 def _digest(data):
@@ -126,14 +151,36 @@ def _deliver(backend, job, *, task_id, role, envelope, symbols=(), type_ids=(), 
     return receipt, staged["artifact_ref"]
 
 
-def run_sample(output, ndk_root, *, conditional=False):
-    if type(conditional) is not bool:
-        raise ValueError("conditional fixture selection must be a literal boolean")
+def run_sample(output, ndk_root, *, conditional=False, logical_flags=False, variable_shifts=False):
+    if any(type(selector) is not bool for selector in (conditional, logical_flags, variable_shifts)):
+        raise ValueError("fixture selection must use literal booleans")
+    if sum((conditional, logical_flags, variable_shifts)) > 1:
+        raise ValueError("choose one fixed fixture profile")
     output = _safe_new_directory(output)
-    symbols = CONDITIONAL_SYMBOLS if conditional else SYMBOLS
+    symbols = (VARIABLE_SYMBOLS if variable_shifts else LOGICAL_SYMBOLS if logical_flags
+               else CONDITIONAL_SYMBOLS if conditional else SYMBOLS)
     config = BuildConfig(Path(ndk_root).absolute(), soname="liblayoutdependency.so", expected_exports=symbols)
-    original = _compile_original(output / "fixture", config, CONDITIONAL_ORIGINAL if conditional else ORIGINAL)
+    original_source = (VARIABLE_ORIGINAL if variable_shifts else LOGICAL_ORIGINAL if logical_flags
+                       else CONDITIONAL_ORIGINAL if conditional else ORIGINAL)
+    original = _compile_original(output / "fixture", config, original_source)
     original_bytes = original.read_bytes()
+    variable_origin = None
+    if variable_shifts:
+        normal = output / "fixture/base" / config.soname
+        functions = {}
+        for symbol in symbols:
+            code = extract_function(original, symbol)
+            if code != extract_function(normal, symbol):
+                raise ValueError("debug variable helper differs from its normal O2 machine bytes")
+            shape = extract_scalar_abi(original_bytes, symbol=symbol)
+            if (shape["status"] != "DECLARED_DEBUG_SHAPE"
+                    or shape["parameter_widths"] != [64, 64] or shape["return_width"] != 64
+                    or shape["input_sha256"] != _digest(original_bytes)):
+                raise ValueError("variable helper scalar shape is not bound to the same original ELF")
+            functions[symbol] = {"code_sha256": _digest(code), "machine_bytes": code.hex(),
+                                 "parameter_widths": [64, 64], "return_width": 64}
+        variable_origin = {"same_debug_input_sha256": _digest(original_bytes),
+                           "normal_o2_code_matches_debug": True, "functions": functions}
     catalog = inspect_original_layout_catalog(original_bytes)
     root = next(entry for entry in catalog["entries"] if entry["qualified_name"] == "sample::Record")
     state = output / "state"
@@ -174,6 +221,10 @@ def run_sample(output, ndk_root, *, conditional=False):
         generation_profiles.append(lifted.get("source_profile", "sequential-unsigned-leaf"))
         if conditional and generation_profiles[-1] != "unsigned-acyclic-register-cfg-1":
             raise ValueError("conditional fixture did not use the actual acyclic generator")
+        if logical_flags and generation_profiles[-1] != "unsigned-acyclic-register-cfg-2":
+            raise ValueError("logical fixture did not use the actual logical-flags generator")
+        if variable_shifts and generation_profiles[-1] != "unsigned-acyclic-register-cfg-3":
+            raise ValueError("variable fixture did not use the actual variable-shift generator")
         receipt, artifact = _deliver(backend, job, task_id=job["job_id"] + "/recovery/" + symbol,
             role="recovery", symbols=[symbol], type_ids=[root["type_id"]],
             evidence=[evidence["artifact_id"]],
@@ -229,7 +280,8 @@ def run_sample(output, ndk_root, *, conditional=False):
               and original.read_bytes() == original_bytes)
     summary = {"schema_version": 1, "kind": "actual_tu_layout_dependency_sample", "sample_passed": passed,
         "provider": "offline-leased-static", "model_calls": 0,
-        "fixture_profile": "acyclic-conditional" if conditional else "sequential-unsigned-leaf",
+        "fixture_profile": ("variable-shifts" if variable_shifts else "logical-flags" if logical_flags else
+                            "acyclic-conditional" if conditional else "sequential-unsigned-leaf"),
         "generation_profiles": generation_profiles, "source_safety_summary": source_safety,
         "source_safety_current_verified": True,
         "original_input_sha256": registered["sha256"], "contract_revision": job["contract_revision"],
@@ -245,6 +297,8 @@ def run_sample(output, ndk_root, *, conditional=False):
         "original_calling_abi_verified": False, "whole_program_equivalence": False,
         "dsh_model_acceptance_verified": False, "v1_complete": False,
         "target_or_candidate_executed": False}
+    if variable_origin is not None:
+        summary["variable_source_original"] = variable_origin
     (output / "layout-dependency-sample.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     return summary
 
@@ -253,9 +307,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--ndk-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--conditional", action="store_true", help="Use the fixed CMP/select recovery fixture")
+    fixtures = parser.add_mutually_exclusive_group()
+    fixtures.add_argument("--conditional", action="store_true", help="Use the fixed CMP/select recovery fixture")
+    fixtures.add_argument("--logical-flags", action="store_true", help="Use the fixed ANDS/TST recovery fixture")
+    fixtures.add_argument("--variable-shifts", action="store_true", help="Use the fixed packaged ROR/LSL helper fixture")
     args = parser.parse_args()
-    result = run_sample(args.output, args.ndk_root, conditional=args.conditional)
+    result = run_sample(args.output, args.ndk_root, conditional=args.conditional,
+                        logical_flags=args.logical_flags, variable_shifts=args.variable_shifts)
     print(json.dumps({"sample_passed": result["sample_passed"], "model_calls": 0,
                       "target_or_candidate_executed": False}, indent=2))
     raise SystemExit(0 if result["sample_passed"] else 1)

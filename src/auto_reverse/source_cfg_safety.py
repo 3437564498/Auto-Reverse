@@ -15,6 +15,8 @@ from typing import Any
 
 
 PROFILE = "unsigned-acyclic-register-cfg-1"
+LOGICAL_PROFILE = "unsigned-acyclic-register-cfg-2"
+VARIABLE_PROFILE = "unsigned-acyclic-register-cfg-3"
 MAX_SOURCE_BYTES = 1024 * 1024
 MAX_LINES = 2048
 MAX_BLOCKS = 16
@@ -157,6 +159,18 @@ class _Parser:
 class _Value:
     width: int | None  # None is bool; bool is not an unsigned scalar here.
     constant: int | None = None
+    upper_bound: int | None = None
+
+    @property
+    def maximum(self) -> int:
+        """An expression-local bound; carrier assignments never retain it."""
+        if self.constant is not None:
+            return self.constant
+        if self.upper_bound is not None:
+            return self.upper_bound
+        if self.width is None:
+            raise SourceCFGError("boolean has no unsigned range")
+        return (1 << self.width) - 1
 
 
 @dataclass
@@ -190,7 +204,8 @@ def _read(name: str, width: int, state: _State, locals_seen: set[str], counts) -
     return _Value(width)
 
 
-def _evaluate(node: _Node, state: _State, locals_seen: set[str], counts) -> _Value:
+def _evaluate(node: _Node, state: _State, locals_seen: set[str], counts,
+              variable_shifts: bool = False) -> _Value:
     if node.kind == "literal":
         counts["bounded_unsigned_literals"] += 1
         return _Value(*node.value)
@@ -204,7 +219,7 @@ def _evaluate(node: _Node, state: _State, locals_seen: set[str], counts) -> _Val
     if node.kind == "not":
         if node.children[0].kind != "bool":
             raise SourceCFGError("logical negation is restricted to the condition token")
-        value = _evaluate(node.children[0], state, locals_seen, counts)
+        value = _evaluate(node.children[0], state, locals_seen, counts, variable_shifts)
         if value.width is not None:
             raise SourceCFGError("logical negation needs a boolean")
         return value
@@ -214,27 +229,28 @@ def _evaluate(node: _Node, state: _State, locals_seen: set[str], counts) -> _Val
         # expression does not retroactively make its 64-bit reads available.
         value = (_read(child.value, 32, state, locals_seen, counts)
                  if node.value == 32 and child.kind == "variable"
-                 else _evaluate(child, state, locals_seen, counts))
+                 else _evaluate(child, state, locals_seen, counts, variable_shifts))
         _unsigned(value)
         counts["unsigned_conversions"] += 1
         return _Value(node.value, None if value.constant is None
-                      else value.constant % (1 << node.value))
+                      else value.constant % (1 << node.value),
+                      min(value.maximum, (1 << node.value) - 1))
     if node.kind == "select":
         condition, true_arm, false_arm = node.children
         if condition.kind not in {"bool", "not"}:
             raise SourceCFGError("select condition must be the captured compare token")
-        if _evaluate(condition, state, locals_seen, counts).width is not None:
+        if _evaluate(condition, state, locals_seen, counts, variable_shifts).width is not None:
             raise SourceCFGError("select condition is not boolean")
-        left = _evaluate(true_arm, state, locals_seen, counts)
-        right = _evaluate(false_arm, state, locals_seen, counts)
+        left = _evaluate(true_arm, state, locals_seen, counts, variable_shifts)
+        right = _evaluate(false_arm, state, locals_seen, counts, variable_shifts)
         _unsigned(left)
         _unsigned(right)
         if left.width != right.width:
             raise SourceCFGError("conditional arms must have the same unsigned width")
         counts["unsigned_selects"] += 1
-        return _Value(left.width)
-    left = _evaluate(node.children[0], state, locals_seen, counts)
-    right = _evaluate(node.children[1], state, locals_seen, counts)
+        return _Value(left.width, upper_bound=max(left.maximum, right.maximum))
+    left = _evaluate(node.children[0], state, locals_seen, counts, variable_shifts)
+    right = _evaluate(node.children[1], state, locals_seen, counts, variable_shifts)
     _unsigned(left)
     _unsigned(right)
     if node.kind == "compare":
@@ -246,10 +262,13 @@ def _evaluate(node: _Node, state: _State, locals_seen: set[str], counts) -> _Val
         raise SourceCFGError("unsupported expression kind")
     counts["unsigned_operations"] += 1
     if node.value in {"<<", ">>"}:
-        if right.constant is None or not 0 <= right.constant < left.width:
+        if right.constant is None:
+            if not variable_shifts or right.maximum >= left.width:
+                raise SourceCFGError("shift count is not constant or proven below the promoted left width")
+        elif not 0 <= right.constant < left.width:
             raise SourceCFGError("shift count is not constant below the promoted left width")
         counts["bounded_unsigned_shifts"] += 1
-        result = None if left.constant is None else (
+        result = None if left.constant is None or right.constant is None else (
             left.constant << right.constant if node.value == "<<" else left.constant >> right.constant
         ) % (1 << left.width)
         return _Value(left.width, result)
@@ -261,7 +280,7 @@ def _evaluate(node: _Node, state: _State, locals_seen: set[str], counts) -> _Val
                   "&": lambda: left.constant & right.constant,
                   "|": lambda: left.constant | right.constant,
                   "^": lambda: left.constant ^ right.constant}[node.value]() % (1 << width)
-    return _Value(width, result)
+    return _Value(width, result, min(left.maximum, right.maximum) if node.value == "&" else None)
 
 
 def _offset(text: str) -> int:
@@ -271,12 +290,17 @@ def _offset(text: str) -> int:
     return value
 
 
-def check_source_cfg(source: str, *, symbol: str, parameter_widths, return_width: int) -> dict:
+def check_source_cfg(source: str, *, symbol: str, parameter_widths, return_width: int,
+                     profile: str = PROFILE) -> dict:
     """Parse and prove every structural source path, without trusting generator claims.
 
-    Raises ``SourceCFGError`` for an unsupported or incomplete obligation. Input
-    byte provenance and instruction-map binding belong to the calling wrapper.
+    Raises ``SourceCFGError`` for an unsupported or incomplete obligation. CFG1
+    remains the default; explicit CFG2/CFG3 admit captured-token branches.
+    Only CFG3 admits expression-locally bounded variable shifts.
+    Input byte provenance and instruction-map binding belong to the wrapper.
     """
+    if profile not in (PROFILE, LOGICAL_PROFILE, VARIABLE_PROFILE):
+        raise SourceCFGError("unknown finite source CFG profile")
     if (not isinstance(source, str) or not source.isascii() or not source
             or len(source.encode()) > MAX_SOURCE_BYTES
             or any(ord(char) < 32 and char != "\n" for char in source)):
@@ -404,18 +428,24 @@ def check_source_cfg(source: str, *, symbol: str, parameter_widths, return_width
                 if index != len(block["statements"]) - 2:
                     raise SourceCFGError("conditional jump must be followed only by its false jump")
                 condition = _Parser(branch[1]).parse()
-                if condition.kind != "compare":
-                    raise SourceCFGError("branch condition requires an unsigned zero comparison")
-                if condition.children[1].kind != "literal" or condition.children[1].value[1] != 0:
-                    raise SourceCFGError("branch condition must compare an unsigned value to zero")
-                if _evaluate(condition, state, locals_seen, counts).width is not None:
+                captured = (profile in (LOGICAL_PROFILE, VARIABLE_PROFILE) and
+                            (condition.kind == "bool" or
+                             condition.kind == "not" and condition.children[0].kind == "bool"))
+                if not captured:
+                    if condition.kind != "compare":
+                        raise SourceCFGError("branch condition requires an unsigned zero comparison")
+                    if condition.children[1].kind != "literal" or condition.children[1].value[1] != 0:
+                        raise SourceCFGError("branch condition must compare an unsigned value to zero")
+                if _evaluate(condition, state, locals_seen, counts,
+                             profile == VARIABLE_PROFILE).width is not None:
                     raise SourceCFGError("branch condition is not boolean")
                 continue
             if line == returned:
                 if not final:
                     raise SourceCFGError("source statements follow a return")
                 expression = _Parser(line.strip()[7:-1]).parse()
-                _unsigned(_evaluate(expression, state, locals_seen, counts))
+                _unsigned(_evaluate(expression, state, locals_seen, counts,
+                                    profile == VARIABLE_PROFILE))
                 continue
             if line == "    // Architectural NOP; no observable effect.":
                 counts["nops"] += 1
@@ -425,7 +455,7 @@ def check_source_cfg(source: str, *, symbol: str, parameter_widths, return_width
                 raise SourceCFGError("statement is outside the checked unsigned CFG grammar")
             name, expression = assignment.groups()
             node = _Parser(expression).parse()
-            value = _evaluate(node, state, locals_seen, counts)
+            value = _evaluate(node, state, locals_seen, counts, profile == VARIABLE_PROFILE)
             if name == "ar_eq":
                 if not condition_declared or node.kind != "compare" or node.value != "==" or value.width is not None:
                     raise SourceCFGError("condition assignment requires its declared captured equality")
@@ -446,7 +476,7 @@ def check_source_cfg(source: str, *, symbol: str, parameter_widths, return_width
             incoming.setdefault(target, []).append(state.copy())
     public_blocks = [{key: value for key, value in block.items() if key != "statements"} for block in blocks]
     cfg = {"entry_offset": 0, "blocks": public_blocks, "edges": edges}
-    return {"source_profile": PROFILE, "counts": counts, "scalar_locals": sorted(locals_seen),
+    return {"source_profile": profile, "counts": counts, "scalar_locals": sorted(locals_seen),
             "parameter_count": len(parameter_widths), "unsigned_widths": [32, 64],
             "pointer_or_memory_operations": 0, "library_or_foreign_calls": 0,
             "division_operations": 0, "cfg": cfg, "cfg_sha256": _hash(cfg),

@@ -173,9 +173,9 @@ def test_shift_logic_and_bitfield_mask_neighbors_fail_closed(word):
 
 
 def test_recovery_capability_version_and_inputs_do_not_claim_original_abi():
-    assert RECOVERY_VERSION == "integer-register-acyclic-4"
+    assert RECOVERY_VERSION == "integer-register-variable-cfg-6"
     matrix = recovery_capabilities()
-    assert matrix["matrix_ref"] == "capability://integer-register-acyclic-4"
+    assert matrix["matrix_ref"] == "capability://integer-register-variable-cfg-6"
     assert {item["opcode"] for item in matrix["operations"]} == {
         "ADD", "SUB", "MOV", "MOVK", "AND", "ORR", "EOR", "LSL", "LSR", "UBFX", "UBFIZ", "NOP", "RET",
     }
