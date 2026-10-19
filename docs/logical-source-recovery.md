@@ -38,6 +38,6 @@ export AUTO_REVERSE_TEST_CMAKE="$(command -v cmake)"
 
 ## 仍然未知的范围
 
-真实 64 位变量 ROR helper 虽已通过机器证明，仍含未恢复的 NEG 和变量 LSRV/LSLV，整函数源码继续 UNKNOWN。本批不加入它们，也不加入寄存器/移位 ANDS、BC、LT/HI、后跳、循环、调用、内存或通用 C++。
+在本篇记录的 CFG2 冻结提交中，真实 64 位变量 ROR helper 因 NEG 和变量 LSRV/LSLV 仍为整函数源码 UNKNOWN。后续 CFG3 已单独恢复这些有限形式，详见[变量移位源码恢复](variable-source-recovery.md)。寄存器/移位 ANDS、BC、LT/HI、后跳、循环、调用、内存与通用 C++ 仍未加入。
 
 全部过程只执行宿主工具，不加载或执行原库、候选库、目标 harness、初始化器、设备或模拟器。模型调用数为零；真实 DSH、完整 M0-S/M0-R、完整类型/调用 ABI、整库闭包和 V1 尚未验收，最高交付仍为局部 A1。

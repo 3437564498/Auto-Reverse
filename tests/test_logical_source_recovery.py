@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from auto_reverse import recovery, recovery_cfg
+from auto_reverse import recovery, recovery_cfg, source_safety
 from auto_reverse.build_gate import BuildConfig, build_candidate
 from auto_reverse.intake import extract_function
 from auto_reverse.semantics import verify_machine_code
@@ -188,12 +188,21 @@ def test_outside_finite_scope_stays_unknown_without_partial_source(values, width
     assert len(result["instructions"]) == len(values)
 
 
-def test_true_x_variable_ror_helper_is_still_not_a_supported_source_shape():
+def test_true_x_variable_ror_helper_now_has_a_separate_cfg3_source_profile():
     original = bytes.fromhex("28140072a0000054e803084b0924c19a0820c89a000109aac0035fd6")
     result = recovery.lift_integer_leaf(original, symbol="logical_source",
         parameter_widths=(64, 64), return_width=64)
-    assert result["status"] == "UNKNOWN" and result["source"] is None
-    assert any(item["recovery_supported"] is False for item in result["instructions"])
+    assert result["status"] == "SOURCE_GENERATED"
+    assert result["source_profile"] == "unsigned-acyclic-register-cfg-3"
+    assert all(item["recovery_supported"] is True for item in result["instructions"])
+    assert [len(item["statements"]) for item in result["instructions"]] == [2, 2, 1, 1, 1, 1, 1]
+    audit = source_safety.audit_generated_leaf(result["source"], original_code=original,
+        symbol="logical_source", parameter_widths=(64, 64), return_width=64)
+    assert audit["status"] == "PASS", audit
+    assert audit["machine_equivalence_verified"] is False
+    proof = verify_machine_code(original, words(0x9AC12C00, RET))
+    assert proof["semantic"]["status"] == "EXACT_EQUIVALENT"
+    assert proof["semantic"]["whole_program_equivalence"] is False
 
 
 def test_new_conditional_branches_share_the_existing_hard_budget():

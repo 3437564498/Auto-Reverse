@@ -13,6 +13,7 @@ from typing import Any
 
 ACYCLIC_PROFILE = "unsigned-acyclic-register-cfg-1"
 LOGICAL_CFG_PROFILE = "unsigned-acyclic-register-cfg-2"
+VARIABLE_CFG_PROFILE = "unsigned-acyclic-register-cfg-3"
 MAX_CFG_BYTES = 1024
 MAX_CFG_BLOCKS = 16
 MAX_CFG_CONDITIONAL_BRANCHES = 6
@@ -36,6 +37,7 @@ def has_acyclic_features(code: bytes) -> bool:
     for offset in range(0, len(code), 4):
         word = int.from_bytes(code[offset:offset + 4], "little")
         if (word & 0x7F00001F in {0x7100001F, 0x6B00001F}
+                or _has_variable_encoding(word)
                 or word & 0x7F800000 == 0x72000000
                 or word & 0xFF000000 == 0x54000000
                 or word & 0x1FE00000 == 0x1A800000
@@ -44,6 +46,12 @@ def has_acyclic_features(code: bytes) -> bool:
                 or (word == 0xD65F03C0 and offset != len(code) - 4)):
             return True
     return False
+
+
+def _has_variable_encoding(word: int) -> bool:
+    """Select the new profile from actual words, before register admission."""
+    return (word & 0x7FE0FFE0 == 0x4B0003E0
+            or word & 0x7FE0FC00 in {0x1AC02000, 0x1AC02400, 0x1AC02C00})
 
 
 def _register(index: int, width: int) -> str:
@@ -55,6 +63,47 @@ def _register(index: int, width: int) -> str:
 
 def _signed(value: int, bits: int) -> int:
     return value - (1 << bits) if value & (1 << (bits - 1)) else value
+
+
+def _variable_instruction(word: int) -> dict | None:
+    """Admit only unshifted S=0 NEG and unsigned modulo register shifts.
+
+    Architectural ZR reads are literal zero; no source carrier or initialized
+    input is invented for index 31. Each RHS reads its operands before the one
+    real destination write and never modifies a captured condition snapshot.
+    """
+    width = 64 if word & (1 << 31) else 32
+    destination, source, amount = word & 31, (word >> 5) & 31, (word >> 16) & 31
+    if destination > 17:
+        return None
+    suffix = "ULL" if width == 64 else "U"
+    if word & 0x7FE0FFE0 == 0x4B0003E0:
+        source = amount
+        if source > 17 and source != 31:
+            return None
+        expression = f"0{suffix} - {_register(source, width)}"
+        record = {"opcode": "NEG", "raw_opcode": "NEG", "source_index": source,
+                  "source_indices": [] if source == 31 else [source]}
+    else:
+        opcode = {0x1AC02000: "LSLV", 0x1AC02400: "LSRV", 0x1AC02C00: "RORV"}.get(
+            word & 0x7FE0FC00)
+        if opcode is None or any(index > 17 and index != 31 for index in (source, amount)):
+            return None
+        data = _register(source, width)
+        masked = f"({_register(amount, width)} & {width - 1}{suffix})"
+        if opcode == "RORV":
+            expression = (f"({data} >> {masked}) | "
+                          f"({data} << ((0{suffix} - {masked}) & {width - 1}{suffix}))")
+        else:
+            expression = f"{data} {'<<' if opcode == 'LSLV' else '>>'} {masked}"
+        record = {"opcode": opcode, "raw_opcode": opcode, "data_index": source,
+                  "amount_index": amount, "amount_mask": width - 1,
+                  "source_indices": [index for index in (source, amount) if index != 31]}
+    if width == 32:
+        expression = f"static_cast<unsigned long long>(static_cast<unsigned int>({expression}))"
+    return {**record, "width": width, "destination_index": destination,
+            "destination": ("x" if width == 64 else "w") + str(destination),
+            "statement": f"ar_x{destination} = {expression};"}
 
 
 def _logical_instruction(word: int) -> dict | None:
@@ -104,6 +153,8 @@ def _logical_instruction(word: int) -> dict | None:
 def _new_instruction(word: int, offset: int) -> dict | None:
     """Decode new encodings independently of Capstone aliases and SMT lowering."""
     width = 64 if word >> 31 else 32
+    if _has_variable_encoding(word):
+        return _variable_instruction(word)
     if word & 0x7F800000 == 0x72000000:
         return _logical_instruction(word)
     if word & 0xFF000000 == 0x54000000:
@@ -291,7 +342,7 @@ def _analyze(records: list[dict], cfg: dict, widths: tuple[int, ...], return_wid
             if record.get("reads_condition") and not condition_defined:
                 record["recovery_supported"] = False
                 return analysis, ("condition_read_before_supported_definition_on_all_paths"
-                                  if profile == LOGICAL_CFG_PROFILE
+                                  if profile in {LOGICAL_CFG_PROFILE, VARIABLE_CFG_PROFILE}
                                   else "condition_read_before_supported_compare_on_all_paths")
             if record.get("defines_condition"):
                 condition_defined = True
@@ -383,7 +434,10 @@ def lift_acyclic(code: bytes, *, symbol: str, address: int, widths: tuple[int, .
         return result
     records, reason = _decode(code, address)
     result["instructions"] = records
-    if any(int.from_bytes(code[offset:offset + 4], "little") & 0x7F800000 == 0x72000000
+    if any(_has_variable_encoding(int.from_bytes(code[offset:offset + 4], "little"))
+           for offset in range(0, len(code), 4)):
+        result["source_profile"] = VARIABLE_CFG_PROFILE
+    elif any(int.from_bytes(code[offset:offset + 4], "little") & 0x7F800000 == 0x72000000
            or int.from_bytes(code[offset:offset + 4], "little") & 0xFF000000 == 0x54000000
            for offset in range(0, len(code), 4)):
         result["source_profile"] = LOGICAL_CFG_PROFILE

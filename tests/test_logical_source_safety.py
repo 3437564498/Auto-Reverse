@@ -87,7 +87,7 @@ def test_new_boolean_jump_requires_explicit_cfg2_parser_profile():
                          parameter_widths=(32, 32), return_width=32)
 
 
-@pytest.mark.parametrize("profile", [None, "", "unsigned-acyclic-register-cfg-3", True, 2])
+@pytest.mark.parametrize("profile", [None, "", "unsigned-acyclic-register-cfg-4", True, 2])
 def test_source_parser_has_no_unknown_profile_fallback(profile):
     _, lifted = generated()
     with pytest.raises(SourceCFGError, match="unknown finite"):

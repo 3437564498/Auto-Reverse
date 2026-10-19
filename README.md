@@ -8,7 +8,7 @@
 
 流水线使用确定性静态生成器，模型调用数为零。DSH 账本、插件和 SDK 离线接线已实现；用户暂时无法提供真实 DSH 模型环境，该项保持未验收。当前进度与 V1 剩余范围见 [实施记录](docs/implementation-status.md)。
 
-[PR #13](https://github.com/3437564498/Auto-Reverse/pull/13) 已合并到 `main`，[ANDS 与局部 EQ/NE 机器模型](docs/logical-flags.md)的 GitHub 固定工具完整回归为 **3582 passed、0 skipped、0 failed**。本批将这些指令接入[有限源码恢复与独立审计](docs/logical-source-recovery.md)，更新集中在 [待审核更新](https://github.com/3437564498/Auto-Reverse/pulls)。各增量的来源、验收和限制见 [实施记录](docs/implementation-status.md)，当前远端 Checks 与可审核状态以活动 PR 为准。
+[PR #13](https://github.com/3437564498/Auto-Reverse/pull/13) 已合并到 `main`，[ANDS 与局部 EQ/NE 机器模型](docs/logical-flags.md)的 GitHub 固定工具完整回归为 **3582 passed、0 skipped、0 failed**。本批将这些指令接入[有限源码恢复与独立审计](docs/logical-source-recovery.md)，并增加[NEG 与有界变量移位恢复](docs/variable-source-recovery.md)，更新集中在 [待审核更新](https://github.com/3437564498/Auto-Reverse/pulls)。各增量的来源、验收和限制见 [实施记录](docs/implementation-status.md)，当前远端 Checks 与可审核状态以活动 PR 为准。
 
 ## 开发与运行
 
@@ -85,6 +85,7 @@ npm run preflight
 | [有限条件机器模型](docs/machine-conditions.md) | CMP、EQ/NE 条件选择、原始编码核验及观察边界 |
 | [ANDS 与局部条件分支](docs/logical-flags.md) | 逻辑立即数、完整内部 NZCV、前向 B.EQ/B.NE 与当前证明 |
 | [逻辑条件源码恢复](docs/logical-source-recovery.md) | CFG2 写回与条件快照、独立 word/span 审计、实际工程与新字节证明 |
+| [变量移位源码恢复](docs/variable-source-recovery.md) | CFG3 精确 NEG/LSLV/LSRV/RORV、移位上界与真实 ROR helper 新字节证明 |
 | [ROR 独立验收](docs/ror-acceptance.md) | 位排列 oracle、真实 helper 编译及高位/编码边界 |
 | [无环条件源码恢复](docs/acyclic-recovery.md) | 有界前向 CFG 生成、独立安全审计与当前工程证据 |
 | [实际编译的布局依赖](docs/layout-dependencies.md) | 类型作用域、宿主编译期断言、跨 TU 一致性及源码归档重建 |

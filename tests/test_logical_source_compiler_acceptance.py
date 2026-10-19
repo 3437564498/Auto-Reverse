@@ -270,7 +270,7 @@ def test_unavailable_upper_bits_or_missing_join_flags_do_not_generate(code, widt
     assert result["status"] == "UNKNOWN" and result["source"] is None, result
 
 
-def test_actual_high_lt_and_variable_ror_helpers_stay_outside_source_cfg2(logical_source_compiler):
+def test_actual_high_lt_stays_unknown_while_variable_ror_uses_cfg3(logical_source_compiler):
     high_symbol, high_source = source_for("select_high64")
     ror_symbol = "logical_variable_ror"
     for symbol, source, widths in ((high_symbol, high_source, (64, 64, 64)),
@@ -278,7 +278,17 @@ def test_actual_high_lt_and_variable_ror_helpers_stay_outside_source_cfg2(logica
         original = logical_source_compiler.build(symbol, source, symbol + "-unsupported-original")
         result = recovery.lift_integer_leaf(original["code"], symbol=symbol, address=original["address"],
                                             parameter_widths=widths, return_width=64)
-        assert result["status"] == "UNKNOWN" and result["source"] is None, result
+        if symbol == high_symbol:
+            assert result["status"] == "UNKNOWN" and result["source"] is None, result
+        else:
+            assert result["status"] == "SOURCE_GENERATED", result
+            assert result["source_profile"] == "unsigned-acyclic-register-cfg-3"
+            audit = audit_generated_leaf(result["source"], original_code=original["code"], symbol=symbol,
+                address=original["address"], parameter_widths=widths, return_width=64)
+            assert audit["status"] == "PASS", audit
+            assert audit["machine_equivalence_verified"] is False
+            rebuilt = logical_source_compiler.build(symbol, result["source"], symbol + "-cfg3-recovered")
+            logical_source_compiler.proof(original, rebuilt, symbol + "-fresh-cfg3")
 
 
 def test_changed_audit_cannot_become_current_by_rehashing_its_claims(logical_source_compiler):

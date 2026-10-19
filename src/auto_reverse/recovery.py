@@ -21,7 +21,7 @@ from .intake import ELFIntakeError, extract_function, function_info, inspect_elf
 from .semantics import verify_machine_code
 
 
-RECOVERY_VERSION = "integer-register-logical-cfg-5"
+RECOVERY_VERSION = "integer-register-variable-cfg-6"
 _MAX_LEAF_BYTES = 1024
 _C_IDENTIFIER = re.compile(r"[A-Za-z][A-Za-z0-9_]*\Z", re.ASCII)
 _KEYWORDS = frozenset("""
@@ -314,6 +314,19 @@ def recovery_capabilities() -> dict[str, Any]:
             "strictly_forward_local_branches": True,
             "source_safety_and_actual_compiled_byte_proof_required": True,
             "variable_shifts_or_neg_recovered": False,
+        },
+        "variable_register_fallback": {
+            "profile": "unsigned-acyclic-register-cfg-3",
+            "additional_operations": ["NEG unshifted S=0", "LSLV", "LSRV", "RORV"],
+            "widths": [32, 64], "amount_masks": {"32": 31, "64": 63},
+            "operand_availability": "all non-ZR operands require the instruction width",
+            "zero_register_reads": "literal unsigned zero; no carrier or input",
+            "shift_bound": "fresh unsigned mask at every shift; rotate complement masked after subtraction",
+            "captured_condition_preserved": True,
+            "maximum_bytes": 1024, "maximum_blocks": 16,
+            "maximum_conditional_branches": 6, "maximum_edges": 32,
+            "strictly_forward_local_branches": True,
+            "source_safety_and_actual_compiled_byte_proof_required": True,
         },
         "lifting_establishes_equivalence": False,
     }

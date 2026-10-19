@@ -447,10 +447,20 @@ def test_source_only_cfg2_boolean_grammar_is_explicit_and_old_default_rejects_it
             parameter_widths=(64, 64), return_width=64)
 
 
-def test_real_ror_helper_stays_source_unknown_until_neg_and_variable_shifts_are_separately_supported():
+def test_real_ror_helper_has_independently_audited_cfg3_without_promoting_cfg2():
     code = bytes.fromhex("28140072a0000054e803084b0924c19a0820c89a000109aac0035fd6")
     result = lift(code)
-    assert result["status"] == "UNKNOWN" and result["source"] is None
+    assert result["status"] == "SOURCE_GENERATED"
+    assert result["source_profile"] == "unsigned-acyclic-register-cfg-3"
+    checked = audit(result["source"], code)
+    assert checked["status"] == "PASS", checked
+    assert checked["machine_equivalence_verified"] is False
+    with pytest.raises(ValueError):
+        source_cfg_safety.check_source_cfg(result["source"], symbol=SYMBOL,
+            parameter_widths=(64, 64), return_width=64, profile=PROFILE)
+    proof = semantics.verify_machine_code(code, words(0x9AC12C00, RET))
+    assert proof["semantic"]["status"] == "EXACT_EQUIVALENT"
+    assert proof["semantic"]["whole_program_equivalence"] is False
 
 
 def test_ands_and_bcond_multiline_maps_relocate_together_without_mutating_function_local_map():
