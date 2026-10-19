@@ -1,6 +1,6 @@
 # 有限无环条件源码恢复
 
-恢复器可以把受支持的 unsigned AArch64 前向控制流生成有限 C++，再独立审计源码、实际编译，并比较新 ELF 的机器字节。Profile 为 `unsigned-acyclic-register-cfg-1`；旧顺序叶函数的成功源码和映射保持原样。
+恢复器可以把受支持的 unsigned AArch64 前向控制流生成有限 C++，再独立审计源码、实际编译，并比较新 ELF 的机器字节。本文记录首个 Profile `unsigned-acyclic-register-cfg-1`；旧顺序叶函数的成功源码和映射保持原样。后续 ANDS/TST 与 B.EQ/B.NE 的 CFG2 扩展另见[逻辑源码恢复](logical-source-recovery.md)。
 
 这项能力不完成 M0-S、原调用 ABI 或整库恢复。源码审计 PASS、编译 PASS、局部机器 EXACT 与当前证据有效是分别检查的义务。
 
@@ -43,7 +43,7 @@ CMP 立即保存布尔条件快照。后续改写比较操作数不能改变已�
 
 ## 实际验收与复现
 
-真实固定 NDK 验收包括六类自然 O2 输出、七类独立 raw CFG、反条件/分支臂/常量变异、W 回绕、比较快照和不同 CMP 的路径汇合。源生成与独立审计通过后仍必须编译、匹配实际签名并重新证明新字节，不能用自比较或历史证明代替。Clang 可能把合法源码变为未支持的 LT/TST 等指令，此时保留 UNKNOWN，不使用 asm、volatile 或特殊编译参数迫使验收通过。
+真实固定 NDK 验收包括六类自然 O2 输出、七类独立 raw CFG、反条件/分支臂/常量变异、W 回绕、比较快照和不同 CMP 的路径汇合。源生成与独立审计通过后仍必须编译、匹配实际签名并重新证明新字节，不能用自比较或历史证明代替。Clang 可能把合法源码变为未支持的 该批尚未支持的 LT/TST 等指令，此时保留 UNKNOWN，不使用 asm、volatile 或特殊编译参数迫使验收通过。
 
 ```bash
 export AUTO_REVERSE_TEST_NDK_ROOT="$PWD/work/tools/android-ndk-r27c"

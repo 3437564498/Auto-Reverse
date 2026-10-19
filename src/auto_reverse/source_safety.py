@@ -2,8 +2,11 @@
 
 The host supplies actual original bytes and a current scalar declaration. This
 module re-generates the leaf and independently checks its restricted unsigned
-expression grammar and local initialization. Worker maps, authorship flags and
-quality claims are not inputs. It executes neither a compiler nor target code.
+expression grammar, local initialization and actual-word CFG/span ownership.
+For CFG2 it additionally binds the new logical result/Z and branch roles to raw
+words. These finite bindings do not prove compiled machine equivalence. Worker
+maps, authorship flags and quality claims are not inputs. It executes neither a
+compiler nor target code.
 """
 
 from __future__ import annotations
@@ -20,6 +23,7 @@ from . import recovery
 
 SOURCE_SAFETY_VERSION = "generated-unsigned-leaf-defined-behavior-1"
 CFG_SOURCE_SAFETY_VERSION = "generated-unsigned-acyclic-cfg-defined-behavior-1"
+LOGICAL_CFG_SOURCE_SAFETY_VERSION = "generated-unsigned-acyclic-cfg-defined-behavior-2"
 _MAX_SOURCE_BYTES = 1024 * 1024
 _MAX_EXPRESSION_TOKENS = 256
 _MAX_EXPRESSION_DEPTH = 64
@@ -247,6 +251,81 @@ def _check_source_map(lifted: dict[str, Any], original_code: bytes, source: str,
     return _json_hash(mappings)
 
 
+def _logical_word_role(word: int) -> dict[str, Any] | None:
+    """Recover the new logical word facts without a generator/model decoder.
+
+    Each output mask bit is tested against the raw circular run, rather than
+    sharing the generator's rotate-and-replicate mask construction.
+    """
+    if word & 0x7F800000 != 0x72000000:
+        return None
+    width = 64 if word >> 31 else 32
+    n, rotation_field, size_field = (word >> 22) & 1, (word >> 16) & 63, (word >> 10) & 63
+    size_log = ((n << 6) | (63 ^ size_field)).bit_length() - 1
+    if size_log < 1 or (width == 32 and n) or 1 << size_log > width:
+        raise _ProfileError("actual logical immediate has a reserved element width")
+    element_width = 1 << size_log
+    run_length = (size_field & (element_width - 1)) + 1
+    if run_length == element_width:
+        raise _ProfileError("actual logical immediate has a reserved full-one element")
+    rotation = rotation_field & (element_width - 1)
+    mask = sum(1 << bit for bit in range(width)
+               if (bit + rotation) % element_width < run_length)
+    destination, source = word & 31, (word >> 5) & 31
+    if any(index > 17 and index != 31 for index in (source, destination)):
+        raise _ProfileError("actual logical word uses a register outside the finite source profile")
+    return {"raw_opcode": "ANDS_IMMEDIATE", "opcode": "TST" if destination == 31 else "ANDS",
+            "width": width, "raw_destination_index": destination, "source_index": source,
+            "source_indices": [] if source == 31 else [source], "defines_condition": True,
+            "N": n, "immr": rotation_field, "imms": size_field,
+            "element_width": element_width, "run_length": run_length,
+            "rotation": rotation, "mask": mask,
+            **({"destination_index": destination,
+                "destination": ("x" if width == 64 else "w") + str(destination)}
+               if destination != 31 else {})}
+
+
+def _logical_profile_required(original_code: bytes) -> bool:
+    # Recognize entire raw families, including unsupported/reserved members.
+    # A producer cannot hide them behind a legacy profile or fallthrough word.
+    return any((word & 0x7F800000 == 0x72000000 or word & 0xFF000000 == 0x54000000)
+               for offset in range(0, len(original_code), 4)
+               for word in [int.from_bytes(original_code[offset:offset + 4], "little")])
+
+
+def _raw_eqne_branch(word: int, offset: int) -> dict[str, Any] | None:
+    if word & 0xFF000000 != 0x54000000:
+        return None
+    condition = word & 15
+    if word & 16 or condition not in (0, 1):
+        raise _ProfileError("actual conditional branch is outside ordinary EQ/NE")
+    immediate = (word >> 5) & 0x7FFFF
+    signed = immediate - 0x80000 if immediate & 0x40000 else immediate
+    return {"opcode": "B.NE" if condition else "B.EQ", "raw_opcode": "B_COND",
+            "condition_code": condition, "condition": "NE" if condition else "EQ",
+            "branch_target": offset + signed * 4,
+            "branch_condition": "!ar_eq" if condition else "ar_eq",
+            "source_indices": [], "reads_condition": True}
+
+
+def _new_word_statements(role: dict[str, Any], offset: int) -> list[str]:
+    if role["raw_opcode"] == "B_COND":
+        return [f"if ({role['branch_condition']}) goto ar_bb_{role['branch_target']};",
+                f"goto ar_bb_{offset + 4};"]
+    width, source, destination = role["width"], role["source_index"], role["raw_destination_index"]
+    suffix = "ULL" if width == 64 else "U"
+    operand = ("0" + suffix if source == 31 else f"ar_x{source}" if width == 64
+               else f"static_cast<unsigned int>(ar_x{source})")
+    masked = f"{operand} & {role['mask']}{suffix}"
+    if destination == 31:
+        return [f"ar_eq = (({masked}) == 0{suffix});"]
+    expression = (masked if width == 64 else
+                  f"static_cast<unsigned long long>(static_cast<unsigned int>({masked}))")
+    result = (f"ar_x{destination}" if width == 64 else
+              f"static_cast<unsigned int>(ar_x{destination})")
+    return [f"ar_x{destination} = {expression};", f"ar_eq = ({result} == 0{suffix});"]
+
+
 def _forward_word_cfg(original_code: bytes) -> dict[str, Any]:
     """Independently bind only raw control edges; never import generator CFGs."""
     if not original_code or len(original_code) % 4 or len(original_code) > 1024:
@@ -266,6 +345,8 @@ def _forward_word_cfg(original_code: bytes) -> dict[str, Any]:
             immediate, bits, conditional = (word >> 5) & 0x7FFFF, 19, True
         elif word & 0x7E000000 == 0x36000000:
             immediate, bits, conditional = (word >> 5) & 0x3FFF, 14, True
+        elif _raw_eqne_branch(word, offset) is not None:
+            immediate, bits, conditional = (word >> 5) & 0x7FFFF, 19, True
         else:
             continue
         displacement = immediate - (1 << bits) if immediate & (1 << (bits - 1)) else immediate
@@ -317,12 +398,15 @@ def _check_cfg_source_map(lifted: dict[str, Any], original_code: bytes, source: 
         offset, raw = index * 4, original_code[index * 4:index * 4 + 4]
         word = int.from_bytes(raw, "little")
         conditional_word = word & 0x7E000000 in (0x34000000, 0x36000000)
+        role = _logical_word_role(word) or _raw_eqne_branch(word, offset)
+        expected_statements = _new_word_statements(role, offset) if role else None
+        owned_count = len(expected_statements) if role else 1 + int(conditional_word)
         if not isinstance(mapping, dict) or not isinstance(record, dict):
             raise _ProfileError("CFG map records must be objects")
         start, end = mapping.get("source_line"), mapping.get("source_line_end")
         statements = record.get("statements")
         if (type(start) is not int or type(end) is not int or not 1 <= start <= end <= len(lines)
-                or end - start != int(conditional_word)
+                or end - start + 1 != owned_count
                 or _json_hash(mapping.get("source_span")) != _json_hash(
                     {"start_line": start, "end_line_exclusive": end + 1})
                 or type(mapping.get("function_offset")) is not int
@@ -343,6 +427,15 @@ def _check_cfg_source_map(lifted: dict[str, Any], original_code: bytes, source: 
                 or [line.strip() for line in lines[start - 1:end]] != statements
                 or any(line in covered for line in range(start, end + 1))):
             raise _ProfileError("CFG word span differs from actual bytes, owned source or statement extent")
+        if role:
+            if (statements != expected_statements
+                    or _json_hash({key: record.get(key) for key in role}) != _json_hash(role)
+                    or role["opcode"] == "TST" and
+                    ("destination_index" in record or "destination" in record)
+                    or role["raw_opcode"] == "ANDS_IMMEDIATE" and record.get("reads_condition")
+                    or role["raw_opcode"] == "B_COND" and
+                    (record.get("defines_condition") or "destination_index" in record)):
+                raise _ProfileError("new raw word role, mask, captured Z or branch polarity differs from source")
         covered.update(range(start, end + 1))
     scaffolds = set()
     for actual, parsed in zip(actual_cfg["blocks"], source_blocks):
@@ -462,12 +555,15 @@ def audit_generated_leaf(source: str, *, original_code: bytes | None, symbol: st
             return finish("ORIGINAL_MACHINE_PROFILE_UNSUPPORTED", lifted["reason"])
         shape = lifted["scalar_signature"]
         profile = lifted.get("source_profile")
-        if profile is not None:
-            from .source_cfg_safety import PROFILE
+        from .source_cfg_safety import LOGICAL_PROFILE, PROFILE
 
-            if profile != PROFILE:
+        if _logical_profile_required(original_code) != (profile == LOGICAL_PROFILE):
+            raise _ProfileError("actual new raw words require exactly the logical CFG2 profile")
+        if profile is not None:
+            if profile not in (PROFILE, LOGICAL_PROFILE):
                 raise _ProfileError("generated source has an unknown finite profile")
-            report.update(version=CFG_SOURCE_SAFETY_VERSION, source_profile=profile)
+            report.update(version=(LOGICAL_CFG_SOURCE_SAFETY_VERSION if profile == LOGICAL_PROFILE
+                                   else CFG_SOURCE_SAFETY_VERSION), source_profile=profile)
         report["scope"].update(
             kind="one-exact-generated-acyclic-source" if profile else "one-exact-generated-leaf-source",
             complete_source_extent=True,
@@ -486,7 +582,8 @@ def audit_generated_leaf(source: str, *, original_code: bytes | None, symbol: st
             from .source_cfg_safety import check_source_cfg
 
             details = check_source_cfg(audited_source, symbol=symbol,
-                                       parameter_widths=parameter_widths, return_width=return_width)
+                                       parameter_widths=parameter_widths, return_width=return_width,
+                                       profile=profile)
             mapping_hash = _check_cfg_source_map(lifted, original_code, audited_source, symbol, address, details)
             report["provenance"].update(regenerated_cfg_sha256=lifted["cfg_sha256"],
                                          independently_checked_source_cfg_sha256=details["cfg_sha256"])
@@ -514,6 +611,9 @@ def audit_generated_leaf(source: str, *, original_code: bytes | None, symbol: st
             "captured-condition-defined-on-every-path", "declared-register-upper-bits-available",
             "unsigned-conditional-arms", "forward-cfg-and-complete-word-span-binding",
         ))
+        if report["source_profile"] == LOGICAL_PROFILE:
+            report["obligations"].append({"name": "logical-word-result-and-captured-z-binding",
+                                         "status": "PASSED"})
     report["proof_scope"] = {
         "profile": report["version"], "source_sha256": report["source"]["sha256"],
         "unsigned_int_bits": 32, "unsigned_long_long_bits": 64,

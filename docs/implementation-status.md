@@ -1,8 +1,8 @@
 # 实施状态与验收边界
 
-更新：2026-10-18（Asia/Singapore）。设计基线为 [V1 主方案](android-arm64-so-cpp-recovery-V1.md)。`main` 已合并 PR #12（`17d7b08`），ROR 独立 ISA 与实际 helper 验收已进入主分支。本批增加原始编码核验的 ANDS logical-immediate/TST 与局部前向 B.EQ/B.NE，集中在 [待审核更新](https://github.com/3437564498/Auto-Reverse/pulls) 的活动 PR。各验收数字对应下文明确的代码范围，当前 Checks 与可审核状态以活动 PR 页面为准。
+更新：2026-10-19（Asia/Singapore）。设计基线为 [V1 主方案](android-arm64-so-cpp-recovery-V1.md)。`main` 已合并 PR #13（`5b0bb95`），ANDS/TST 与局部 EQ/NE 机器模型已完成对应固定工具远端验收。本批将这些指令接入有限 CFG2 源码生成、独立审计与实际工程，集中在[待审核更新](https://github.com/3437564498/Auto-Reverse/pulls)的唯一活动 PR。各验收数字对应下文明确的代码范围，当前 Checks 与可审核状态以活动 PR 页面为准。
 
-**完整 V1、M0-S、M0-R 和 M1 的完整退出条件尚未全部验收。** 本批将原有单候选验证扩展为可恢复的自动静态工程流水线，最高交付真实编译的局部 A1。用户暂时无法提供真实 DSH 模型环境，该项保留未验收；确定性静态生成、注入 Provider 和 SDK 离线预检均不计作真实模型验收。
+**完整 V1、M0-S、M0-R 和 M1 的完整退出条件尚未全部验收。** 当前已实现可恢复的自动静态工程流水线，最高交付真实编译的局部 A1。用户暂时无法提供真实 DSH 模型环境，该项保留未验收；确定性静态生成、注入 Provider 和 SDK 离线预检均不计作真实模型验收。
 
 ## 当前新增能力
 
@@ -16,9 +16,9 @@
 | 原始布局约束事务 | 有界原始物理类型目录、专用 `type_ids` 作用域、真实交付校验、多根及嵌套闭包一次冻结、current/history 与全局 revision 失效 | 仅原始存储声明 A0；完整类型系统和聚合调用 ABI 仍未知，宿主指定的有限候选依赖见下一行 |
 | 实际 TU 布局依赖 | 指定物理类型闭包、宿主生成断言进入实际候选和工程编译、保守跨 TU C++ 类型核对、源码 ZIP 与 FINAL 绑定 | 有限 profile 已完成本地独立验收；函数仍限 unsigned32/64 标量，类型实际使用关系、聚合调用 ABI 与通用对象布局继续未知 |
 | 候选签名 | 由固定 Clang 实际 AST 与类型探针提取候选参数和返回类型，对比当前可信标量约束 | 歧义、扩展类型、未知属性与不支持声明不给匹配通过；候选自报类型无权威 |
-| 受限源码生成 | 旧有类型整数叶输出保持；新增 CMP/EQ-NE 选择及有限前向 B/CBZ/TBZ CFG，统一 carrier、路径汇合初始化/高位与 flags 检查 | 只覆盖 unsigned32/64 有界 profile；环、调用、内存恢复、其他 flags/条件与通用 C++ 继续未知 |
+| 受限源码生成 | 旧有类型整数叶及 CFG1 输出保持；CFG2 增加 ANDS/TST 与前向 B.EQ/B.NE，保留条件快照、路径汇合初始化和高位检查 | 只覆盖 unsigned32/64 有界 profile；环、调用、内存恢复、NEG/变量移位、其他 flags/条件与通用 C++ 继续未知 |
 | 独立源码安全与 current | 独立解析源码 CFG/类型/初始化及原始高位可用性，重建实际 byte/span/CFG 绑定；工程与 FINAL 纯重验当前 staged source、契约、布局材料和实现 | 匹配 UNKNOWN 仍可局部 A1；审计不自动证明机器等价、原调用 ABI 或全库 UB，详见[无环恢复](acyclic-recovery.md) |
-| 条件机器语义 | 原始编码 CMP、ANDS logical-immediate/TST、EQ/NE 选择及严格前向局部 B.cond；路径独立 NZCV、32/64 回绕与 W 零扩展 | LT/HI、BC、后向条件分支、寄存器 ANDS、其他 flags 更新仍 UNKNOWN；生成语法与调用 ABI 不扩大，详见[新 flags 边界](logical-flags.md) |
+| 条件机器语义 | 原始编码 CMP、ANDS logical-immediate/TST、EQ/NE 选择及严格前向局部 B.cond；路径独立 NZCV、32/64 回绕与 W 零扩展 | LT/HI、BC、后向条件分支、寄存器 ANDS、其他 flags 更新仍 UNKNOWN；机器观察范围与调用 ABI 不扩大；有限源码扩展另见[逻辑源码恢复](logical-source-recovery.md) |
 | 工程物化 | 当前所选源码分成独立翻译单元，生成受控公共声明，固定 NDK 真实编译与联合链接 | 不复制原机器码、不补空实现；缺少内部实现或声明冲突时保留失败/未知 |
 | 最终产物验证 | 对最终联合 ELF 的实际字节逐个重新做局部 SMT，独立比较原库完整导出与依赖结构 | 不复用单候选证明替代最终证明；局部 EXACT 不提升为整库通过 |
 | 源码工程归档 | 确定性 ZIP 包含实际源码、受控头文件、CMake 和公开报告；可用固定 NDK 重新编译 | ZIP 不包含原库、目标 `.so`、对象文件、私有账本或运行凭据；重建后须重新验证 |
@@ -118,7 +118,9 @@ npm run preflight
 
 历史结果保持原文件：[候选验收](acceptance/2026-10-14-validation.json)、[修复与分支验收](acceptance/2026-10-14-feedback.json)、[证据与声明验收](acceptance/2026-10-14-evidence-contract.json)。这些结果对应各自冻结代码，不能直接作为本批新增模块已验收的结论。
 
-当前本地模型增量限定 ANDS logical-immediate/TST 与严格前向局部 B.EQ/B.NE。实现 48 项、独立对抗 190 项、实际编译 97 项、proof/current 22 项及兼容编译 41 项均已实际通过；实际编译 55 份新 ELF，83 个比较为 44 EXACT、37 DIFFERENT、2 UNKNOWN，另 10 raw 边界及 4 源码安全审计 UNKNOWN。高地址 Capstone signed 目标导致的误拒已修复。初轮完整回归的旧 TST 未知断言失败后中断（1 failed、347 passed、78.06 秒），已保留并补独立 TBZ/ADD/SUB 参考；完整源码生成边界未扩大。固定 NDK/Ghidra 矩阵为 60/60，独立安装 wheel 的 41 模块/3 资源/9 Schema 与新 helper 机器证明通过，DSH 离线 30 与分支守卫 13 项通过。冻结源码后的固定 NDK/Ghidra/JDK/CMake 完整本地回归实际为 **3582 passed、0 skipped、0 failed**（869.36 秒，1 条既有警告），新增 **284 项**已包含其中（48 实现、190 独审、23 编译、22 证明/current、1 矩阵守卫）。最初失败过程与最终输入、实现和工具绑定见[本批冻结验收](acceptance/2026-10-18-logical-flags.json)。本批新的远端完整结果仍须核对当前提交的实际日志，不以本地或旧 PR 代替。
+当前本地模型增量限定 ANDS logical-immediate/TST 与严格前向局部 B.EQ/B.NE。实现 48 项、独立对抗 190 项、实际编译 97 项、proof/current 22 项及兼容编译 41 项均已实际通过；实际编译 55 份新 ELF，83 个比较为 44 EXACT、37 DIFFERENT、2 UNKNOWN，另 10 raw 边界及 4 源码安全审计 UNKNOWN。高地址 Capstone signed 目标导致的误拒已修复。初轮完整回归的旧 TST 未知断言失败后中断（1 failed、347 passed、78.06 秒），已保留并补独立 TBZ/ADD/SUB 参考；完整源码生成边界未扩大。固定 NDK/Ghidra 矩阵为 60/60，独立安装 wheel 的 41 模块/3 资源/9 Schema 与新 helper 机器证明通过，DSH 离线 30 与分支守卫 13 项通过。冻结源码后的固定 NDK/Ghidra/JDK/CMake 完整本地回归实际为 **3582 passed、0 skipped、0 failed**（869.36 秒，1 条既有警告），新增 **284 项**已包含其中（48 实现、190 独审、23 编译、22 证明/current、1 矩阵守卫）。最初失败过程与最终输入、实现和工具绑定见[本批冻结验收](acceptance/2026-10-18-logical-flags.json)。该提交随后通过 [PR #13 固定工具完整远端 CI](https://github.com/3437564498/Auto-Reverse/actions/runs/39125119163)：**3582 passed、0 skipped、0 failed**（1103.99 秒，1 条既有警告），60 场景矩阵、全部工程/布局/条件/ZIP 样例及[证据上传](https://github.com/3437564498/Auto-Reverse/actions/runs/39125119163/artifacts/12136188027)通过。普通 CI 为 2768 passed、814 项工具缺失 skip（104.37 秒），DSH 离线 30 与分支守卫 13 项通过。PR #13 已合并为 `5b0bb95`，旧开发分支已自动清理。这些结果对应上一机器模型增量，不替代后续源码增量的验收。
+
+本批有限 CFG2 源码恢复新增 **273 项测试**（45 生成、40 独立审计、122 攻击、41 真实编译、25 工程/current），已包含于冻结后的完整本地回归：**3855 passed、0 skipped、0 failed**（966.09 秒，1 条既有警告）。独立 oracle 覆盖 16,384 个 raw 字段组合；49 份新 ELF 包含 12 份同输入 debug 原库，真实声明均为 `(64,64,64)->64`。23 条恢复/独立审计/current/实际 AST 签名链通过，47 次机器比较为 **39 EXACT、8 DIFFERENT**，169 次工具命令均确认清理。固定 NDK/Ghidra 矩阵 **60/60**，两个实际 guarded TU、ZIP 新路径重建后两函数新链接字节 EXACT、FINAL/current 和资源归零均通过；自动控制器完成后续跑无新增事件、任务或工具。工程/旧恢复兼容 216 项、旧无环编译 41 项、新旧 flags 独审 312 项通过，安装 wheel 的 41 模块/3 资源/9 Schema 与冻结输入一致，DSH 离线 30 与分支守卫 13 项通过。首轮完整回归的旧源码 UNKNOWN 预期导致 1744 passed、1 failed 后停止（351.16 秒）；修正为 CFG2 有限生成/审计 PASS，同时保留任意手写源码 UNKNOWN，生产代码未改，随后重新完整通过。初始过程、全部输入/工具绑定和边界见[冻结验收](acceptance/2026-10-19-logical-source.json)与[能力说明](logical-source-recovery.md)。本提交远端 CI 在提交时仍待实际日志核验；以上本地结果不代替远端验收。真实 X-variable ROR 仍因 NEG/变量移位缺少源码语法而 SOURCE UNKNOWN，不提升完整 M0-S、原调用 ABI、类型或整库/V1 状态。
 
 ## V1 尚未通过的范围
 

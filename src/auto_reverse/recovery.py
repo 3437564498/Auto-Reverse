@@ -21,7 +21,7 @@ from .intake import ELFIntakeError, extract_function, function_info, inspect_elf
 from .semantics import verify_machine_code
 
 
-RECOVERY_VERSION = "integer-register-acyclic-4"
+RECOVERY_VERSION = "integer-register-logical-cfg-5"
 _MAX_LEAF_BYTES = 1024
 _C_IDENTIFIER = re.compile(r"[A-Za-z][A-Za-z0-9_]*\Z", re.ASCII)
 _KEYWORDS = frozenset("""
@@ -303,6 +303,17 @@ def recovery_capabilities() -> dict[str, Any]:
             "maximum_conditional_branches": 6, "maximum_edges": 32,
             "unreachable_words_supported": False, "all_exits_ret_x30": True,
             "source_safety_and_actual_compiled_byte_proof_required": True,
+        },
+        "logical_flags_fallback": {
+            "profile": "unsigned-acyclic-register-cfg-2",
+            "additional_operations": ["ANDS logical immediate", "TST logical immediate", "B.EQ", "B.NE"],
+            "conditions": ["EQ", "NE"], "captured_condition_token": "ar_eq",
+            "real_destination_write_and_w_zero_extension": True,
+            "maximum_bytes": 1024, "maximum_blocks": 16,
+            "maximum_conditional_branches": 6, "maximum_edges": 32,
+            "strictly_forward_local_branches": True,
+            "source_safety_and_actual_compiled_byte_proof_required": True,
+            "variable_shifts_or_neg_recovered": False,
         },
         "lifting_establishes_equivalence": False,
     }

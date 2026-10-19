@@ -391,17 +391,23 @@ def test_lt_o0_and_tst_keep_distinct_machine_and_source_boundaries(compiler_acce
         assert any(item.mnemonic == "csel" and item.cc == arm64.ARM64_CC_LT for item in decoded)
     lifted = recovery.lift_integer_leaf(original["code"], symbol=symbol, address=original["address"],
                                         parameter_widths=widths, return_width=64)
-    assert lifted["status"] == "UNKNOWN" and lifted["source"] is None, lifted
     report = prove(original, original)
     if body is not None:
-        # TST-immediate machine support does not add a source-generation
-        # grammar. Check its actual compiled behavior against a flag-free
-        # raw reference, rather than accepting only a same-byte comparison.
+        # CFG2 adds TST source recovery. Preserve the independent flag-free
+        # oracle and also compile the actual new text before comparing bytes.
+        assert lifted["status"] == "SOURCE_GENERATED", lifted
+        assert lifted["source_profile"] == "unsigned-acyclic-register-cfg-2"
+        audited = audit_generated_leaf(lifted["source"], original_code=original["code"], symbol=symbol,
+                                       parameter_widths=widths, return_width=64, address=original["address"])
+        assert audited["status"] == "PASS", audited
+        rebuilt = compiler_acceptance.build(symbol, lifted["source"], symbol + "-logical-recovered")
+        assert_exact(original, rebuilt)
         assert report["semantic"]["status"] == "EXACT_EQUIVALENT", report
         oracle = {"code": words(tbz(0, 0, 12), 0xD1000C20, RET, 0x91001C20, RET),
                   "address": 0x9000}
         assert_exact(original, oracle)
     else:
+        assert lifted["status"] == "UNKNOWN" and lifted["source"] is None, lifted
         assert report["semantic"]["status"] == "UNKNOWN", report
     assert not any(item["kind"] == "valid_normal_memory_regions" for item in report["semantic"]["assumptions"])
 

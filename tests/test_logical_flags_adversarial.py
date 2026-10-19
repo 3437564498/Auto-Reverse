@@ -445,10 +445,17 @@ def test_invalid_function_address_cannot_sanitize_a_branch_target(address):
         verify(seed(), original_address=address)
 
 
-def test_machine_extension_does_not_promote_generator_or_arbitrary_cpp_safety():
+def test_finite_logical_generator_does_not_promote_arbitrary_cpp_safety():
     code = seed()
-    assert recovery.lift_integer_leaf(code, symbol="flags_function", parameter_widths=(64, 64),
-                                      return_width=64)["status"] == "UNKNOWN"
+    generated = recovery.lift_integer_leaf(code, symbol="flags_function", parameter_widths=(64, 64),
+                                           return_width=64)
+    assert generated["status"] == "SOURCE_GENERATED"
+    assert generated["source_profile"] == "unsigned-acyclic-register-cfg-2"
+    checked = source_safety.audit_generated_leaf(generated["source"], original_code=code,
+        symbol="flags_function", parameter_widths=(64, 64), return_width=64)
+    assert checked["status"] == "PASS"
+    assert checked["machine_equivalence_verified"] is False
+    assert checked["original_calling_abi_verified"] is False
     source = 'extern "C" unsigned long long flags_function(unsigned long long x, unsigned long long n) { return n & 63; }\n'
     audit = source_safety.audit_generated_leaf(source, original_code=code, symbol="flags_function",
                                                parameter_widths=(64, 64), return_width=64)

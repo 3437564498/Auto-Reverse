@@ -53,6 +53,19 @@ unsigned long long select_zero(unsigned long long x, unsigned long long a, unsig
     return x == 0ULL ? a : b;
 }
 '''
+LOGICAL_SYMBOLS = ("materialize_mask", "select_mask")
+LOGICAL_ORIGINAL = DECLARATIONS + '''sample::Record retain_debug_type;
+extern "C" __attribute__((visibility("default")))
+unsigned long long select_mask(unsigned long long x, unsigned long long a, unsigned long long b) {
+    return (x & 63ULL) == 0ULL ? a : b;
+}
+extern "C" __attribute__((visibility("default")))
+unsigned long long materialize_mask(unsigned long long x, unsigned long long a,
+                                    [[maybe_unused]] unsigned long long b) {
+    unsigned long long masked = x & 63ULL;
+    return masked == 0ULL ? a : masked + 7ULL;
+}
+'''
 
 
 def _digest(data):
@@ -126,13 +139,16 @@ def _deliver(backend, job, *, task_id, role, envelope, symbols=(), type_ids=(), 
     return receipt, staged["artifact_ref"]
 
 
-def run_sample(output, ndk_root, *, conditional=False):
-    if type(conditional) is not bool:
-        raise ValueError("conditional fixture selection must be a literal boolean")
+def run_sample(output, ndk_root, *, conditional=False, logical_flags=False):
+    if type(conditional) is not bool or type(logical_flags) is not bool:
+        raise ValueError("fixture selection must use literal booleans")
+    if conditional and logical_flags:
+        raise ValueError("choose one fixed fixture profile")
     output = _safe_new_directory(output)
-    symbols = CONDITIONAL_SYMBOLS if conditional else SYMBOLS
+    symbols = LOGICAL_SYMBOLS if logical_flags else CONDITIONAL_SYMBOLS if conditional else SYMBOLS
     config = BuildConfig(Path(ndk_root).absolute(), soname="liblayoutdependency.so", expected_exports=symbols)
-    original = _compile_original(output / "fixture", config, CONDITIONAL_ORIGINAL if conditional else ORIGINAL)
+    original_source = LOGICAL_ORIGINAL if logical_flags else CONDITIONAL_ORIGINAL if conditional else ORIGINAL
+    original = _compile_original(output / "fixture", config, original_source)
     original_bytes = original.read_bytes()
     catalog = inspect_original_layout_catalog(original_bytes)
     root = next(entry for entry in catalog["entries"] if entry["qualified_name"] == "sample::Record")
@@ -174,6 +190,8 @@ def run_sample(output, ndk_root, *, conditional=False):
         generation_profiles.append(lifted.get("source_profile", "sequential-unsigned-leaf"))
         if conditional and generation_profiles[-1] != "unsigned-acyclic-register-cfg-1":
             raise ValueError("conditional fixture did not use the actual acyclic generator")
+        if logical_flags and generation_profiles[-1] != "unsigned-acyclic-register-cfg-2":
+            raise ValueError("logical fixture did not use the actual logical-flags generator")
         receipt, artifact = _deliver(backend, job, task_id=job["job_id"] + "/recovery/" + symbol,
             role="recovery", symbols=[symbol], type_ids=[root["type_id"]],
             evidence=[evidence["artifact_id"]],
@@ -229,7 +247,8 @@ def run_sample(output, ndk_root, *, conditional=False):
               and original.read_bytes() == original_bytes)
     summary = {"schema_version": 1, "kind": "actual_tu_layout_dependency_sample", "sample_passed": passed,
         "provider": "offline-leased-static", "model_calls": 0,
-        "fixture_profile": "acyclic-conditional" if conditional else "sequential-unsigned-leaf",
+        "fixture_profile": ("logical-flags" if logical_flags else
+                            "acyclic-conditional" if conditional else "sequential-unsigned-leaf"),
         "generation_profiles": generation_profiles, "source_safety_summary": source_safety,
         "source_safety_current_verified": True,
         "original_input_sha256": registered["sha256"], "contract_revision": job["contract_revision"],
@@ -253,9 +272,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--ndk-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--conditional", action="store_true", help="Use the fixed CMP/select recovery fixture")
+    fixtures = parser.add_mutually_exclusive_group()
+    fixtures.add_argument("--conditional", action="store_true", help="Use the fixed CMP/select recovery fixture")
+    fixtures.add_argument("--logical-flags", action="store_true", help="Use the fixed ANDS/TST recovery fixture")
     args = parser.parse_args()
-    result = run_sample(args.output, args.ndk_root, conditional=args.conditional)
+    result = run_sample(args.output, args.ndk_root, conditional=args.conditional,
+                        logical_flags=args.logical_flags)
     print(json.dumps({"sample_passed": result["sample_passed"], "model_calls": 0,
                       "target_or_candidate_executed": False}, indent=2))
     raise SystemExit(0 if result["sample_passed"] else 1)

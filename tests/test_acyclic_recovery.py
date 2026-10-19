@@ -166,7 +166,7 @@ def test_branch_conditions_preserve_actual_width_and_test_bit(opcode, required, 
     (0xF100001F, NOP),  # Non-return fallthrough.
     (0xF100001F, 0xB4000020),  # Branch target outside extent.
     (0xD65F0000, RET),  # RET X0.
-    (0xF100001F, 0x54000020, RET),  # B.EQ remains unsupported.
+    (0xF100001F, 0x54000028, RET),  # B.HI remains unsupported.
     (0xF100001F, 0x9A82B020, RET),  # LT CSEL.
     (0xF100001F, 0x9A82E020, RET),  # AL CSEL.
     (0xF10003FF, RET),  # CMP SP immediate.

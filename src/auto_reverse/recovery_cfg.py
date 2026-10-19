@@ -12,6 +12,7 @@ from typing import Any
 
 
 ACYCLIC_PROFILE = "unsigned-acyclic-register-cfg-1"
+LOGICAL_CFG_PROFILE = "unsigned-acyclic-register-cfg-2"
 MAX_CFG_BYTES = 1024
 MAX_CFG_BLOCKS = 16
 MAX_CFG_CONDITIONAL_BRANCHES = 6
@@ -35,6 +36,8 @@ def has_acyclic_features(code: bytes) -> bool:
     for offset in range(0, len(code), 4):
         word = int.from_bytes(code[offset:offset + 4], "little")
         if (word & 0x7F00001F in {0x7100001F, 0x6B00001F}
+                or word & 0x7F800000 == 0x72000000
+                or word & 0xFF000000 == 0x54000000
                 or word & 0x1FE00000 == 0x1A800000
                 or word & 0xFC000000 == 0x14000000
                 or word & 0x7E000000 in {0x34000000, 0x36000000}
@@ -54,9 +57,65 @@ def _signed(value: int, bits: int) -> int:
     return value - (1 << bits) if value & (1 << (bits - 1)) else value
 
 
+def _logical_instruction(word: int) -> dict | None:
+    """Recover logical-immediate data/condition effects from raw ISA fields.
+
+    This generator does not import machine-model decoding or trust a submitted
+    mask. The separate source checker independently binds each owned statement.
+    """
+    if word & 0x7F800000 != 0x72000000:
+        return None
+    width = 64 if word & (1 << 31) else 32
+    destination, source = word & 31, (word >> 5) & 31
+    if any(index > 17 and index != 31 for index in (destination, source)):
+        return None
+    n, rotation, end = (word >> 22) & 1, (word >> 16) & 63, (word >> 10) & 63
+    length = ((n << 6) | ((~end) & 63)).bit_length() - 1
+    if (width == 32 and n) or length < 1 or (1 << length) > width:
+        return None
+    element_width, levels = 1 << length, (1 << length) - 1
+    run_length, effective_rotation = (end & levels) + 1, rotation & levels
+    if run_length == element_width:
+        return None
+    # Explicit bit membership expresses the circular run without depending on
+    # the machine decoder's rotate/replicate implementation.
+    mask = sum(int(((bit % element_width + effective_rotation) % element_width) < run_length) << bit
+               for bit in range(width))
+    suffix = "ULL" if width == 64 else "U"
+    value = f"{_register(source, width)} & {mask}{suffix}"
+    record = {"opcode": "TST" if destination == 31 else "ANDS", "raw_opcode": "ANDS_IMMEDIATE",
+              "width": width, "raw_destination_index": destination, "source_index": source,
+              "source_indices": [] if source == 31 else [source], "N": n,
+              "immr": rotation, "imms": end, "element_width": element_width,
+              "run_length": run_length, "rotation": effective_rotation,
+              "mask": mask, "defines_condition": True}
+    if destination == 31:
+        statements = [f"ar_eq = (({value}) == 0{suffix});"]
+    else:
+        assignment = value if width == 64 else f"static_cast<unsigned long long>(static_cast<unsigned int>({value}))"
+        statements = [f"ar_x{destination} = {assignment};",
+                      f"ar_eq = ({_register(destination, width)} == 0{suffix});"]
+        record.update(destination_index=destination,
+                      destination=("x" if width == 64 else "w") + str(destination))
+    record.update(statements=statements, statement="\n".join(statements))
+    return record
+
+
 def _new_instruction(word: int, offset: int) -> dict | None:
     """Decode new encodings independently of Capstone aliases and SMT lowering."""
     width = 64 if word >> 31 else 32
+    if word & 0x7F800000 == 0x72000000:
+        return _logical_instruction(word)
+    if word & 0xFF000000 == 0x54000000:
+        condition = word & 15
+        displacement = 4 * _signed((word >> 5) & 0x7FFFF, 19)
+        if word & 16 or condition not in (0, 1) or displacement <= 0:
+            return None
+        return {"opcode": "B.EQ" if condition == 0 else "B.NE", "raw_opcode": "B_COND",
+                "source_indices": [], "reads_condition": True,
+                "condition_code": condition, "condition": "EQ" if condition == 0 else "NE",
+                "branch_target": offset + displacement,
+                "branch_condition": "ar_eq" if condition == 0 else "!ar_eq"}
     immediate = word & 0x7FC0001F == 0x7100001F
     register = word & 0x7FE0FC1F == 0x6B00001F
     if immediate or register:
@@ -196,7 +255,8 @@ def _build_cfg(records: list[dict], size: int) -> tuple[dict | None, str | None]
             "complete_word_coverage": True}, None
 
 
-def _analyze(records: list[dict], cfg: dict, widths: tuple[int, ...], return_width: int) -> tuple[list, str | None]:
+def _analyze(records: list[dict], cfg: dict, widths: tuple[int, ...], return_width: int,
+             profile: str = ACYCLIC_PROFILE) -> tuple[list, str | None]:
     outputs, analysis = {}, []
     predecessors = {block["start_offset"]: [] for block in cfg["blocks"]}
     for edge in cfg["edges"]:
@@ -230,7 +290,9 @@ def _analyze(records: list[dict], cfg: dict, widths: tuple[int, ...], return_wid
                                   else "declared_32_bit_parameter_high_bits_read_before_write")
             if record.get("reads_condition") and not condition_defined:
                 record["recovery_supported"] = False
-                return analysis, "condition_read_before_supported_compare_on_all_paths"
+                return analysis, ("condition_read_before_supported_definition_on_all_paths"
+                                  if profile == LOGICAL_CFG_PROFILE
+                                  else "condition_read_before_supported_compare_on_all_paths")
             if record.get("defines_condition"):
                 condition_defined = True
             if "destination_index" in record:
@@ -283,14 +345,14 @@ def _emit(result: dict, widths: tuple[int, ...], return_width: int, typed: bool)
                     statements[0] = f"if ({record['branch_condition']}) goto ar_bb_{record['branch_target']};"
                     statements.append(f"goto ar_bb_{record['function_offset'] + 4};")
             else:
-                statements = [record["statement"]]
+                statements = list(record.get("statements", [record["statement"]]))
                 if record["opcode"] == "RET" and return_width == 32:
                     statements = ["return static_cast<unsigned int>(ar_x0);"]
             record["statements"] = statements
             record["statement"] = "\n".join(statements)
             first_line = len(lines) + 1
             lines.extend("    " + statement for statement in statements)
-            result["source_map"].append({"symbol": symbol, "source_profile": ACYCLIC_PROFILE,
+            result["source_map"].append({"symbol": symbol, "source_profile": result["source_profile"],
                 "source_line": first_line, "source_line_end": len(lines),
                 "source_span": {"start_line": first_line, "end_line_exclusive": len(lines) + 1},
                 **{key: record[key] for key in ("address", "function_offset", "machine_bytes",
@@ -321,12 +383,16 @@ def lift_acyclic(code: bytes, *, symbol: str, address: int, widths: tuple[int, .
         return result
     records, reason = _decode(code, address)
     result["instructions"] = records
+    if any(int.from_bytes(code[offset:offset + 4], "little") & 0x7F800000 == 0x72000000
+           or int.from_bytes(code[offset:offset + 4], "little") & 0xFF000000 == 0x54000000
+           for offset in range(0, len(code), 4)):
+        result["source_profile"] = LOGICAL_CFG_PROFILE
     if reason is None:
         cfg, reason = _build_cfg(records, len(code))
         if cfg is not None:
             result["cfg"] = cfg
     if reason is None:
-        analysis, reason = _analyze(records, result["cfg"], widths, return_width)
+        analysis, reason = _analyze(records, result["cfg"], widths, return_width, result["source_profile"])
         result["definite_assignment"] = analysis
     if reason is not None:
         result["reason"] = reason

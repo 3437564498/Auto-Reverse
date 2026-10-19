@@ -69,6 +69,11 @@ jobs:
           python scripts/run_layout_dependency_sample.py --conditional
           --ndk-root work/tools/android-ndk-r27c
           --output work/acyclic-recovery-acceptance
+      - name: Recover logical flags through guarded TUs, rebuild archive and prove new linked bytes
+        run: >-
+          python scripts/run_layout_dependency_sample.py --logical-flags
+          --ndk-root work/tools/android-ndk-r27c
+          --output work/logical-source-acceptance
       - name: Test durable tool activities, current authority and failure windows with real tools
         env:
           AUTO_REVERSE_TEST_NDK_ROOT: ${{ github.workspace }}/work/tools/android-ndk-r27c
@@ -95,4 +100,6 @@ jobs:
             work/layout-dependency-acceptance/project.zip
             work/acyclic-recovery-acceptance/layout-dependency-sample.json
             work/acyclic-recovery-acceptance/project.zip
+            work/logical-source-acceptance/layout-dependency-sample.json
+            work/logical-source-acceptance/project.zip
           if-no-files-found: warn

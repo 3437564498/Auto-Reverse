@@ -1,0 +1,1212 @@
+{
+  "schema_version": 1,
+  "kind": "finite_logical_flags_source_cfg2_acceptance",
+  "recorded_date": "2026-10-19",
+  "timezone": "Asia/Singapore",
+  "base_main_commit": "5b0bb959ed28709e6e79bc57818fed5cc20f9ed9",
+  "recovery_version": "integer-register-logical-cfg-5",
+  "source_profile": "unsigned-acyclic-register-cfg-2",
+  "machine_profile_unchanged": "arm64-m0-integer-memory-eqne-ands-4",
+  "frozen_inputs": {
+    "src/auto_reverse/project_verification.py": "ed9623704539edb671e88cc0ce7682f19523c64a359cb3b482e0424358b408c7",
+    "src/auto_reverse/candidate_layout.py": "17548369d84b1d560ac29944cd6443fa5a1e7f07d23d815eabc529fd4405f245",
+    "src/auto_reverse/service.py": "bc4ebce3edca3d2425a5ce43475408d2eaaf1cf6eaec3488030ae2e5b99d461f",
+    "src/auto_reverse/static_pipeline.py": "512832a1fd2de3729785f35a2613561c763490fae3fef8c87ea3814205192ab5",
+    "src/auto_reverse/mcp_server.py": "25aef5c01ac8e07152f455e45294c6c3e23d8f5a992569d03f2473c656ca9ec8",
+    "src/auto_reverse/evidence_delivery.py": "a69e5cae1c2491fa89d5be7f6edb98e35fff810f7dc23811525c5176faa6e96e",
+    "src/auto_reverse/final_report.py": "e7dfd9ca3e9c6e401116e25b7f991440aa3914ef6c105f2753c4331256b9e35a",
+    "src/auto_reverse/layout_contracts.py": "13323667bf421cfda42d1e44149c73b06f3840e92fef3b382c246256ee54a4fd",
+    "src/auto_reverse/dwarf_layout.py": "5a214e403a3e93f6781f22080d683c73f01448a75adb3e9f20fd607d1fb8f8d7",
+    "src/auto_reverse/project_archive.py": "65d83d99c4db561153410835af1abfed51dd940e4d064003e9341d7bda75d143",
+    "src/auto_reverse/host_reconcile.py": "3f2655b3af6b1124986e006a013480fa0eb73157a100e25465c99c432a404b73",
+    "src/auto_reverse/layout_dependencies.py": "350168a8edb9dd6395ed1586a407f1449a9b5c43ce2a956a56a14e092638a579",
+    "src/auto_reverse/build_gate.py": "2411e76ebed3ea0ba28d658ae024245a1c9600f22aadf45f083c442f9aed46be",
+    "src/auto_reverse/recovery.py": "08e39632499c1fea28e300ddd67e64354d8d109061a368501dd60b8fc9bf6198",
+    "src/auto_reverse/backend_rpc.py": "e83a50a7eac5c28e690c5336069eb3f3da86c5b54166e7cdb5f309a8718b1dac",
+    "src/auto_reverse/analysis_service.py": "0b15220e819f3099848ab5ba0c5043f4412c0e7573e53b3c21fb7eeb16f8a19b",
+    "src/auto_reverse/source_signature.py": "bfa3ce16a5e7bc100a531a3f2f59adc9c32f5678034ff3aae7932d1645efdff4",
+    "src/auto_reverse/type_solver.py": "85b6dba886c4d42206c3e9bfd007c7e77c7871a7760d143ab56490d7765e827e",
+    "src/auto_reverse/repair_feedback.py": "eddc8d955fad564d38678d468644fb416d2bafeaa62650e73ecdbf42a5d5dd7b",
+    "src/auto_reverse/__init__.py": "58f35f53ea13ca2357707cd1001d607b2a1b9b703ff5c7cb31f19182cbf57f16",
+    "src/auto_reverse/postprocessing.py": "445a9b03236cc63a38f4a28b3f170e9ea3e803fa868b8dcb51f6a5d342111773",
+    "src/auto_reverse/candidate_validation.py": "a1383ca1bf97666756a15abe8e0f2c5bb5a3df433cae5610e90e4b7500ae30fc",
+    "src/auto_reverse/artifacts.py": "d66f853d1b0cba20ffe89761edf725c06d7a061806e803aaf705f12fbf21c571",
+    "src/auto_reverse/source_cfg_safety.py": "d92636ac48455b1b791bebdd8b35883879b8590f78740d9359819b1b059543f8",
+    "src/auto_reverse/android_profile.py": "84288f9663d713ac30c3dd06210569b9253babe433b8c8d1df55f21e4857ced3",
+    "src/auto_reverse/project_build.py": "8eb5e7d057e2f1e7a2c4f55fe5e0ca9beca89b80e7ffeacb90cf85544d724dce",
+    "src/auto_reverse/scalar_abi.py": "9e34fa06c5ca3c32d0c99422a575400ab63466da469792bf46589a64b7be6807",
+    "src/auto_reverse/domain.py": "83d5a1a6c552a87d9246f796be833ee78e2d320de26dfeea21ce691667e894e5",
+    "src/auto_reverse/ghidra.py": "28325a72ac144ed7f7c2a57ba86b6842a9eb38a5b3644039585163d00b540116",
+    "src/auto_reverse/source_safety.py": "a7457a1bf30005d17402ce14814ab3bd913a687c167e0d497d0dbc91738027f3",
+    "src/auto_reverse/candidate_selection.py": "c11d52df6ba966c32b876f5ba3c2a43cec7353dfdc3518fedb89af48c33ed930",
+    "src/auto_reverse/project_service.py": "8620254894f88cf56087d1fd49416c2a6d598d3a6fbc7d85b7b1b2d38e6d2e61",
+    "src/auto_reverse/contracts.py": "e89a7e5593e6b6637c229c2f8f99258bc3696e69fb26e6a04cc542f88b81991d",
+    "src/auto_reverse/abi_contracts.py": "330030cd7b2dab4168c7825d14c8c91dfefe2b4bed557e839da0314b4ee7fb15",
+    "src/auto_reverse/recovery_cfg.py": "fd97b522c2e4cc52452b406589cb1abc35fb94c594b2574d8eeef7d35d62acbc",
+    "src/auto_reverse/abi.py": "900a6268c00b7cdfb7d855490225d3806e2ddcff996111ca678e9c47e833c74e",
+    "src/auto_reverse/cli.py": "19e4bfaeea9a6bab19520bb0b6d371d96664a9378f361aba29c3771c669a5387",
+    "src/auto_reverse/library_inventory.py": "f258c2652b305e9b89836440a484e8d90d7be162eeb0aaf3ab9277ca6afa9162",
+    "src/auto_reverse/semantics.py": "743da4ff71f0ed1ef7c8708c7e1848b39875a9ea0cf7403cddadba3568315fe9",
+    "src/auto_reverse/capabilities.py": "3c0c515e27bb693fd5010d97f7b5165062941933e8d8eb0bb992b5c7b7309556",
+    "src/auto_reverse/intake.py": "b08729df5a482c12cac0214fa6cc08462f09c069bd4a2cb888784d6aaaf38ee7",
+    "src/auto_reverse/resources/ExportRawPcode.java": "f3cf310108ffcfc46230443adff8043cc0911977b596bc65d27083767cc8d60b",
+    "src/auto_reverse/resources/ghidra-toolchain-pin.json": "c9840cd44ae20d5f7f852896ccf5995f59463eb6f7a7a120f6a3bc03724ae581",
+    "src/auto_reverse/resources/machine_helpers.hpp": "c762370e632167b104186a745d00351c49e1c8718b0ff243a6548a6a7fb6281a",
+    "tests/test_candidate_layout_dependencies.py": "4d6ada5e6da3b98e161e2ed00b257a7afe1454535e7cfd239d88f127c0ff33f0",
+    "tests/test_typed_leaf_recovery.py": "fd834f5006b88a7a6fa7ca3eca662e6dd42a6663b1e35322a42c442233d718c0",
+    "tests/test_eqne_compiler_acceptance.py": "ea24885cbd408c41718bbc0b000950720420bb729e9b94f1aab4d6410a8e7c72",
+    "tests/test_dwarf_layout_cli.py": "1ab75631607b9e7d8ba3991241af204b931d6293aa841da7a14e3f53f0039f5c",
+    "tests/test_candidate_layout_adversarial.py": "d54b4684712fa0f9a6632488545822e0552344e794c6ced8f46f292aa230681f",
+    "tests/test_logical_source_compiler_acceptance.py": "b0312dff08689b6a1179ddc09ef79a3882e70c179b7341edf1ce60ef2265d115",
+    "tests/test_project_archive.py": "042de013756c80bbfb5432155fb479cab28976537cd3825ebe47cc8e5d5f0417",
+    "tests/test_semantics.py": "bc8f629835b4d01d732b07d9ba5d46df17036fe9aef193c88a9c8fb6d6dcfa2a",
+    "tests/test_logical_flags.py": "39f1c27ca7a951151575cbb2340bf654613035548913f98dd29f2655ca735b38",
+    "tests/test_acyclic_recovery.py": "e7af552f53362d12457043f2d457434fca1e65cdc6650008e3a49be89280a39f",
+    "tests/test_candidate_layout.py": "95db4ddb1980ce71d7c63e2917fb8dde9cd6492696d7124595f993d88d67d2e5",
+    "tests/test_domain.py": "21735b9697c206f9d8932442a91a2ffbbd1e0b7f5f391f917dc5efc59be8f2f8",
+    "tests/test_logical_source_recovery.py": "0095fb8ec09025f6ffd210a7b9e1c898808003244c3522defddd1710811a69d0",
+    "tests/test_candidate_interface.py": "4ca2b4a58a935d5d50de03f634453bee4841f11136769147a409fb6ba1dc0c3b",
+    "tests/test_layout_dependency_feedback.py": "62085cc054b35f062e918d8e1e22f6050a8402d837522bb9ece147f547c4fb1f",
+    "tests/test_auxiliary_integration.py": "15f47161263640c6f2f7f830cad7174e0985fa6b0586bb8321b47bc060dae4f6",
+    "tests/test_semantic_review.py": "b06e3292d523bc9bbe4d67d2e70d9caf299b48687b340c7b04fcd058e5b72a54",
+    "tests/test_library_inventory.py": "7153fe3d02c1f2f85b1f5a69cf02e7e6c892400b8dbdd07b119fcb2bdddfa294",
+    "tests/test_validation_review.py": "286538819f18c0736f2174c7218a086f7284aaaf058db11db69022b48b1229de",
+    "tests/test_type_solver.py": "bcf186dadaf778bd8db1187d64da273e207a71b0005ec64996ebc9aa4cf033db",
+    "tests/test_acyclic_compiler_acceptance.py": "9c1a2b4bf4790c3243a22dc87bf7b314e698a7f4f52fee824f2a9c9ddab4e377",
+    "tests/test_final_report.py": "c32c7e00e01a7c081a2a834fdc189cbcf37642a255ce48388ad1d641d0cf9711",
+    "tests/test_layout_contracts_adversarial.py": "cfae56494cc44749a6e102c0fc6e90fc30f9264e3cb40ba6a54052d0656fb1cb",
+    "tests/test_analysis_service.py": "333f1fba3408615738026c5bb3b1278a9c1801ab22f2c27931be42f36f50a3eb",
+    "tests/test_candidate_layout_cli.py": "4fbadb59e2ef3c2e0a4efbc8b35370094877302cb2c0ee78cb0db699820c40cf",
+    "tests/test_project_service_review.py": "f7d204c8fcf5d07ba44b27ea76d23b4c71b215a90f8a3f38e26c46e67bb147fc",
+    "tests/test_scalar_abi.py": "6f9a002677e9013c060f7031cb2ed2c8a0616468923e69bcc93b30cd30f35faf",
+    "tests/test_layout_contract_interfaces.py": "05f5c93ae8d84b9e28b18cc5c361cb595b72097464b2e9f54d914f2a1c86dd39",
+    "tests/test_service_review.py": "84c0c46caef16fa44cb133503cdfb67c6d1897a47c1d2a702b0014e1199a3589",
+    "tests/test_quality_feedback_review.py": "3430fad9594ff6779d60a913ff6d2cb619f8f28f4298afcc29b4d8015a05e9f6",
+    "tests/test_type_scope_authority.py": "da48cf05d306b7e6dc3d903e4a8a18bd95874deae228ef926ee03080d1d41107",
+    "tests/test_layout_dependency_interfaces.py": "0e525e35b39a859c06cbd6863d8124e60e238fbc1d7d23715378cd2fbad045d7",
+    "tests/test_acyclic_project_adversarial.py": "c38e07ce3a74f925045c6d06a699ecc3464614a62dea2de4ffeb57a164574bd8",
+    "tests/test_acyclic_project_safety.py": "a309f7d153ebad664d7977e1ee7d81e23597bc572aea739ad5e717c0a3e4914e",
+    "tests/test_layout_contracts.py": "a28b11d352a6b34bd90d5f94311d7d31832d7ddd394201968836ae6c3ddec5be",
+    "tests/test_evidence_delivery.py": "dd7a9d9e753d48681fe6c76918494cfc4fb8a6c765ac8025a7a2d71a438dcb82",
+    "tests/test_eqne_conditionals.py": "2f6f52756d3af7ddc6b84cdfeeb39b96131bc874efbf90c1e6d0a34c13d62426",
+    "tests/test_project_layout_dependencies.py": "9347017ffbb5b262aed098fc49ac3c2af9303bac56a94154f9e1adebd6238c39",
+    "tests/test_static_pipeline_review.py": "8c84bb514d9287bd45726e7835264fb23d159f65e6dcc0bee4a37f5f3a372425",
+    "tests/test_intake.py": "2ba874d1f7ecd505b80ef0705f735e974508c52a4ab4033406abbc467bfd2507",
+    "tests/test_build_gate.py": "e070f1135d51a6442fbb3c9c45dc33e42a9046039309bd832c23c0751249c8c4",
+    "tests/test_abi_contracts.py": "1b4b07ee1ed090b7f5cd9067c157ce1dfe9add0087189a594ea5c5e3390db39e",
+    "tests/test_ghidra.py": "bca61fe45bb92da51d0a93ae2a1caec12c3dc6f3aff2ff84a1b7703298283d1c",
+    "tests/test_project_interfaces.py": "030cf0f60adcd587ad823e7dfffaa360e8f9e9f3216875daebd661fef271d114",
+    "tests/test_project_authority_review.py": "71c9ce558c28493017f3f661469bcb344ba41b07d74ff663879792b2b3ea7fb9",
+    "tests/test_logical_flags_adversarial.py": "0f917605c148d0885e28849a6af345b864d212c5a26394b4449585e929dde1e9",
+    "tests/test_candidate_selection.py": "efd12a003a99d0312679c585d45e4b0132b9b72d06f475b405267e026bcd7264",
+    "tests/test_static_pipeline.py": "e6ace051b2e7f36cd1e02861fb673d22837b0d93943dbc5f791a47b9c45ab1c5",
+    "tests/test_source_signature.py": "66f426b125127820ec34a73cc5ed2c53ee2fd9cac85d8bc4f005beb3b79ad4c4",
+    "tests/test_project_build.py": "91816cf43b416b06c03092fa016797272c9123adc40a488c1f95ef3d3d4eac43",
+    "tests/test_project_verification.py": "1ed8d4b46ca9cdf67166c1f5f0b7a0806de0187d5550bcce4eab3fde042d9119",
+    "tests/test_static_acceptance.py": "9182600f58dfe83e4ed3619f253ebf0ab9a01062ad37e046ac478bd3d85c4005",
+    "tests/test_compiler_resource_bounds.py": "a3863af1eb3b4488a75c938c150f432933daaf994648224ad5d84e3430f0ebb3",
+    "tests/test_repair_feedback.py": "261aecd4fd06178ff6b6e5836839f8a037a23497601295b1e70adfd056830836",
+    "tests/test_unsigned_bitfield.py": "ef5981e89b9993de26ac7ee6339ac4a172cdb655c4c68d7aab95ab2ba053c07b",
+    "tests/test_integration_review.py": "2060dfa55fa36e7f5c8f3aa55a7e31c5e3314b7b2726cb8e5247f1733bda7019",
+    "tests/test_mcp_candidate_bridge.py": "0252b7ff6032ab2eaaa83fe76c67addf573ca65836a2027c4c8942bf746212bd",
+    "tests/test_logical_flags_proof_boundary.py": "0f433910b92ee65e07bb914a1a8a956247b62ed77de63d890d39bf1d31683150",
+    "tests/test_ror_compiler_acceptance.py": "d1c9df944f226859cfb1d4487e4b7d4c018b96a2136eff29a605042bf5c5c081",
+    "tests/test_logical_source_adversarial.py": "51a1d6ea46c0eb6ff1bbb9d96d5ccb40d24b5653e4aea3ad8b7a3f11cfa22d0c",
+    "tests/test_logical_source_project.py": "a2542c11d77687b4b3d942e17eec1b39722f3dfb46c1164f23235120edc82cbb",
+    "tests/test_service.py": "f6865662d0a023e490d7407c810e6522d0cf7e488ef773c5b192c5397a0ef042",
+    "tests/test_abi.py": "4c3707ded67ac6f9fff2ed08797e2deb41570aa49f2c348c4795f04f5348e5d9",
+    "tests/test_artifacts.py": "aecb9ce12321fa8c0c82babfc80885ab3bf07c8f75043bcb61bc9554cf824a85",
+    "tests/test_packaged_resources.py": "62ec951452124e55b2eab41472009e7a6b0fda9b555422a79a9181c84e0a13f3",
+    "tests/test_host_reconcile.py": "4819eb71766c3579aed32407e19084d71209e39aeeb13fb037683b4228ad92fa",
+    "tests/test_recovery.py": "945ea90cd0f57c959865994b8c4acd2c7d45aa12e2d22ab52a251d544bbd87f4",
+    "tests/test_contracts.py": "b42447536905a06f268e059821ee0a00c20d24c76024b18f3ae88bcdc8ed83c5",
+    "tests/test_android_profile.py": "7c96ff3e44a72cd0bccb09f2e06fc528282d6a89b994b6e00952fc84118527a9",
+    "tests/test_source_cfg_safety.py": "6b23ca18b92fe86687e258ca5ee0ec15db64480b8950bdeb9c1ad664e619753d",
+    "tests/test_acyclic_adversarial.py": "5f0b3b0ef78caaa31a7b6c69e23c961447f0ffd01a44676e9d923ed90ffe8e7d",
+    "tests/test_toolchain_installer.py": "72249633574a3d1320e817961258c1cfa7999dc2734282ae4f59c80cc0d62457",
+    "tests/test_logical_source_safety.py": "1fcf60fc47d3ee79ebfbb458e8c3eb2a5b295794d2fbbe6d53bd6dde61824ffb",
+    "tests/test_evidence_contract_review.py": "69c55aaf89ad8bce96407ec58754737f8815b8323439c9b9ddcfbd5ba7d628dc",
+    "tests/test_eqne_conditionals_adversarial.py": "6fcadaaf2a4070b84d8c3f62c15d1772d4793ee38e4c8c8865074d1b84b6b2cb",
+    "tests/test_source_safety.py": "e218f3682e851bfd6b621a6308ee58e2a192fefce557dd0c6061c60037c05464",
+    "tests/test_mcp_http.py": "5864b6b77ebb457b8e27b39c98cddea8ce5b5e2c82120a6cce110a81cc4d9f67",
+    "tests/test_dwarf_layout.py": "e116b9580afeba8875c998a630ece2f8bceb1f4d75a23afb1c59ee88e5f9eb01",
+    "tests/test_layout_dependency_adversarial.py": "39d6d36ada1cfe91a24c0569701931f310b7ced9dca5b1870f9b412fb0f5224c",
+    "tests/test_layout_dependencies.py": "4b125ad3c666fe00475c1a05f57a2df4afd18d55cb37a9ef792b9bebaf471477",
+    "tests/test_ror_independent.py": "24c488f770492fcc02ebbe61a2123cf3b7ab93dfbc8e238df45cface37fc024e",
+    "tests/test_candidate_validation.py": "d2e66e3acf2fee5649c094299361f85b383e4855d121cbf4466eb4a545cac2f5",
+    "tests/test_logical_flags_compiler_acceptance.py": "899ed983ce1d94c6c1e019fd594026a4e7f2f6552b44f47d07199e8cd35ab766",
+    "tests/test_eqne_proof_boundary.py": "97594549ddc80aaa40ede515fe589066cbc45d5082d9708077cb34fa5b9d6061",
+    "tests/test_backend_rpc.py": "de387e5652ecc8e7d598f465cd905d2b60b3b58ab5c964962feb4e0266f7c64d",
+    "tests/fixtures/elf/build_elf.py": "8125eed7666bd48077a5cdf799fc3bdc6a12d1571831e2e8dbdfb5f7a7d31896",
+    "examples/static-matrix/README.md": "0c9f7a8aac054f5e7cdb6e2a059652b1213173ae36ad0430e612cab7a2958047",
+    "examples/static-matrix/original.S": "30096f2128f823cc5687956132bf62e73faac45a7221903b9a47dd6b32be51df",
+    "examples/static-matrix/manifest.json": "bcf1e4413536da7e16587e21d9da047db95b558b549b81f92475c6fa67adff37",
+    "examples/static-matrix/candidate.S": "f107475f29119cac4f1ace8709bbdae566abc02687e85427e5d344dcb76289cb",
+    "scripts/run_layout_dependency_sample.py": "570a6a2fc3bc1664b329357f90770ad400b24f21907f275dedf3d0f98b2667c5",
+    ".github/workflows/static-acceptance.yml": "87aeaf20b01cf7c26c0233648a499eb2d0e755d42ed981eb8a568b87b28f8086"
+  },
+  "new_tests": {
+    "generator": 45,
+    "independent_source_audit": 40,
+    "independent_adversarial": 122,
+    "actual_compiler": 41,
+    "actual_project_and_current": 25,
+    "total": 273,
+    "already_included_in_full_regression": true
+  },
+  "fixed_tool_local_full_regression": {
+    "passed": 3855,
+    "skipped": 0,
+    "failed": 0,
+    "warnings": 1,
+    "seconds": 966.09,
+    "log_sha256": "bf122156e623f789c31187c6261d4461f7226fcf7f0f9a443ed728cf13db42eb"
+  },
+  "focused_runs": {
+    "generator": {
+      "passed": 45,
+      "skipped": 0,
+      "failed": 0,
+      "warnings": 0,
+      "seconds": 2.73,
+      "log_sha256": "6bfa6a5b52d9890d11664db02f237d751d71edd6bb86f0d18eba6219ccd130d3"
+    },
+    "adversarial": {
+      "passed": 122,
+      "skipped": 0,
+      "failed": 0,
+      "warnings": 0,
+      "seconds": 1.4,
+      "log_sha256": "f850f4482fe9a7d1031dfab9ba0d90df30849b9ada7e497545ea75cb4771bcfa"
+    },
+    "actual_compiler": {
+      "passed": 41,
+      "skipped": 0,
+      "failed": 0,
+      "warnings": 0,
+      "seconds": 22.01,
+      "log_sha256": "dc23c7d98a518597c49cecbcc88b279d95a89b04f1d4fc12422a00551350fd11"
+    },
+    "project_and_recovery_compatibility": {
+      "passed": 216,
+      "skipped": 0,
+      "failed": 0,
+      "warnings": 0,
+      "seconds": 84.92,
+      "log_sha256": "311962d47dd45d74755f160f5c9fa6432d936b189de9f806354d8ecc2eb17e1a"
+    },
+    "legacy_acyclic_compiler": {
+      "passed": 41,
+      "skipped": 0,
+      "failed": 0,
+      "warnings": 0,
+      "seconds": 41.04,
+      "log_sha256": "362e4b42e0e07a2e1787dfe3fc4012c76a9ed83b7084c27651f4331ba17fc82c"
+    },
+    "logical_flags_and_new_adversarial": {
+      "passed": 312,
+      "skipped": 0,
+      "failed": 0,
+      "warnings": 0,
+      "seconds": 3.37,
+      "log_sha256": "2bc5a610caba3310265ef3eb5573b36fa9062baa32a4fb3a087560ee1d41f17a"
+    }
+  },
+  "source_audit_tests": {
+    "new_passed": 40,
+    "new_and_existing_focused_passed": 269,
+    "skipped": 0,
+    "log_sha256": "31af7fda632afd8b168e650f1542b09a441f3a306be87a3e2f150e7a8ab4aa7a"
+  },
+  "independent_raw_oracle": {
+    "field_combinations": 16384,
+    "false_exact_found": false,
+    "w_valid": 3648,
+    "w_reserved": 4544,
+    "x_valid": 7680,
+    "x_reserved": 512,
+    "defined_but_wrong_new_word_source_rejected_by_independent_provenance": true
+  },
+  "fresh_compilation": {
+    "gate_elfs": 37,
+    "debug_elfs": 12,
+    "all_fresh_elfs": 49,
+    "generated_source_audits": 23,
+    "actual_signatures": 23,
+    "machine_proofs": 47,
+    "machine_statuses": {
+      "EXACT_EQUIVALENT": 39,
+      "DIFFERENT": 8
+    },
+    "compiler_commands": 169,
+    "all_compiler_cleanup_confirmed": true,
+    "same_input_debug_scalar_declarations": 12,
+    "scalar_parameters": [
+      64,
+      64,
+      64
+    ],
+    "scalar_return": 64,
+    "independent_flag_free_reference_proofs_included": 12,
+    "authored_raw_generated_positive_shapes": 11,
+    "raw_high_bits_or_missing_flags_source_unknown": 4,
+    "actual_lt_and_variable_ror_source_unknown": true,
+    "manifest_sha256": "c60cb19fd76a346cfec04c3a8b1b4fcb55ec4b944f2f47a38499213f403bb565",
+    "helper": {
+      "sha256": "c762370e632167b104186a745d00351c49e1c8718b0ff243a6548a6a7fb6281a",
+      "size": 4777
+    },
+    "target_or_candidate_executed": false
+  },
+  "fixed_matrix": {
+    "status": "PASS",
+    "completeness": {
+      "expected_cases": 60,
+      "classified_cases": 60,
+      "matched_cases": 60,
+      "both_fixture_inventories_matched": true,
+      "classified_fixture_bytes": {
+        "original": 616,
+        "candidate": 688
+      },
+      "ghidra_requested": true,
+      "global_function_discovery_complete": false
+    },
+    "report_sha256": "d038d7fc171cf2261d512680a5fe4ef672337306957ecc1ccbfd5dc8b5de7308",
+    "matrix": {
+      "schema_version": 1,
+      "matrix_id": "ndk-r27c-aarch64-m0-static-logical-flags-4",
+      "scope": "supplied micro-function entry pairs, declared register/byte-memory observations and external RET boundary",
+      "full_m0_s_exit_satisfied": false,
+      "source_kind": "versioned trusted assembler fixtures; no candidate/model-supplied build options",
+      "observed_registers": [
+        "x0",
+        "sp",
+        "x19",
+        "x20",
+        "x21",
+        "x22",
+        "x23",
+        "x24",
+        "x25",
+        "x26",
+        "x27",
+        "x28",
+        "x29"
+      ],
+      "sources": {
+        "original": {
+          "file": "original.S",
+          "sha256": "30096f2128f823cc5687956132bf62e73faac45a7221903b9a47dd6b32be51df"
+        },
+        "candidate": {
+          "file": "candidate.S",
+          "sha256": "f107475f29119cac4f1ace8709bbdae566abc02687e85427e5d344dcb76289cb"
+        }
+      },
+      "cases": [
+        {
+          "id": "integer64_equal",
+          "symbol": "integer64_equal",
+          "category": "integer64",
+          "expected_status": "EXACT_EQUIVALENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "integer64_changed",
+          "symbol": "integer64_changed",
+          "category": "integer64",
+          "expected_status": "DIFFERENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "integer32_equal",
+          "symbol": "integer32_equal",
+          "category": "integer32",
+          "expected_status": "EXACT_EQUIVALENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "integer32_changed",
+          "symbol": "integer32_changed",
+          "category": "integer32",
+          "expected_status": "DIFFERENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "branch_equal",
+          "symbol": "branch_equal",
+          "category": "branch",
+          "expected_status": "EXACT_EQUIVALENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "branch_changed",
+          "symbol": "branch_changed",
+          "category": "branch",
+          "expected_status": "DIFFERENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "memory64_equal",
+          "symbol": "memory64_equal",
+          "category": "memory64",
+          "expected_status": "EXACT_EQUIVALENT",
+          "contract": {
+            "preconditions": [
+              {
+                "register": "x1",
+                "value": "0x80000000",
+                "evidence_ref": "fixture://normal-memory-pointer"
+              }
+            ],
+            "memory_regions": [
+              {
+                "base": "0x80000000",
+                "size": 8,
+                "permissions": "rw",
+                "evidence_ref": "fixture://declared-normal-byte-buffer"
+              }
+            ]
+          },
+          "expected_reason": null
+        },
+        {
+          "id": "memory64_changed",
+          "symbol": "memory64_changed",
+          "category": "memory64",
+          "expected_status": "DIFFERENT",
+          "contract": {
+            "preconditions": [
+              {
+                "register": "x1",
+                "value": "0x80000000",
+                "evidence_ref": "fixture://normal-memory-pointer"
+              }
+            ],
+            "memory_regions": [
+              {
+                "base": "0x80000000",
+                "size": 8,
+                "permissions": "rw",
+                "evidence_ref": "fixture://declared-normal-byte-buffer"
+              }
+            ]
+          },
+          "expected_reason": null
+        },
+        {
+          "id": "memory32_equal",
+          "symbol": "memory32_equal",
+          "category": "memory32",
+          "expected_status": "EXACT_EQUIVALENT",
+          "contract": {
+            "preconditions": [
+              {
+                "register": "x1",
+                "value": "0x80000000",
+                "evidence_ref": "fixture://normal-memory-pointer"
+              }
+            ],
+            "memory_regions": [
+              {
+                "base": "0x80000000",
+                "size": 4,
+                "permissions": "rw",
+                "evidence_ref": "fixture://declared-normal-byte-buffer"
+              }
+            ]
+          },
+          "expected_reason": null
+        },
+        {
+          "id": "memory32_changed",
+          "symbol": "memory32_changed",
+          "category": "memory32",
+          "expected_status": "DIFFERENT",
+          "contract": {
+            "preconditions": [
+              {
+                "register": "x1",
+                "value": "0x80000000",
+                "evidence_ref": "fixture://normal-memory-pointer"
+              }
+            ],
+            "memory_regions": [
+              {
+                "base": "0x80000000",
+                "size": 4,
+                "permissions": "rw",
+                "evidence_ref": "fixture://declared-normal-byte-buffer"
+              }
+            ]
+          },
+          "expected_reason": null
+        },
+        {
+          "id": "signed_load_equal",
+          "symbol": "signed_load_equal",
+          "category": "signed-memory",
+          "expected_status": "EXACT_EQUIVALENT",
+          "contract": {
+            "preconditions": [
+              {
+                "register": "x1",
+                "value": "0x80000000",
+                "evidence_ref": "fixture://normal-memory-pointer"
+              }
+            ],
+            "memory_regions": [
+              {
+                "base": "0x80000000",
+                "size": 1,
+                "permissions": "r",
+                "evidence_ref": "fixture://declared-normal-byte-buffer"
+              }
+            ]
+          },
+          "expected_reason": null
+        },
+        {
+          "id": "signed_load_changed",
+          "symbol": "signed_load_changed",
+          "category": "signed-memory",
+          "expected_status": "DIFFERENT",
+          "contract": {
+            "preconditions": [
+              {
+                "register": "x1",
+                "value": "0x80000000",
+                "evidence_ref": "fixture://normal-memory-pointer"
+              }
+            ],
+            "memory_regions": [
+              {
+                "base": "0x80000000",
+                "size": 1,
+                "permissions": "r",
+                "evidence_ref": "fixture://declared-normal-byte-buffer"
+              }
+            ]
+          },
+          "expected_reason": null
+        },
+        {
+          "id": "memory_oob",
+          "symbol": "memory_oob",
+          "category": "invalid-memory",
+          "expected_status": "UNKNOWN",
+          "contract": {
+            "preconditions": [
+              {
+                "register": "x1",
+                "value": "0x80000000",
+                "evidence_ref": "fixture://normal-memory-pointer"
+              }
+            ],
+            "memory_regions": [
+              {
+                "base": "0x80000000",
+                "size": 8,
+                "permissions": "rw",
+                "evidence_ref": "fixture://declared-normal-byte-buffer"
+              }
+            ]
+          },
+          "expected_reason": "memory_access_not_proved_in_declared_valid_region"
+        },
+        {
+          "id": "memory_missing_region",
+          "symbol": "memory_missing_region",
+          "category": "invalid-memory",
+          "expected_status": "UNKNOWN",
+          "contract": {},
+          "expected_reason": "memory_access_not_proved_in_declared_valid_region"
+        },
+        {
+          "id": "memory_readonly_write",
+          "symbol": "memory_readonly_write",
+          "category": "invalid-memory",
+          "expected_status": "UNKNOWN",
+          "contract": {
+            "preconditions": [
+              {
+                "register": "x1",
+                "value": "0x80000000",
+                "evidence_ref": "fixture://normal-memory-pointer"
+              }
+            ],
+            "memory_regions": [
+              {
+                "base": "0x80000000",
+                "size": 8,
+                "permissions": "r",
+                "evidence_ref": "fixture://declared-normal-byte-buffer"
+              }
+            ]
+          },
+          "expected_reason": "memory_access_not_proved_in_declared_valid_region"
+        },
+        {
+          "id": "empty_domain",
+          "symbol": "empty_domain",
+          "category": "empty-domain",
+          "expected_status": "INVALID_PRECONDITION",
+          "contract": {
+            "preconditions": false
+          },
+          "expected_reason": "input_precondition_has_empty_domain"
+        },
+        {
+          "id": "contradictory_domain",
+          "symbol": "contradictory_domain",
+          "category": "empty-domain",
+          "expected_status": "INVALID_PRECONDITION",
+          "contract": {
+            "preconditions": [
+              {
+                "register": "x0",
+                "value": 1
+              },
+              {
+                "register": "x0",
+                "value": 2
+              }
+            ]
+          },
+          "expected_reason": "input_precondition_has_empty_domain"
+        },
+        {
+          "id": "callee_saved_changed",
+          "symbol": "callee_saved_changed",
+          "category": "abi-observation",
+          "expected_status": "DIFFERENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "stack_changed",
+          "symbol": "stack_changed",
+          "category": "abi-observation",
+          "expected_status": "DIFFERENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "exclusive_original",
+          "symbol": "exclusive_original",
+          "category": "unsupported",
+          "expected_status": "UNKNOWN",
+          "contract": {
+            "preconditions": [
+              {
+                "register": "x1",
+                "value": "0x80000000",
+                "evidence_ref": "fixture://normal-memory-pointer"
+              }
+            ],
+            "memory_regions": [
+              {
+                "base": "0x80000000",
+                "size": 8,
+                "permissions": "rw",
+                "evidence_ref": "fixture://declared-normal-byte-buffer"
+              }
+            ]
+          },
+          "expected_reason": "original_or_candidate_has_unsupported_opcode"
+        },
+        {
+          "id": "exclusive_candidate",
+          "symbol": "exclusive_candidate",
+          "category": "unsupported",
+          "expected_status": "UNKNOWN",
+          "contract": {
+            "preconditions": [
+              {
+                "register": "x1",
+                "value": "0x80000000",
+                "evidence_ref": "fixture://normal-memory-pointer"
+              }
+            ],
+            "memory_regions": [
+              {
+                "base": "0x80000000",
+                "size": 8,
+                "permissions": "rw",
+                "evidence_ref": "fixture://declared-normal-byte-buffer"
+              }
+            ]
+          },
+          "expected_reason": "original_or_candidate_has_unsupported_opcode"
+        },
+        {
+          "id": "pac",
+          "symbol": "pac",
+          "category": "unsupported",
+          "expected_status": "UNKNOWN",
+          "contract": {},
+          "expected_reason": "original_or_candidate_has_unsupported_opcode"
+        },
+        {
+          "id": "dmb",
+          "symbol": "dmb",
+          "category": "unsupported",
+          "expected_status": "UNKNOWN",
+          "contract": {},
+          "expected_reason": "original_or_candidate_has_unsupported_opcode"
+        },
+        {
+          "id": "unknown_opcode",
+          "symbol": "unknown_opcode",
+          "category": "unsupported",
+          "expected_status": "UNKNOWN",
+          "contract": {},
+          "expected_reason": "original_or_candidate_has_unsupported_opcode"
+        },
+        {
+          "id": "unclosed_loop",
+          "symbol": "unclosed_loop",
+          "category": "unclosed-path",
+          "expected_status": "UNKNOWN",
+          "contract": {
+            "max_steps": 16
+          },
+          "expected_reason": "instruction_budget_exhausted_unclosed_path"
+        },
+        {
+          "id": "external_branch",
+          "symbol": "external_branch",
+          "category": "unclosed-path",
+          "expected_status": "UNKNOWN",
+          "contract": {},
+          "expected_reason": "control_flow_leaves_declared_code_scope"
+        },
+        {
+          "id": "indirect_branch",
+          "symbol": "indirect_branch",
+          "category": "unsupported",
+          "expected_status": "UNKNOWN",
+          "contract": {},
+          "expected_reason": "original_or_candidate_has_unsupported_opcode"
+        },
+        {
+          "id": "eqne_select64",
+          "symbol": "eqne_select64",
+          "category": "eqne-conditional",
+          "expected_status": "EXACT_EQUIVALENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "eqne_select32",
+          "symbol": "eqne_select32",
+          "category": "eqne-conditional",
+          "expected_status": "EXACT_EQUIVALENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "eqne_csinc32",
+          "symbol": "eqne_csinc32",
+          "category": "eqne-conditional",
+          "expected_status": "EXACT_EQUIVALENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "eqne_cinc_wrap64",
+          "symbol": "eqne_cinc_wrap64",
+          "category": "eqne-conditional",
+          "expected_status": "EXACT_EQUIVALENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "eqne_cset32",
+          "symbol": "eqne_cset32",
+          "category": "eqne-conditional",
+          "expected_status": "EXACT_EQUIVALENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "eqne_condition_changed",
+          "symbol": "eqne_condition_changed",
+          "category": "eqne-conditional",
+          "expected_status": "DIFFERENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "eqne_cset_changed",
+          "symbol": "eqne_cset_changed",
+          "category": "eqne-conditional",
+          "expected_status": "DIFFERENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "eqne_undefined_flags",
+          "symbol": "eqne_undefined_flags",
+          "category": "eqne-conditional",
+          "expected_status": "UNKNOWN",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "eqne_unsupported_lt",
+          "symbol": "eqne_unsupported_lt",
+          "category": "eqne-conditional",
+          "expected_status": "UNKNOWN",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "ror_variable64_equal",
+          "symbol": "ror_variable64_equal",
+          "category": "ror",
+          "expected_status": "EXACT_EQUIVALENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "ror_variable32_equal",
+          "symbol": "ror_variable32_equal",
+          "category": "ror",
+          "expected_status": "EXACT_EQUIVALENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "ror_immediate64_equal",
+          "symbol": "ror_immediate64_equal",
+          "category": "ror",
+          "expected_status": "EXACT_EQUIVALENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "ror_immediate32_equal",
+          "symbol": "ror_immediate32_equal",
+          "category": "ror",
+          "expected_status": "EXACT_EQUIVALENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "ror_zero64_equal",
+          "symbol": "ror_zero64_equal",
+          "category": "ror",
+          "expected_status": "EXACT_EQUIVALENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "ror_zero32_equal",
+          "symbol": "ror_zero32_equal",
+          "category": "ror",
+          "expected_status": "EXACT_EQUIVALENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "ror_amount_changed",
+          "symbol": "ror_amount_changed",
+          "category": "ror",
+          "expected_status": "DIFFERENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "ror_direction_changed",
+          "symbol": "ror_direction_changed",
+          "category": "ror",
+          "expected_status": "DIFFERENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "ror_width_changed",
+          "symbol": "ror_width_changed",
+          "category": "ror",
+          "expected_status": "DIFFERENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "ror_reserved_original",
+          "symbol": "ror_reserved_original",
+          "category": "ror",
+          "expected_status": "UNKNOWN",
+          "contract": {},
+          "expected_reason": "original_or_candidate_has_unsupported_opcode"
+        },
+        {
+          "id": "ror_reserved_candidate",
+          "symbol": "ror_reserved_candidate",
+          "category": "ror",
+          "expected_status": "UNKNOWN",
+          "contract": {},
+          "expected_reason": "original_or_candidate_has_unsupported_opcode"
+        },
+        {
+          "id": "ror_unreachable_reserved",
+          "symbol": "ror_unreachable_reserved",
+          "category": "ror",
+          "expected_status": "UNKNOWN",
+          "contract": {},
+          "expected_reason": "original_or_candidate_has_unsupported_opcode"
+        },
+        {
+          "id": "ands_result32_equal",
+          "symbol": "ands_result32_equal",
+          "category": "logical-flags",
+          "expected_status": "EXACT_EQUIVALENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "ands_repeated_mask64_equal",
+          "symbol": "ands_repeated_mask64_equal",
+          "category": "logical-flags",
+          "expected_status": "EXACT_EQUIVALENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "tst_select32_equal",
+          "symbol": "tst_select32_equal",
+          "category": "logical-flags",
+          "expected_status": "EXACT_EQUIVALENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "ands_snapshot_branch_equal",
+          "symbol": "ands_snapshot_branch_equal",
+          "category": "logical-flags",
+          "expected_status": "EXACT_EQUIVALENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "ands_replaces_cmp_equal",
+          "symbol": "ands_replaces_cmp_equal",
+          "category": "logical-flags",
+          "expected_status": "EXACT_EQUIVALENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "ands_condition_changed",
+          "symbol": "ands_condition_changed",
+          "category": "logical-flags",
+          "expected_status": "DIFFERENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "ands_result_mask_changed",
+          "symbol": "ands_result_mask_changed",
+          "category": "logical-flags",
+          "expected_status": "DIFFERENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "ands_width_changed",
+          "symbol": "ands_width_changed",
+          "category": "logical-flags",
+          "expected_status": "DIFFERENT",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "flags_branch_undefined",
+          "symbol": "flags_branch_undefined",
+          "category": "logical-flags",
+          "expected_status": "UNKNOWN",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "flags_bc_unsupported",
+          "symbol": "flags_bc_unsupported",
+          "category": "logical-flags",
+          "expected_status": "UNKNOWN",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "flags_backward_unsupported",
+          "symbol": "flags_backward_unsupported",
+          "category": "logical-flags",
+          "expected_status": "UNKNOWN",
+          "contract": {},
+          "expected_reason": null
+        },
+        {
+          "id": "ands_reserved_immediate",
+          "symbol": "ands_reserved_immediate",
+          "category": "logical-flags",
+          "expected_status": "UNKNOWN",
+          "contract": {},
+          "expected_reason": null
+        }
+      ]
+    },
+    "manifest_sha256": "bcf1e4413536da7e16587e21d9da047db95b558b549b81f92475c6fa67adff37",
+    "full_m0_s_exit_satisfied": false
+  },
+  "actual_guarded_tu_archive_sample": {
+    "schema_version": 1,
+    "kind": "actual_tu_layout_dependency_sample",
+    "sample_passed": true,
+    "provider": "offline-leased-static",
+    "model_calls": 0,
+    "fixture_profile": "logical-flags",
+    "generation_profiles": [
+      "unsigned-acyclic-register-cfg-2",
+      "unsigned-acyclic-register-cfg-2"
+    ],
+    "source_safety_summary": {
+      "all_selected_source_obligations_passed": true,
+      "execution_policy": {
+        "source_auditor_compiler_executed": false,
+        "target_or_candidate_executed": false
+      },
+      "machine_equivalence_verified": false,
+      "original_calling_abi_verified": false,
+      "passed_source_count": 2,
+      "scope": "selected_sources_only",
+      "source_bindings": [
+        {
+          "profile": "generated-unsigned-acyclic-cfg-defined-behavior-2",
+          "safety_binding_sha256": "11e3dbe0432708dc4c733f0e729920e66383e7ffaec595bb1e0b174554a4e658",
+          "scalar_contract_ref": "sha256:f388035b2f6e7349fb69232d0cd07166ee317669fd7659f11f2be8eb870aa23a",
+          "source_ref": "sha256:82301225d24946d144818c609ec4b7d0a2468c23a42ee6ae898cd42ece4e24c0",
+          "source_sha256": "82301225d24946d144818c609ec4b7d0a2468c23a42ee6ae898cd42ece4e24c0",
+          "status": "PASS",
+          "symbol": "materialize_mask"
+        },
+        {
+          "profile": "generated-unsigned-acyclic-cfg-defined-behavior-2",
+          "safety_binding_sha256": "cc5bc53fbae2410b9d9223978534d153ca6fbec29981cf1ccbbb6718d9dc07ad",
+          "scalar_contract_ref": "sha256:ba3d29ddd27af518257ecd28776053a091153fa7ca604f427bc3ff72e9977c2b",
+          "source_ref": "sha256:eba90f4333811377ca04d8c0612e4c99f99d169f4157c68fb3750e4916a36fa3",
+          "source_sha256": "eba90f4333811377ca04d8c0612e4c99f99d169f4157c68fb3750e4916a36fa3",
+          "status": "PASS",
+          "symbol": "select_mask"
+        }
+      ],
+      "source_count": 2,
+      "unknown_source_count": 0,
+      "whole_library_cpp_ub_proof": false
+    },
+    "source_safety_current_verified": true,
+    "original_input_sha256": "606c1490e0dfbd58bd117d5bea996ff828acb5c08db978ef8560c37e06811ff7",
+    "contract_revision": 4,
+    "root_type_ids": [
+      "dwarf-layout:2607aca5bf1b18a8b8357f41d30f268141c5c6451cf3109e1ec4156bcf829740"
+    ],
+    "derived_type_ids": [
+      "dwarf-layout:8501cef4cf97dae975680013c10aa76f77b7edb7dd2a44ad5e9f63a1de14e869"
+    ],
+    "selected_symbols": [
+      "materialize_mask",
+      "select_mask"
+    ],
+    "candidate_actual_tu_guards_verified": 2,
+    "archived_guarded_source_count": 2,
+    "archive_sha256": "93185526e29798600931aa2a32426c8c559860bdcc93a09c86cf6a57ef294cba",
+    "archive_rebuild": {
+      "archive_sha256": "93185526e29798600931aa2a32426c8c559860bdcc93a09c86cf6a57ef294cba",
+      "candidate_sha256": "b6a484551adba5d3544354440e1515e1dc3ae77bf3fb535baa837bb6b085c07e",
+      "candidate_size": 5496,
+      "new_build_binding_sha256": "e8cc36deddaff543396dc5832c83d4c75efbc51b81b48a2e384101f65a11a509",
+      "historical_proof_reused": false,
+      "build_binding_changed": true,
+      "source_module_count": 2,
+      "fresh_selected_semantic": {
+        "status": "EXACT_EQUIVALENT",
+        "scope": "selected_module_functions_only",
+        "selected_function_count": 2,
+        "exact_function_count": 2,
+        "different_function_count": 0,
+        "unknown_function_count": 0
+      },
+      "whole_library_semantic": {
+        "status": "UNKNOWN",
+        "whole_program_equivalence": false,
+        "reason": "selected function proofs cannot establish whole-library behavior"
+      },
+      "original_calling_abi": "UNKNOWN",
+      "original_denominators": {
+        "original_dynamic_export_count": 2,
+        "original_dynamic_import_count": 2,
+        "original_defined_function_symbol_count": 7,
+        "discovered_function_extent_count": 7,
+        "original_executable_bytes": 184,
+        "actual_function_count": null
+      },
+      "target_or_candidate_executed": false,
+      "layout_dependencies": {
+        "schema_version": 1,
+        "kind": "archived_layout_binding_check",
+        "status": "PASS",
+        "manifest_sha256": "9e6f72f18bfc197727b8f68d54339b8eb272bc1af067501e3026a453dd0ed07d",
+        "checked_module_names": [
+          "unit_000_6619869516e4.cpp",
+          "unit_001_a08aefe3b252.cpp"
+        ],
+        "original_current_status": "UNAVAILABLE_OFFLINE",
+        "artifact_level": "A0",
+        "reconstruction_requires_new_provenance_and_proof": true,
+        "whole_program_equivalence": false,
+        "original_calling_abi_verified": false,
+        "execution_policy": {
+          "compiler_executed": false,
+          "target_or_candidate_executed": false
+        }
+      },
+      "new_build_guarded_translation_units_verified": true
+    },
+    "final_current_valid": true,
+    "delivery_status": "FINAL",
+    "quality": {
+      "artifact_level": "A1",
+      "maximum_artifact_level": "A1",
+      "build": {
+        "status": "PASS",
+        "scope": "partial_project",
+        "whole_library_build_status": "UNKNOWN"
+      },
+      "abi": {
+        "status": "UNKNOWN",
+        "reason_code": "WHOLE_LIBRARY_OBLIGATIONS_OPEN"
+      },
+      "semantic": {
+        "status": "UNKNOWN",
+        "reason_code": "WHOLE_LIBRARY_OBLIGATIONS_OPEN"
+      },
+      "completeness": {
+        "status": "UNKNOWN",
+        "reason_code": "WHOLE_LIBRARY_OBLIGATIONS_OPEN"
+      },
+      "whole_program_equivalence": false,
+      "original_calling_abi_verified": false,
+      "artifact_scope": "partial_project"
+    },
+    "occupied_resources": 0,
+    "layout_artifact_level": "A0",
+    "original_contract_current_offline": "UNAVAILABLE_OFFLINE",
+    "aggregate_function_abi_verified": false,
+    "full_type_system_solved": false,
+    "original_calling_abi_verified": false,
+    "whole_program_equivalence": false,
+    "dsh_model_acceptance_verified": false,
+    "v1_complete": false,
+    "target_or_candidate_executed": false,
+    "report_sha256": "5f24cbf31131d0227f85ea064ec7815260a6c64fbf05ea082db1ad5f2130b743"
+  },
+  "installed_wheel": {
+    "status": "PASS",
+    "installed_modules": 41,
+    "resource_files": 3,
+    "generated_schemas": 9,
+    "all_package_and_schema_bytes_match": true,
+    "source_profile": "unsigned-acyclic-register-cfg-2",
+    "source_audit_status": "PASS",
+    "source_safety_binding_sha256": "42f1c31115602097f92504600b6d9518d782216899e6adb207c11c4335214de3",
+    "independent_full_observation_raw_proof": "EXACT_EQUIVALENT",
+    "scope_fingerprint": "sha256:9a750a08fcd3693ebebbd191b62f581fad1604b914f22a610c66a5b516e1ac52",
+    "tools": {
+      "decoder": {
+        "name": "capstone",
+        "version": "5.0.9",
+        "binding_version": "5.0.7"
+      },
+      "solver": {
+        "name": "z3",
+        "version": "4.15.4"
+      },
+      "model": {
+        "name": "arm64-m0-integer-memory-eqne-ands-4",
+        "implementation_fingerprint": "sha256:743da4ff71f0ed1ef7c8708c7e1848b39875a9ea0cf7403cddadba3568315fe9",
+        "capabilities_fingerprint": "sha256:3c0c515e27bb693fd5010d97f7b5165062941933e8d8eb0bb992b5c7b7309556"
+      }
+    },
+    "compiler_executed_by_wheel_smoke": false,
+    "target_or_candidate_executed": false
+  },
+  "node_checks": {
+    "dsh-offline": {
+      "passed": 30,
+      "skipped": 0,
+      "failed": 0,
+      "log_sha256": "026133c6b6a2bb7fc9134dcb503c7c12b28b2018c7cd72f8920de50fb1a249e9"
+    },
+    "branch-guards": {
+      "passed": 13,
+      "skipped": 0,
+      "failed": 0,
+      "log_sha256": "3696e6d93934fdcda8e7a445bee4c251a2be11995c076f73a0e19c9028b3b269"
+    }
+  },
+  "development_attempts": [
+    {
+      "log_sha256": "42c9cf3c98c928898df274a3a53c22cdc56e36349c19cc9b7e5f8f1fea1811dc",
+      "passed": 1744,
+      "failed": 1,
+      "warnings": 1,
+      "seconds": 351.16,
+      "reason": "maxfail stopped on obsolete logical-flags generator UNKNOWN expectation; corrected to CFG2 generated/audited PASS while retaining arbitrary handwritten source UNKNOWN; production unchanged"
+    },
+    {
+      "log_sha256": "456d90e1a44a1c4127d8718bbbdef133ba4dafd9bc42ed6ff1371f156c132bb6",
+      "passed": 3,
+      "setup_errors": 1,
+      "reason": "fixture unused parameter rejected by existing Werror; annotated maybe_unused and rebuilt"
+    },
+    {
+      "log_sha256": "a00066a3adbd956c190faa74c2821f9eaa8a103a334a07aed7f4b2a3f6b01772",
+      "passed": 23,
+      "failed": 1,
+      "reason": "development controller reported PIPELINE_CONFIGURATION_CHANGED before implementation freeze; fresh frozen 216-test suite passed"
+    },
+    {
+      "log_sha256": "acc100bcc64f622825d78cc4a044168314e09703d0a2b9f1df69eceb55afeb83",
+      "passed": 162,
+      "failed": 1,
+      "reason": "obsolete TST source UNKNOWN expectation loaded before test update; now verifies generated text, fresh compilation and independent TBZ reference"
+    }
+  ],
+  "ruff": "PASS",
+  "schema_check": "9 regenerated schema files byte-identical",
+  "current_remote_ci": "PENDING at commit: inspect the actual workflow logs for this source/test input; earlier CI and local results are separate",
+  "boundaries": {
+    "old_leaf_and_cfg1_source_and_map_bytes_preserved": true,
+    "machine_semantics_header_and_observations_changed": false,
+    "source_word_geometry": {
+      "ANDS": 2,
+      "TST": 1,
+      "B_EQ_NE": 2
+    },
+    "source_audit_is_machine_equivalence_proof": false,
+    "variable_ror_source_recovered": false,
+    "original_calling_abi_verified": false,
+    "whole_library_cpp_ub_proof": false,
+    "whole_program_equivalence": false,
+    "full_m0_s_exit_satisfied": false,
+    "real_dsh_acceptance_verified": false,
+    "v1_complete": false,
+    "target_or_candidate_executed": false
+  }
+}

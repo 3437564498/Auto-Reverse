@@ -15,6 +15,7 @@ from typing import Any
 
 
 PROFILE = "unsigned-acyclic-register-cfg-1"
+LOGICAL_PROFILE = "unsigned-acyclic-register-cfg-2"
 MAX_SOURCE_BYTES = 1024 * 1024
 MAX_LINES = 2048
 MAX_BLOCKS = 16
@@ -271,12 +272,16 @@ def _offset(text: str) -> int:
     return value
 
 
-def check_source_cfg(source: str, *, symbol: str, parameter_widths, return_width: int) -> dict:
+def check_source_cfg(source: str, *, symbol: str, parameter_widths, return_width: int,
+                     profile: str = PROFILE) -> dict:
     """Parse and prove every structural source path, without trusting generator claims.
 
-    Raises ``SourceCFGError`` for an unsupported or incomplete obligation. Input
-    byte provenance and instruction-map binding belong to the calling wrapper.
+    Raises ``SourceCFGError`` for an unsupported or incomplete obligation. CFG1
+    remains the default; only explicit CFG2 admits captured-token branches.
+    Input byte provenance and instruction-map binding belong to the wrapper.
     """
+    if profile not in (PROFILE, LOGICAL_PROFILE):
+        raise SourceCFGError("unknown finite source CFG profile")
     if (not isinstance(source, str) or not source.isascii() or not source
             or len(source.encode()) > MAX_SOURCE_BYTES
             or any(ord(char) < 32 and char != "\n" for char in source)):
@@ -404,10 +409,14 @@ def check_source_cfg(source: str, *, symbol: str, parameter_widths, return_width
                 if index != len(block["statements"]) - 2:
                     raise SourceCFGError("conditional jump must be followed only by its false jump")
                 condition = _Parser(branch[1]).parse()
-                if condition.kind != "compare":
-                    raise SourceCFGError("branch condition requires an unsigned zero comparison")
-                if condition.children[1].kind != "literal" or condition.children[1].value[1] != 0:
-                    raise SourceCFGError("branch condition must compare an unsigned value to zero")
+                captured = (profile == LOGICAL_PROFILE and
+                            (condition.kind == "bool" or
+                             condition.kind == "not" and condition.children[0].kind == "bool"))
+                if not captured:
+                    if condition.kind != "compare":
+                        raise SourceCFGError("branch condition requires an unsigned zero comparison")
+                    if condition.children[1].kind != "literal" or condition.children[1].value[1] != 0:
+                        raise SourceCFGError("branch condition must compare an unsigned value to zero")
                 if _evaluate(condition, state, locals_seen, counts).width is not None:
                     raise SourceCFGError("branch condition is not boolean")
                 continue
@@ -446,7 +455,7 @@ def check_source_cfg(source: str, *, symbol: str, parameter_widths, return_width
             incoming.setdefault(target, []).append(state.copy())
     public_blocks = [{key: value for key, value in block.items() if key != "statements"} for block in blocks]
     cfg = {"entry_offset": 0, "blocks": public_blocks, "edges": edges}
-    return {"source_profile": PROFILE, "counts": counts, "scalar_locals": sorted(locals_seen),
+    return {"source_profile": profile, "counts": counts, "scalar_locals": sorted(locals_seen),
             "parameter_count": len(parameter_widths), "unsigned_widths": [32, 64],
             "pointer_or_memory_operations": 0, "library_or_foreign_calls": 0,
             "division_operations": 0, "cfg": cfg, "cfg_sha256": _hash(cfg),
