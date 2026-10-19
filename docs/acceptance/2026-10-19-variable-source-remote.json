@@ -1,0 +1,446 @@
+{
+  "schema_version": 1,
+  "kind": "verified_remote_variable_source_acceptance",
+  "scope": "immutable CFG2/CFG3 implementation accepted in PR14; no M0-S, ABI or whole-V1 promotion from CI alone",
+  "head_commit": "c4591f920363faff765652ab93e827e7b85bce0a",
+  "ci_checkout_merge_commit": "c416527c9d65f6832cae77492955c8d3990e4aa0",
+  "actual_user_merge_commit": "6239c2acc9552e802c81a34ae1cb42af63291477",
+  "pr_url": "https://github.com/3437564498/Auto-Reverse/pull/14",
+  "fixed_ci": {
+    "run_id": 39200087245,
+    "job_id": 117891056084,
+    "url": "https://github.com/3437564498/Auto-Reverse/actions/runs/39200087245",
+    "status": "success",
+    "passed": 4260,
+    "skipped": 0,
+    "failed": 0,
+    "warnings": 1,
+    "seconds": 1132.5,
+    "all_samples_succeeded": true,
+    "upload_succeeded": true,
+    "actual_log_summary": "4260 passed, 1 warning in 1132.50s (0:18:52)"
+  },
+  "ordinary_ci": {
+    "run_id": 39200087257,
+    "python_job_id": 117891056404,
+    "status": "success",
+    "passed": 3309,
+    "skipped": 951,
+    "failed": 0,
+    "warnings": 1,
+    "seconds": 102.45,
+    "skip_reason": "Pinned-tool integration omitted by ordinary runner; fixed-tool run above covers all 4260",
+    "plugin_job_id": 117891056159,
+    "dsh_offline_passed": 30,
+    "branch_guard_passed": 13,
+    "plugin_skipped": 0,
+    "plugin_failed": 0,
+    "model_calls": 0
+  },
+  "downloaded_artifact": {
+    "id": 12164131415,
+    "url": "https://github.com/3437564498/Auto-Reverse/actions/runs/39200087245/artifacts/12164131415",
+    "bytes": 441751,
+    "sha256": "c05598a008d1088ba98a388b4bebf33980d10925aba419c51624e97cbe354b21",
+    "matches_github_upload_digest": true,
+    "outer_file_count": 33,
+    "matrix_cases": 60,
+    "all_matrix_expectations_matched": true,
+    "matrix_manifest_sha256": "bcf1e4413536da7e16587e21d9da047db95b558b549b81f92475c6fa67adff37",
+    "new_sample_profile": "variable-shifts",
+    "generation_profiles": [
+      "unsigned-acyclic-register-cfg-3",
+      "unsigned-acyclic-register-cfg-3"
+    ],
+    "project_file_count": 12,
+    "actual_guarded_source_modules": 2,
+    "fresh_archive_linked_exact_functions": 2,
+    "historical_proof_reused": false,
+    "resources_occupied": 0,
+    "model_calls": 0,
+    "public_layout_current": "UNAVAILABLE_OFFLINE"
+  },
+  "matrix_classification_evidence": [
+    {
+      "id": "integer64_equal",
+      "expected_status": "EXACT_EQUIVALENT",
+      "actual_status": "EXACT_EQUIVALENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "integer64_changed",
+      "expected_status": "DIFFERENT",
+      "actual_status": "DIFFERENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "integer32_equal",
+      "expected_status": "EXACT_EQUIVALENT",
+      "actual_status": "EXACT_EQUIVALENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "integer32_changed",
+      "expected_status": "DIFFERENT",
+      "actual_status": "DIFFERENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "branch_equal",
+      "expected_status": "EXACT_EQUIVALENT",
+      "actual_status": "EXACT_EQUIVALENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "branch_changed",
+      "expected_status": "DIFFERENT",
+      "actual_status": "DIFFERENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "memory64_equal",
+      "expected_status": "EXACT_EQUIVALENT",
+      "actual_status": "EXACT_EQUIVALENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "memory64_changed",
+      "expected_status": "DIFFERENT",
+      "actual_status": "DIFFERENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "memory32_equal",
+      "expected_status": "EXACT_EQUIVALENT",
+      "actual_status": "EXACT_EQUIVALENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "memory32_changed",
+      "expected_status": "DIFFERENT",
+      "actual_status": "DIFFERENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "signed_load_equal",
+      "expected_status": "EXACT_EQUIVALENT",
+      "actual_status": "EXACT_EQUIVALENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "signed_load_changed",
+      "expected_status": "DIFFERENT",
+      "actual_status": "DIFFERENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "memory_oob",
+      "expected_status": "UNKNOWN",
+      "actual_status": "UNKNOWN",
+      "expectation_matched": true
+    },
+    {
+      "id": "memory_missing_region",
+      "expected_status": "UNKNOWN",
+      "actual_status": "UNKNOWN",
+      "expectation_matched": true
+    },
+    {
+      "id": "memory_readonly_write",
+      "expected_status": "UNKNOWN",
+      "actual_status": "UNKNOWN",
+      "expectation_matched": true
+    },
+    {
+      "id": "empty_domain",
+      "expected_status": "INVALID_PRECONDITION",
+      "actual_status": "INVALID_PRECONDITION",
+      "expectation_matched": true
+    },
+    {
+      "id": "contradictory_domain",
+      "expected_status": "INVALID_PRECONDITION",
+      "actual_status": "INVALID_PRECONDITION",
+      "expectation_matched": true
+    },
+    {
+      "id": "callee_saved_changed",
+      "expected_status": "DIFFERENT",
+      "actual_status": "DIFFERENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "stack_changed",
+      "expected_status": "DIFFERENT",
+      "actual_status": "DIFFERENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "exclusive_original",
+      "expected_status": "UNKNOWN",
+      "actual_status": "UNKNOWN",
+      "expectation_matched": true
+    },
+    {
+      "id": "exclusive_candidate",
+      "expected_status": "UNKNOWN",
+      "actual_status": "UNKNOWN",
+      "expectation_matched": true
+    },
+    {
+      "id": "pac",
+      "expected_status": "UNKNOWN",
+      "actual_status": "UNKNOWN",
+      "expectation_matched": true
+    },
+    {
+      "id": "dmb",
+      "expected_status": "UNKNOWN",
+      "actual_status": "UNKNOWN",
+      "expectation_matched": true
+    },
+    {
+      "id": "unknown_opcode",
+      "expected_status": "UNKNOWN",
+      "actual_status": "UNKNOWN",
+      "expectation_matched": true
+    },
+    {
+      "id": "unclosed_loop",
+      "expected_status": "UNKNOWN",
+      "actual_status": "UNKNOWN",
+      "expectation_matched": true
+    },
+    {
+      "id": "external_branch",
+      "expected_status": "UNKNOWN",
+      "actual_status": "UNKNOWN",
+      "expectation_matched": true
+    },
+    {
+      "id": "indirect_branch",
+      "expected_status": "UNKNOWN",
+      "actual_status": "UNKNOWN",
+      "expectation_matched": true
+    },
+    {
+      "id": "eqne_select64",
+      "expected_status": "EXACT_EQUIVALENT",
+      "actual_status": "EXACT_EQUIVALENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "eqne_select32",
+      "expected_status": "EXACT_EQUIVALENT",
+      "actual_status": "EXACT_EQUIVALENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "eqne_csinc32",
+      "expected_status": "EXACT_EQUIVALENT",
+      "actual_status": "EXACT_EQUIVALENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "eqne_cinc_wrap64",
+      "expected_status": "EXACT_EQUIVALENT",
+      "actual_status": "EXACT_EQUIVALENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "eqne_cset32",
+      "expected_status": "EXACT_EQUIVALENT",
+      "actual_status": "EXACT_EQUIVALENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "eqne_condition_changed",
+      "expected_status": "DIFFERENT",
+      "actual_status": "DIFFERENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "eqne_cset_changed",
+      "expected_status": "DIFFERENT",
+      "actual_status": "DIFFERENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "eqne_undefined_flags",
+      "expected_status": "UNKNOWN",
+      "actual_status": "UNKNOWN",
+      "expectation_matched": true
+    },
+    {
+      "id": "eqne_unsupported_lt",
+      "expected_status": "UNKNOWN",
+      "actual_status": "UNKNOWN",
+      "expectation_matched": true
+    },
+    {
+      "id": "ror_variable64_equal",
+      "expected_status": "EXACT_EQUIVALENT",
+      "actual_status": "EXACT_EQUIVALENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "ror_variable32_equal",
+      "expected_status": "EXACT_EQUIVALENT",
+      "actual_status": "EXACT_EQUIVALENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "ror_immediate64_equal",
+      "expected_status": "EXACT_EQUIVALENT",
+      "actual_status": "EXACT_EQUIVALENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "ror_immediate32_equal",
+      "expected_status": "EXACT_EQUIVALENT",
+      "actual_status": "EXACT_EQUIVALENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "ror_zero64_equal",
+      "expected_status": "EXACT_EQUIVALENT",
+      "actual_status": "EXACT_EQUIVALENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "ror_zero32_equal",
+      "expected_status": "EXACT_EQUIVALENT",
+      "actual_status": "EXACT_EQUIVALENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "ror_amount_changed",
+      "expected_status": "DIFFERENT",
+      "actual_status": "DIFFERENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "ror_direction_changed",
+      "expected_status": "DIFFERENT",
+      "actual_status": "DIFFERENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "ror_width_changed",
+      "expected_status": "DIFFERENT",
+      "actual_status": "DIFFERENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "ror_reserved_original",
+      "expected_status": "UNKNOWN",
+      "actual_status": "UNKNOWN",
+      "expectation_matched": true
+    },
+    {
+      "id": "ror_reserved_candidate",
+      "expected_status": "UNKNOWN",
+      "actual_status": "UNKNOWN",
+      "expectation_matched": true
+    },
+    {
+      "id": "ror_unreachable_reserved",
+      "expected_status": "UNKNOWN",
+      "actual_status": "UNKNOWN",
+      "expectation_matched": true
+    },
+    {
+      "id": "ands_result32_equal",
+      "expected_status": "EXACT_EQUIVALENT",
+      "actual_status": "EXACT_EQUIVALENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "ands_repeated_mask64_equal",
+      "expected_status": "EXACT_EQUIVALENT",
+      "actual_status": "EXACT_EQUIVALENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "tst_select32_equal",
+      "expected_status": "EXACT_EQUIVALENT",
+      "actual_status": "EXACT_EQUIVALENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "ands_snapshot_branch_equal",
+      "expected_status": "EXACT_EQUIVALENT",
+      "actual_status": "EXACT_EQUIVALENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "ands_replaces_cmp_equal",
+      "expected_status": "EXACT_EQUIVALENT",
+      "actual_status": "EXACT_EQUIVALENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "ands_condition_changed",
+      "expected_status": "DIFFERENT",
+      "actual_status": "DIFFERENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "ands_result_mask_changed",
+      "expected_status": "DIFFERENT",
+      "actual_status": "DIFFERENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "ands_width_changed",
+      "expected_status": "DIFFERENT",
+      "actual_status": "DIFFERENT",
+      "expectation_matched": true
+    },
+    {
+      "id": "flags_branch_undefined",
+      "expected_status": "UNKNOWN",
+      "actual_status": "UNKNOWN",
+      "expectation_matched": true
+    },
+    {
+      "id": "flags_bc_unsupported",
+      "expected_status": "UNKNOWN",
+      "actual_status": "UNKNOWN",
+      "expectation_matched": true
+    },
+    {
+      "id": "flags_backward_unsupported",
+      "expected_status": "UNKNOWN",
+      "actual_status": "UNKNOWN",
+      "expectation_matched": true
+    },
+    {
+      "id": "ands_reserved_immediate",
+      "expected_status": "UNKNOWN",
+      "actual_status": "UNKNOWN",
+      "expectation_matched": true
+    }
+  ],
+  "branch_cleanup": {
+    "run_id": 39214921962,
+    "status": "success",
+    "remote_branch_state_at_verification": [
+      "main"
+    ]
+  },
+  "boundaries": {
+    "maximum_artifact_level": "A1",
+    "target_or_candidate_executed": false,
+    "original_calling_abi_verified": false,
+    "whole_program_equivalence": false,
+    "dsh_model_acceptance_verified": false,
+    "v1_complete": false,
+    "matrix_report_full_m0_s_exit_satisfied": false
+  },
+  "notes": [
+    "Actual completed job logs and downloaded ZIP were checked; no target code loaded or run.",
+    "The parent local snapshot remains immutable and records remote status at commit time.",
+    "M0-S prototype exit review is separate from this component CI record; a full ISA is not a new prerequisite."
+  ]
+}

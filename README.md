@@ -8,7 +8,7 @@
 
 流水线使用确定性静态生成器，模型调用数为零。DSH 账本、插件和 SDK 离线接线已实现；用户暂时无法提供真实 DSH 模型环境，该项保持未验收。当前进度与 V1 剩余范围见 [实施记录](docs/implementation-status.md)。
 
-[PR #13](https://github.com/3437564498/Auto-Reverse/pull/13) 已合并到 `main`，[ANDS 与局部 EQ/NE 机器模型](docs/logical-flags.md)的 GitHub 固定工具完整回归为 **3582 passed、0 skipped、0 failed**。本批将这些指令接入[有限源码恢复与独立审计](docs/logical-source-recovery.md)，并增加[NEG 与有界变量移位恢复](docs/variable-source-recovery.md)，更新集中在 [待审核更新](https://github.com/3437564498/Auto-Reverse/pulls)。各增量的来源、验收和限制见 [实施记录](docs/implementation-status.md)，当前远端 Checks 与可审核状态以活动 PR 为准。
+[PR #14](https://github.com/3437564498/Auto-Reverse/pull/14) 已合并到 `main`（`6239c2a`），包含[逻辑条件源码恢复](docs/logical-source-recovery.md)和[NEG 与有界变量移位恢复](docs/variable-source-recovery.md)。该提交的 GitHub 固定工具完整回归实际为 **4260 passed、0 skipped、0 failed**；已下载核对公开证据包、源码 ZIP 和新链接字节证明，见[远端验收记录](docs/acceptance/2026-10-19-variable-source-remote.json)。[首版有限 M0-S](docs/m0-s-exit-review.md)已按设计逐项完成退出核对，完整模型、全部 helper 和 M0-R 另列，不能等同完整 V1；当前更新与 Checks 见[待审核更新](https://github.com/3437564498/Auto-Reverse/pulls)。
 
 ## 开发与运行
 
