@@ -84,6 +84,7 @@ jobs:
           AUTO_REVERSE_TEST_NDK_ROOT: ${{ github.workspace }}/work/tools/android-ndk-r27c
           GHIDRA_HOME: ${{ github.workspace }}/work/tools/ghidra_11.3.2_PUBLIC
           JAVA_HOME: ${{ github.workspace }}/work/tools/jdk-21.0.8+9
+          AUTO_REVERSE_BYTE_HELPER_REPORT: ${{ github.workspace }}/work/byte-helper-acceptance/byte-helper-acceptance.json
         run: |
           AUTO_REVERSE_TEST_CMAKE="$(command -v cmake)"
           test -x "$AUTO_REVERSE_TEST_CMAKE"
@@ -109,4 +110,5 @@ jobs:
             work/logical-source-acceptance/project.zip
             work/variable-source-acceptance/layout-dependency-sample.json
             work/variable-source-acceptance/project.zip
+            work/byte-helper-acceptance/byte-helper-acceptance.json
           if-no-files-found: warn

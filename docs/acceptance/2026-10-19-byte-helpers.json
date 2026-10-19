@@ -1,0 +1,172 @@
+{
+  "schema_version": 1,
+  "kind": "byte_helpers_independent_acceptance_snapshot",
+  "date": "2026-10-19",
+  "timezone": "Asia/Singapore",
+  "scope": "exact packaged unsigned32/64 load_le and store_le byte-array helpers; independent literals and actual fresh compiler output",
+  "base_main_commit": "6239c2acc9552e802c81a34ae1cb42af63291477",
+  "production_and_header_changed": false,
+  "test_file": {
+    "path": "tests/test_byte_helper_acceptance.py",
+    "sha256": "7074444105e14863896fe9e5ee1ffddd49f393d7f5f54f115f9025ef619a4b30",
+    "size": 22211
+  },
+  "specific_acceptance": {
+    "passed": 35,
+    "skipped": 0,
+    "failed": 0,
+    "seconds": 13.72,
+    "log": {
+      "path": "work/byte-helper-publish-final.log",
+      "sha256": "59e9226fb592c1416d52549120426f62b8d631dd7d5cd9c7438a62177ee2c085",
+      "size": 100
+    }
+  },
+  "without_ndk": {
+    "skipped": 35,
+    "failed": 0,
+    "seconds": 0.07,
+    "log": {
+      "path": "work/byte-helper-no-ndk-final.log",
+      "sha256": "e0cad85316ac51b95246cbf530321889e42d6469bac05495e181979692983a6c",
+      "size": 998
+    }
+  },
+  "collected_full_suite": 4295,
+  "full_new_remote_acceptance_status_at_commit": "pending; actual completed CI logs required, old 4260 is not this new run",
+  "actual_manifest": {
+    "path": "work/byte-helper-publish-final/byte-helper-real-compiler0/byte-helper-acceptance.json",
+    "sha256": "c5f4415b5eeedaf30d8449d3b01e250ffd982967a3730e8d6039f0b9a78d02ca",
+    "size": 838106,
+    "public_export_identical_bytes": true,
+    "public_fixture_report_only": "work/byte-helper-acceptance/byte-helper-acceptance.json"
+  },
+  "counts": {
+    "fresh_elfs": 17,
+    "actual_compiler_failures": 6,
+    "compiler_commands": 69,
+    "independent_constant_vectors": {
+      "32": 37,
+      "64": 69
+    },
+    "machine_proofs": 25,
+    "machine_statuses": {
+      "EXACT_EQUIVALENT": 8,
+      "DIFFERENT": 4,
+      "UNKNOWN": 13
+    }
+  },
+  "header": {
+    "sha256": "c762370e632167b104186a745d00351c49e1c8718b0ff243a6548a6a7fb6281a",
+    "size": 4777
+  },
+  "kernel_files": {
+    "auto_reverse.build_gate": {
+      "path": "src/auto_reverse/build_gate.py",
+      "sha256": "2411e76ebed3ea0ba28d658ae024245a1c9600f22aadf45f083c442f9aed46be",
+      "size": 30832
+    },
+    "auto_reverse.capabilities": {
+      "path": "src/auto_reverse/capabilities.py",
+      "sha256": "3c0c515e27bb693fd5010d97f7b5165062941933e8d8eb0bb992b5c7b7309556",
+      "size": 20186
+    },
+    "auto_reverse.intake": {
+      "path": "src/auto_reverse/intake.py",
+      "sha256": "b08729df5a482c12cac0214fa6cc08462f09c069bd4a2cb888784d6aaaf38ee7",
+      "size": 36694
+    },
+    "auto_reverse.semantics": {
+      "path": "src/auto_reverse/semantics.py",
+      "sha256": "743da4ff71f0ed1ef7c8708c7e1848b39875a9ea0cf7403cddadba3568315fe9",
+      "size": 39550
+    }
+  },
+  "normal_memory_fixture": {
+    "x0": "0x40000000",
+    "region_size": 64,
+    "initial_memory": "arbitrary symbolic bytes",
+    "store_x1": "arbitrary symbolic 64-bit value; W truncates to low32",
+    "observed_registers": [
+      "x0",
+      "sp",
+      "x19",
+      "x20",
+      "x21",
+      "x22",
+      "x23",
+      "x24",
+      "x25",
+      "x26",
+      "x27",
+      "x28",
+      "x29"
+    ],
+    "memory_observation": "all-modeled-bytes",
+    "return_target_observed": true
+  },
+  "positive_compiler_scope": {
+    "operations": [
+      "LDR W0,[X0]",
+      "LDR X0,[X0]",
+      "STR W1,[X0]",
+      "STR X1,[X0]"
+    ],
+    "runtime": [
+      "c++_shared",
+      "c++_static"
+    ],
+    "optimization": "normal O2",
+    "natural_bytes_match_authored_raw_reference": true,
+    "independent_endian_calibration": "106 distinct literal/byte vectors, not a helper roundtrip; same-word proofs are not a second independent LDR/STR semantics theorem"
+  },
+  "actual_initial_attempt": {
+    "passed": 27,
+    "failed": 7,
+    "seconds": 13.49,
+    "log": {
+      "path": "work/byte-helper-first.log",
+      "sha256": "9be5f1ad5bff56aea2c3409cc64542be20efdbcea23e481dfc748ef252f6b05d",
+      "size": 29006
+    },
+    "reasons": [
+      "Six diagnostic-reading test errors: stderr is structured {text,path,sha256,size,truncated}, not a string. The actual Clang compile failures had already occurred.",
+      "One actual uint32 load>>8 compiles to unreviewed LDURH plus LDRB, so machine status UNKNOWN, not DIFFERENT. Preserved in final scope."
+    ],
+    "accepted_as_final": false,
+    "production_change_to_fix": false
+  },
+  "post_initial_attempt": [
+    "Use structured stderr text/path/hash for the six expected real constexpr failures",
+    "Retain load32>>8 natural unreviewed LDURH as UNKNOWN; add supported load>>1 DIFFERENT",
+    "After adding report export, rerun all35 with exported bytes proven identical"
+  ],
+  "defined_behavior_argument": {
+    "scope": "exact-packaged-load_le-and-store_le-uint32-or-uint64-fixed-byte-array",
+    "array_requirement": "actual live accessible std::array<uint8_t,sizeof(U)> object",
+    "load_index": "i < bytes.size(); each read index is 0..sizeof(U)-1",
+    "store_index": "i < result.size(); value-initialized array; each write index is 0..sizeof(U)-1",
+    "shift_counts": {
+      "uint32_t": "0,8,16,24",
+      "uint64_t": "0,8,16,24,32,40,48,56"
+    },
+    "load_promotion": "byte is cast to unsigned U before shift; fixed Android unsigned int has 32 bits",
+    "store_promotion": "unsigned U shifted by an in-range count; uint8_t conversion keeps low eight bits",
+    "pointer_provenance_verified": false,
+    "original_calling_abi_verified": false,
+    "arbitrary_cpp_memory_ub_proof": false,
+    "whole_library_cpp_ub_proof": false
+  },
+  "boundaries": {
+    "maximum_artifact_level": "A1",
+    "original_calling_abi_verified": false,
+    "pointer_provenance_verified": false,
+    "arbitrary_cpp_memory_ub_proof": false,
+    "all_helpers_independently_verified": false,
+    "whole_program_equivalence": false,
+    "dsh_model_acceptance_verified": false,
+    "v1_complete": false,
+    "target_or_candidate_executed": false
+  },
+  "m0_s_relation": "A concrete additional helper evidence extension; not a new prerequisite for the original finite prototype exit review"
+}

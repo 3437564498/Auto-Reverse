@@ -1,13 +1,16 @@
 # Frozen static micro-matrix
 
-The 36 cases in `manifest.json` are trusted assembler fixtures compiled with
+The 60 cases in `manifest.json` are trusted assembler fixtures compiled with
 Android NDK r27c (27.2.12479018), API 21. They cover positive and negative 32/64
 bit integers, conditional branches, controlled normal byte memory, signed
 loads, empty domains, out-of-region accesses, callee-saved/SP mutations, and
 unsupported exclusive/PAC/DMB/undecoded/indirect/unclosed control flow. Nine
 cases cover raw-checked CMP/EQ-NE CSEL/CSINC aliases: five matches against
 flag-free branch references, two condition mutations, undefined entry flags,
-and an unsupported LT condition.
+and an unsupported LT condition. Twelve further cases cover W/X variable and
+immediate ROR, zero shifts, direction/width/amount differences and reserved raw
+encodings. Twelve logical-flags cases cover ANDS/TST, EQ/NE flag snapshots and
+mutations, undefined flags, reserved masks and unsupported branch encodings.
 
 These assembler inputs are acceptance evidence for the machine-byte verifier.
 They are not generated C++ recovery candidates. The runner provides no arbitrary
@@ -35,10 +38,15 @@ compiler/linker identities, domain, observations, proof/negative witnesses and
 completeness. The pinned public archive lock is recorded; installed tools are
 operator supplied, and the runner does not claim to reverify their archive.
 
-`subset_matrix_passed` means every frozen expectation matched. It does **not**
-satisfy all M0-S exits: original types/ABI, full independent ISA/helper checks,
-C++ source/UB obligations, full processor semantics and whole-library closure
-remain outside this matrix. `full_m0_s_exit_satisfied` is always false.
+`subset_matrix_passed` means every frozen expectation matched. This single
+matrix does not itself make a milestone decision: the runner deliberately
+keeps `full_m0_s_exit_satisfied=false`. The separate [M0-S evidence
+review](../../docs/m0-s-exit-review.md) maps the original V1 section 33 exit
+criteria to this report and the independent helper/ISA evidence. It does not
+require implementing the whole ISA, general loops or floating-point first.
+Original calling ABI, arbitrary C++ source safety, complete processor semantics
+and whole-library closure remain unproved; they are not silently added as new
+prerequisites for the finite static prototype.
 
 The separate `Pinned static acceptance matrix` GitHub workflow runs for relevant
 pull-request changes or `workflow_dispatch`, downloads/hash-checks the locked tool archives, and uploads

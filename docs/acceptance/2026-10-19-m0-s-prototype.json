@@ -1,0 +1,415 @@
+{
+  "schema_version": 1,
+  "kind": "m0_s_frozen_prototype_evidence_review",
+  "decision": "SATISFIED_FOR_V1_SECTION_33_FINITE_PROTOTYPE",
+  "review_date": "2026-10-19",
+  "review_timezone": "Asia/Singapore",
+  "decision_basis": "Original V1 section 33 exit obligations mapped to completed tool artifacts and independent ISA/helper rules, not aggregate test counts alone",
+  "implementation_commit": "c4591f920363faff765652ab93e827e7b85bce0a",
+  "merged_main_commit": "6239c2acc9552e802c81a34ae1cb42af63291477",
+  "scope": {
+    "matrix_id": "ndk-r27c-aarch64-m0-static-logical-flags-4",
+    "case_count": 60,
+    "classifications": {
+      "EXACT_EQUIVALENT": 22,
+      "DIFFERENT": 16,
+      "UNKNOWN": 20,
+      "INVALID_PRECONDITION": 2
+    },
+    "model": "arm64-m0-integer-memory-eqne-ands-4",
+    "observed_registers": [
+      "x0",
+      "sp",
+      "x19",
+      "x20",
+      "x21",
+      "x22",
+      "x23",
+      "x24",
+      "x25",
+      "x26",
+      "x27",
+      "x28",
+      "x29"
+    ],
+    "memory_observation": "all-modeled-bytes",
+    "return_target_observed": true,
+    "initial_lr_restriction": "outside both declared code ranges",
+    "memory_domain": "host-owned fixed valid normal-memory fixture; restrictions remain explicit",
+    "helper_subset": [
+      "minimum packaged add comparison",
+      "packaged ror/write_w independent oracle and real compiler chain",
+      "actual X-LSL fixture"
+    ],
+    "not_all_capabilities_or_header_templates": true
+  },
+  "completed_ci": {
+    "run_id": 39200087245,
+    "job_id": 117891056084,
+    "passed": 4260,
+    "skipped": 0,
+    "failed": 0,
+    "seconds": 1132.5,
+    "artifact_id": 12164131415,
+    "artifact_sha256": "c05598a008d1088ba98a388b4bebf33980d10925aba419c51624e97cbe354b21",
+    "matrix_report_sha256": "0cd61214b30304d586fc88360a4ae52fbc2390e93f467d748b6750bf36721e7d",
+    "manifest_sha256": "bcf1e4413536da7e16587e21d9da047db95b558b549b81f92475c6fa67adff37"
+  },
+  "criteria": [
+    {
+      "obligation": "android_fixtures_raw_ir_and_capabilities",
+      "status": "SATISFIED_WITHIN_FROZEN_SCOPE",
+      "case_results": [
+        {
+          "id": "integer64_equal",
+          "status": "EXACT_EQUIVALENT",
+          "expectation_matched": true
+        },
+        {
+          "id": "exclusive_original",
+          "status": "UNKNOWN",
+          "expectation_matched": true
+        }
+      ],
+      "basis": "Fixed NDK ELF, actual Ghidra source-byte binding, versioned opcode capabilities; lossy lifting does not grant exact semantics"
+    },
+    {
+      "obligation": "helpers_and_minimum_comparison",
+      "status": "SATISFIED_WITHIN_FROZEN_SCOPE",
+      "case_results": [],
+      "basis": "Packaged add and ror/write_w helpers actually compiled and compared; this criterion is not all-template certification"
+    },
+    {
+      "obligation": "exact_integer_positive_negative",
+      "status": "SATISFIED_WITHIN_FROZEN_SCOPE",
+      "case_results": [
+        {
+          "id": "integer64_equal",
+          "status": "EXACT_EQUIVALENT",
+          "expectation_matched": true
+        },
+        {
+          "id": "integer64_changed",
+          "status": "DIFFERENT",
+          "expectation_matched": true
+        },
+        {
+          "id": "integer32_equal",
+          "status": "EXACT_EQUIVALENT",
+          "expectation_matched": true
+        },
+        {
+          "id": "integer32_changed",
+          "status": "DIFFERENT",
+          "expectation_matched": true
+        }
+      ],
+      "basis": "Actual exact/different pairs; independent modular arithmetic and W zero-extension rules"
+    },
+    {
+      "obligation": "exact_branch_positive_negative",
+      "status": "SATISFIED_WITHIN_FROZEN_SCOPE",
+      "case_results": [
+        {
+          "id": "branch_equal",
+          "status": "EXACT_EQUIVALENT",
+          "expectation_matched": true
+        },
+        {
+          "id": "branch_changed",
+          "status": "DIFFERENT",
+          "expectation_matched": true
+        },
+        {
+          "id": "eqne_condition_changed",
+          "status": "DIFFERENT",
+          "expectation_matched": true
+        },
+        {
+          "id": "ands_condition_changed",
+          "status": "DIFFERENT",
+          "expectation_matched": true
+        }
+      ],
+      "basis": "Declared conditions and closed paths only; independent comparison/flags rules"
+    },
+    {
+      "obligation": "controlled_memory_positive_negative",
+      "status": "SATISFIED_WITHIN_FROZEN_SCOPE",
+      "case_results": [
+        {
+          "id": "memory64_equal",
+          "status": "EXACT_EQUIVALENT",
+          "expectation_matched": true
+        },
+        {
+          "id": "memory64_changed",
+          "status": "DIFFERENT",
+          "expectation_matched": true
+        },
+        {
+          "id": "memory32_equal",
+          "status": "EXACT_EQUIVALENT",
+          "expectation_matched": true
+        },
+        {
+          "id": "memory32_changed",
+          "status": "DIFFERENT",
+          "expectation_matched": true
+        },
+        {
+          "id": "signed_load_equal",
+          "status": "EXACT_EQUIVALENT",
+          "expectation_matched": true
+        },
+        {
+          "id": "signed_load_changed",
+          "status": "DIFFERENT",
+          "expectation_matched": true
+        }
+      ],
+      "basis": "Trusted fixed normal-memory fixture; arbitrary declared data and initial bytes; all modeled memory observed"
+    },
+    {
+      "obligation": "unsupported_and_exclusive_rejected",
+      "status": "SATISFIED_WITHIN_FROZEN_SCOPE",
+      "case_results": [
+        {
+          "id": "exclusive_original",
+          "status": "UNKNOWN",
+          "expectation_matched": true
+        },
+        {
+          "id": "exclusive_candidate",
+          "status": "UNKNOWN",
+          "expectation_matched": true
+        },
+        {
+          "id": "pac",
+          "status": "UNKNOWN",
+          "expectation_matched": true
+        },
+        {
+          "id": "dmb",
+          "status": "UNKNOWN",
+          "expectation_matched": true
+        },
+        {
+          "id": "unknown_opcode",
+          "status": "UNKNOWN",
+          "expectation_matched": true
+        },
+        {
+          "id": "indirect_branch",
+          "status": "UNKNOWN",
+          "expectation_matched": true
+        }
+      ],
+      "basis": "Both input extents checked; unsupported and lossy IR remain UNKNOWN"
+    },
+    {
+      "obligation": "empty_domain_rejected",
+      "status": "SATISFIED_WITHIN_FROZEN_SCOPE",
+      "case_results": [
+        {
+          "id": "empty_domain",
+          "status": "INVALID_PRECONDITION",
+          "expectation_matched": true
+        },
+        {
+          "id": "contradictory_domain",
+          "status": "INVALID_PRECONDITION",
+          "expectation_matched": true
+        }
+      ],
+      "basis": "INVALID_PRECONDITION rather than vacuous equivalence"
+    },
+    {
+      "obligation": "out_of_region_and_permissions_rejected",
+      "status": "SATISFIED_WITHIN_FROZEN_SCOPE",
+      "case_results": [
+        {
+          "id": "memory_oob",
+          "status": "UNKNOWN",
+          "expectation_matched": true
+        },
+        {
+          "id": "memory_missing_region",
+          "status": "UNKNOWN",
+          "expectation_matched": true
+        },
+        {
+          "id": "memory_readonly_write",
+          "status": "UNKNOWN",
+          "expectation_matched": true
+        }
+      ],
+      "basis": "Unsafe or unproved accesses remain UNKNOWN"
+    },
+    {
+      "obligation": "declared_machine_abi_errors_rejected",
+      "status": "SATISFIED_WITHIN_FROZEN_SCOPE",
+      "case_results": [
+        {
+          "id": "callee_saved_changed",
+          "status": "DIFFERENT",
+          "expectation_matched": true
+        },
+        {
+          "id": "stack_changed",
+          "status": "DIFFERENT",
+          "expectation_matched": true
+        }
+      ],
+      "basis": "Concrete X19/SP-only counterexamples under full declared observations; not complete original calling ABI"
+    }
+  ],
+  "independent_rule_sources": [
+    {
+      "path": "tests/test_semantic_review.py",
+      "sha256": "b06e3292d523bc9bbe4d67d2e70d9caf299b48687b340c7b04fcd058e5b72a54"
+    },
+    {
+      "path": "tests/test_semantics.py",
+      "sha256": "bc8f629835b4d01d732b07d9ba5d46df17036fe9aef193c88a9c8fb6d6dcfa2a"
+    },
+    {
+      "path": "tests/test_static_acceptance.py",
+      "sha256": "9182600f58dfe83e4ed3619f253ebf0ab9a01062ad37e046ac478bd3d85c4005"
+    },
+    {
+      "path": "tests/test_build_gate.py",
+      "sha256": "e070f1135d51a6442fbb3c9c45dc33e42a9046039309bd832c23c0751249c8c4"
+    },
+    {
+      "path": "tests/test_unsigned_bitfield.py",
+      "sha256": "ef5981e89b9993de26ac7ee6339ac4a172cdb655c4c68d7aab95ab2ba053c07b"
+    },
+    {
+      "path": "tests/test_eqne_conditionals_adversarial.py",
+      "sha256": "6fcadaaf2a4070b84d8c3f62c15d1772d4793ee38e4c8c8865074d1b84b6b2cb"
+    },
+    {
+      "path": "tests/test_logical_flags_adversarial.py",
+      "sha256": "0f917605c148d0885e28849a6af345b864d212c5a26394b4449585e929dde1e9"
+    },
+    {
+      "path": "tests/test_ror_independent.py",
+      "sha256": "24c488f770492fcc02ebbe61a2123cf3b7ab93dfbc8e238df45cface37fc024e"
+    },
+    {
+      "path": "tests/test_ror_compiler_acceptance.py",
+      "sha256": "d1c9df944f226859cfb1d4487e4b7d4c018b96a2136eff29a605042bf5c5c081"
+    },
+    {
+      "path": "tests/test_variable_source_adversarial.py",
+      "sha256": "b02efd648582a8f8feeeef39f8d054f80cd614270446b11238a79a627cf542b8"
+    },
+    {
+      "path": "tests/test_variable_source_compiler_acceptance.py",
+      "sha256": "e7ee1ca396ebfbc2bc2417459946c018d933de44f2a8b975ae8ff8d8599aa7bd"
+    }
+  ],
+  "concrete_witness_review": [
+    {
+      "case": "memory64_changed",
+      "status": "DIFFERENT",
+      "domain": true,
+      "x0_equal": true,
+      "return_target_equal": true,
+      "memory_expression_equal": false,
+      "changed_registers": []
+    },
+    {
+      "case": "memory32_changed",
+      "status": "DIFFERENT",
+      "domain": true,
+      "x0_equal": false,
+      "return_target_equal": true,
+      "memory_expression_equal": true,
+      "changed_registers": [
+        "x0"
+      ]
+    },
+    {
+      "case": "signed_load_changed",
+      "status": "DIFFERENT",
+      "domain": true,
+      "x0_equal": false,
+      "return_target_equal": true,
+      "memory_expression_equal": true,
+      "changed_registers": [
+        "x0"
+      ]
+    },
+    {
+      "case": "empty_domain",
+      "status": "INVALID_PRECONDITION",
+      "domain": false
+    },
+    {
+      "case": "contradictory_domain",
+      "status": "INVALID_PRECONDITION",
+      "domain": false
+    },
+    {
+      "case": "callee_saved_changed",
+      "status": "DIFFERENT",
+      "domain": true,
+      "x0_equal": true,
+      "return_target_equal": true,
+      "memory_expression_equal": true,
+      "changed_registers": [
+        "x19"
+      ]
+    },
+    {
+      "case": "stack_changed",
+      "status": "DIFFERENT",
+      "domain": true,
+      "x0_equal": true,
+      "return_target_equal": true,
+      "memory_expression_equal": true,
+      "changed_registers": [
+        "sp"
+      ]
+    }
+  ],
+  "review_explanation": "docs/m0-s-exit-review.md",
+  "historical_matrix_flag": {
+    "name": "full_m0_s_exit_satisfied",
+    "value": false,
+    "unchanged": true,
+    "reason": "The matrix producer never makes a cross-evidence milestone decision. Historical bytes and runtime behavior are not rewritten."
+  },
+  "additional_byte_helper_work": "Independent load_le/store_le literals, actual compiled wrapper bytes and negative cases are a separate bounded evidence extension; not a retroactive prerequisite for this original prototype decision.",
+  "unverified_extensions": [
+    "all capability encodings and all-input independent proofs",
+    "all packaged helpers and compiler configurations",
+    "original calling ABI and caller object/pointer validity",
+    "arbitrary C++ source UB",
+    "general loops, floating point, atomics and other unsupported ISA",
+    "M1 persistent host memory context",
+    "whole-library and Android/JNI closure",
+    "real DSH/M0-R and throughput/cost",
+    "full V1 release"
+  ],
+  "quality_boundaries": {
+    "maximum_artifact_level": "A1",
+    "original_calling_abi_verified": false,
+    "whole_program_equivalence": false,
+    "all_helpers_independently_verified": false,
+    "full_processor_semantics_verified": false,
+    "dsh_model_acceptance_verified": false,
+    "v1_complete": false,
+    "target_or_candidate_executed": false
+  },
+  "review_execution_policy": {
+    "existing_artifacts_read": true,
+    "solver_rerun_for_this_review": false,
+    "compiler_rerun_for_this_review": false,
+    "target_or_candidate_executed": false
+  },
+  "review_document_sha256": "04576c774a06be9d470281852470ed4df43422a9123d3d82dc65738822a40806",
+  "additional_byte_helper_acceptance_record": "docs/acceptance/2026-10-19-byte-helpers.json"
+}
